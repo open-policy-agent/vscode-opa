@@ -1,0 +1,79 @@
+{
+    "name": "opa",
+    "displayName": "Open Policy Agent",
+    "description": "Develop, test, debug, and analyze policies for the Open Policy Agent project.",
+    "version": "0.0.1",
+    "publisher": "Open Policy Agent",
+    "engines": {
+        "vscode": "^1.21.0"
+    },
+    "categories": [
+        "Languages"
+    ],
+    "activationEvents": [
+        "onCommand:extension.evalSelection",
+        "onCommand:extension.evalPackage",
+        "onCommand:extension.testWorkspace",
+        "onCommand:extension.toggleWorkspaceCoverage",
+        "onCommand:extension.traceSelection"
+    ],
+    "main": "./out/extension",
+    "contributes": {
+        "commands": [
+            {
+                "command": "extension.evalPackage",
+                "title": "OPA: Evaluate Package"
+            },
+            {
+                "command": "extension.evalSelection",
+                "title": "OPA: Evaluate Selection"
+            },
+            {
+                "command": "extension.testWorkspace",
+                "title": "OPA: Test Workspace"
+            },
+            {
+                "command": "extension.toggleWorkspaceCoverage",
+                "title": "OPA: Toggle Workspace Coverage"
+            },
+            {
+                "command": "extension.traceSelection",
+                "title": "OPA: Trace Selection"
+            }
+        ],
+        "languages": [
+            {
+                "id": "rego",
+                "aliases": [
+                    "Rego",
+                    "rego"
+                ],
+                "extensions": [
+                    ".rego"
+                ],
+                "configuration": "./language-configuration.json"
+            }
+        ],
+        "grammars": [
+            {
+                "language": "rego",
+                "scopeName": "source.rego",
+                "path": "./syntaxes/rego.tmLanguage"
+            }
+        ]
+    },
+    "scripts": {
+        "vscode:prepublish": "npm run compile",
+        "compile": "tsc -p ./",
+        "watch": "tsc -watch -p ./",
+        "postinstall": "node ./node_modules/vscode/bin/install",
+        "test": "npm run compile && node ./node_modules/vscode/bin/test"
+    },
+    "devDependencies": {
+        "typescript": "^2.6.1",
+        "vscode": "^1.1.6",
+        "tslint": "^5.8.0",
+        "@types/node": "^7.0.43",
+        "@types/mocha": "^2.2.42"
+    }
+}
