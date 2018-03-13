@@ -8,6 +8,8 @@
 * Run Tests in Workspace
 * Toggle Coverage in Worskspace
 
+![Eval](https://raw.githubusercontent.com/tsandall/vscode-opa/master/eval.gif)
+
 ## Requirements
 
 You should have the latest version of OPA installed on your machine. The `opa`
