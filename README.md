@@ -18,8 +18,12 @@ executable must be available in your `$PATH`.
 ## Install
 
 This extension is still under early development. To install the extension, clone
-this repository into your VS Code extensions directory. For example:
+this repository into your VS Code extensions directory and build the extension
+from source. For example:
 
 ```bash
 git clone https://github.com/tsandall/vscode-opa ~/.vscode/extensions/vscode-opa
+cd ~/.vscode/extensions/vscode-opa
+npm install
+npm run compile
 ```
