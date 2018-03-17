@@ -12,8 +12,26 @@
 
 ## Requirements
 
-You should have the latest version of OPA installed on your machine. The `opa`
-executable must be available in your `$PATH`.
+The plugin requires the latest version of the [Open Policy Agent](https://github.com/open-policy-agent/opa) and the `opa` executable must be installed in your `$PATH`. For example:
+
+1. Clone OPA repository to build from source.
+
+    ```bash
+    git clone https://github.com/open-policy-agent/opa.git ~/go/src/github.com/open-policy-agent/opa
+    ```
+
+1. Build OPA from source and install into `$GOPATH/bin`.
+
+    ```
+    cd ~/go/src/github.com/open-policy-agent/opa
+    make install
+    ```
+
+1. Add `~/go/bin` to your `$PATH`.
+
+    ```
+    export PATH=$PATH:~/go/bin
+    ```
 
 ## Install
 
