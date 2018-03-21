@@ -3,7 +3,7 @@
     "displayName": "Open Policy Agent",
     "description": "Develop, test, debug, and analyze policies for the Open Policy Agent project.",
     "version": "0.0.1",
-    "publisher": "Open Policy Agent",
+    "publisher": "tsandall",
     "engines": {
         "vscode": "^1.21.0"
     },
