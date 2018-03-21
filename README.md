@@ -48,6 +48,6 @@ npm run compile
 
 ## ROADMAP
 
-[ ] run `opa check` on file change to catch compile errors
-[ ] run `opa fmt` no save to reformat file
-[ ] run `opa test` on package (current support tests entire workspace)
+* [ ] run `opa check` on file change to catch compile errors
+* [ ] run `opa fmt` no save to reformat file
+* [ ] run `opa test` on package (current support tests entire workspace)
