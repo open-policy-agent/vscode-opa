@@ -114,7 +114,7 @@ function removeCoverage() {
 
 function activateCoverWorkspace(context: vscode.ExtensionContext) {
 
-    var coverWorkspaceCommand = vscode.commands.registerCommand('extension.toggleWorkspaceCoverage', () => {
+    var coverWorkspaceCommand = vscode.commands.registerCommand('opa.test.coverage.workspace', () => {
 
         let editor = vscode.window.activeTextEditor;
         if (!editor) {
@@ -176,7 +176,7 @@ function activateEvalPackage(context: vscode.ExtensionContext) {
     const provider = new JSONProvider();
     const registration = vscode.workspace.registerTextDocumentContentProvider(uri.scheme, provider);
 
-    var evalPackageCommand = vscode.commands.registerCommand('extension.evalPackage', onActiveWorkspaceEditor(uri, (editor: vscode.TextEditor) => {
+    var evalPackageCommand = vscode.commands.registerCommand('opa.eval.package', onActiveWorkspaceEditor(uri, (editor: vscode.TextEditor) => {
 
         parseOPA('opa', editor.document.uri.path, (pkg: string, _: Array<string>) => {
 
@@ -215,7 +215,7 @@ function activateEvalSelection(context: vscode.ExtensionContext) {
     const provider = new JSONProvider();
     const registration = vscode.workspace.registerTextDocumentContentProvider(uri.scheme, provider);
 
-    var evalSelectionCommand = vscode.commands.registerCommand('extension.evalSelection', onActiveWorkspaceEditor(uri, (editor: vscode.TextEditor) => {
+    var evalSelectionCommand = vscode.commands.registerCommand('opa.eval.selection', onActiveWorkspaceEditor(uri, (editor: vscode.TextEditor) => {
 
         parseOPA('opa', editor.document.uri.path, (pkg: string, imports: Array<string>) => {
 
@@ -263,7 +263,7 @@ function activateEvalSelection(context: vscode.ExtensionContext) {
 
 function activateTestWorkspace(context: vscode.ExtensionContext) {
 
-    var testWorkspaceCommand = vscode.commands.registerCommand('extension.testWorkspace', () => {
+    var testWorkspaceCommand = vscode.commands.registerCommand('opa.test.workspace', () => {
         testOutputChannel.show(true);
         testOutputChannel.clear();
 
@@ -290,7 +290,7 @@ function activateTraceSelection(context: vscode.ExtensionContext) {
     const provider = new TraceProvider();
     const registration = vscode.workspace.registerTextDocumentContentProvider(uri.scheme, provider);
 
-    var traceSelectionCommand = vscode.commands.registerCommand('extension.traceSelection', onActiveWorkspaceEditor(uri, (editor: vscode.TextEditor) => {
+    var traceSelectionCommand = vscode.commands.registerCommand('opa.trace.selection', onActiveWorkspaceEditor(uri, (editor: vscode.TextEditor) => {
 
         let text = editor.document.getText(editor.selection);
 
