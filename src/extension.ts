@@ -2,6 +2,7 @@
 
 import * as vscode from 'vscode';
 import cp = require('child_process');
+var commandExistsSync = require('command-exists').sync;
 var fs = require('fs');
 var path = require('path');
 
@@ -396,6 +397,11 @@ function runOPA(path: string, args: Array<string>, stdin: string, cb: (error: st
 // callback is invoked with the exit status, stderr, and stdout buffers.
 function runOPAStatus(path: string, args: Array<string>, stdin: string, cb: (code: number, stderr: string, stdout: string) => void) {
 
+    if (!commandExistsSync(path)) {
+        cb(199, path + ' does not exist in $PATH. Check that OPA executable is installed into $PATH and VS Code was started with correct $PATH.', '');
+        return;
+    }
+
     let proc = cp.spawn(path, args);
 
     proc.stdin.write(stdin);
@@ -417,6 +423,7 @@ function runOPAStatus(path: string, args: Array<string>, stdin: string, cb: (cod
         console.log("stderr:", stderr);
         cb(code, stderr, stdout);
     });
+
 }
 
 /**
