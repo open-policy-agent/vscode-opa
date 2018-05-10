@@ -2,11 +2,12 @@
 
 import * as vscode from 'vscode';
 import cp = require('child_process');
-var commandExistsSync = require('command-exists').sync;
-var fs = require('fs');
-var path = require('path');
+const commandExistsSync = require('command-exists').sync;
+const fs = require('fs');
+const path = require('path');
 
 let testOutputChannel = vscode.window.createOutputChannel('OPA Tests');
+let checkOutputChannel = vscode.window.createOutputChannel('OPA Checks');
 
 export class TraceProvider implements vscode.TextDocumentContentProvider {
 
@@ -73,7 +74,7 @@ let notCoveredHighlight = vscode.window.createTextEditorDecorationType({
 });
 
 interface UntypedObject {
-    [key: string]: any
+    [key: string]: any;
 }
 
 let fileCoverage: UntypedObject = {};
@@ -82,7 +83,7 @@ function showCoverageOnEditorChange(editor: vscode.TextEditor | undefined) {
     if (!editor) {
         return;
     }
-    showCoverageForEditor(editor)
+    showCoverageForEditor(editor);
 }
 
 function removeCoverageOnDocumentChange(e: vscode.TextDocumentChangeEvent) {
@@ -96,7 +97,7 @@ function showCoverageForEditor(editor: vscode.TextEditor) {
                 value.setDecorations(coveredHighlight, fileCoverage[fileName].covered);
                 value.setDecorations(notCoveredHighlight, fileCoverage[fileName].notCovered);
             }
-        })
+        });
     });
 }
 
@@ -162,7 +163,7 @@ function activateCoverWorkspace(context: vscode.ExtensionContext) {
                 });
                 vscode.window.visibleTextEditors.forEach((value, index, obj) => {
                     showCoverageForEditor(value);
-                })
+                });
 
             }
         });
@@ -177,9 +178,9 @@ function activateEvalPackage(context: vscode.ExtensionContext) {
     const provider = new JSONProvider();
     const registration = vscode.workspace.registerTextDocumentContentProvider(uri.scheme, provider);
 
-    var evalPackageCommand = vscode.commands.registerCommand('opa.eval.package', onActiveWorkspaceEditor(uri, (editor: vscode.TextEditor) => {
+    const evalPackageCommand = vscode.commands.registerCommand('opa.eval.package', onActiveWorkspaceEditor(uri, (editor: vscode.TextEditor) => {
 
-        parseOPA('opa', editor.document.uri.path, (pkg: string, _: Array<string>) => {
+        parseOPA('opa', editor.document.uri.path, (pkg: string, _: string[]) => {
 
             let rootPath = vscode.workspace.workspaceFolders![0].uri.fsPath;
             let args: string[] = ['eval'];
@@ -216,9 +217,9 @@ function activateEvalSelection(context: vscode.ExtensionContext) {
     const provider = new JSONProvider();
     const registration = vscode.workspace.registerTextDocumentContentProvider(uri.scheme, provider);
 
-    var evalSelectionCommand = vscode.commands.registerCommand('opa.eval.selection', onActiveWorkspaceEditor(uri, (editor: vscode.TextEditor) => {
+    const evalSelectionCommand = vscode.commands.registerCommand('opa.eval.selection', onActiveWorkspaceEditor(uri, (editor: vscode.TextEditor) => {
 
-        parseOPA('opa', editor.document.uri.path, (pkg: string, imports: Array<string>) => {
+        parseOPA('opa', editor.document.uri.path, (pkg: string, imports: string[]) => {
 
             let rootPath = vscode.workspace.workspaceFolders![0].uri.fsPath;
             let args: string[] = ['eval'];
@@ -246,7 +247,7 @@ function activateEvalSelection(context: vscode.ExtensionContext) {
                     if (result.result === undefined) {
                         provider.set(uri, "// No results found.", undefined);
                     } else {
-                        var output: any;
+                        let output: any;
                         if (result.result[0].bindings === undefined) {
                             output = result.result.map((x: any) => x.expressions.map((x: any) => x.value));
                         } else {
@@ -264,7 +265,7 @@ function activateEvalSelection(context: vscode.ExtensionContext) {
 
 function activateTestWorkspace(context: vscode.ExtensionContext) {
 
-    var testWorkspaceCommand = vscode.commands.registerCommand('opa.test.workspace', () => {
+    const testWorkspaceCommand = vscode.commands.registerCommand('opa.test.workspace', () => {
         testOutputChannel.show(true);
         testOutputChannel.clear();
 
@@ -291,11 +292,11 @@ function activateTraceSelection(context: vscode.ExtensionContext) {
     const provider = new TraceProvider();
     const registration = vscode.workspace.registerTextDocumentContentProvider(uri.scheme, provider);
 
-    var traceSelectionCommand = vscode.commands.registerCommand('opa.trace.selection', onActiveWorkspaceEditor(uri, (editor: vscode.TextEditor) => {
+    const traceSelectionCommand = vscode.commands.registerCommand('opa.trace.selection', onActiveWorkspaceEditor(uri, (editor: vscode.TextEditor) => {
 
         let text = editor.document.getText(editor.selection);
 
-        parseOPA('opa', editor.document.uri.path, (pkg: string, imports: Array<string>) => {
+        parseOPA('opa', editor.document.uri.path, (pkg: string, imports: string[]) => {
 
             let rootPath = vscode.workspace.workspaceFolders![0].uri.fsPath;
             let args: string[] = ['eval'];
@@ -369,7 +370,7 @@ function onActiveWorkspaceEditor(forURI: vscode.Uri, cb: (editor: vscode.TextEdi
  * Helpers for executing OPA as a subprocess.
  */
 
-function parseOPA(opaPath: string, path: string, cb: (pkg: string, imports: Array<string>) => void) {
+function parseOPA(opaPath: string, path: string, cb: (pkg: string, imports: string[]) => void) {
     runOPA(opaPath, ['parse', path, '--format', 'json'], '', (error: string, result: any) => {
         if (error !== '') {
             vscode.window.showErrorMessage(error);
@@ -383,7 +384,7 @@ function parseOPA(opaPath: string, path: string, cb: (pkg: string, imports: Arra
 
 // runOPA executes the OPA binary at path with args and stdin.  The callback is
 // invoked with an error message on failure or JSON object on success.
-function runOPA(path: string, args: Array<string>, stdin: string, cb: (error: string, result: any) => void) {
+function runOPA(path: string, args: string[], stdin: string, cb: (error: string, result: any) => void) {
     runOPAStatus(path, args, stdin, (code: number, stderr: string, stdout: string) => {
         if (code !== 0) {
             cb(stderr, '');
@@ -395,7 +396,7 @@ function runOPA(path: string, args: Array<string>, stdin: string, cb: (error: st
 
 // runOPAStatus executes the OPA binary at path with args and stdin. The
 // callback is invoked with the exit status, stderr, and stdout buffers.
-function runOPAStatus(path: string, args: Array<string>, stdin: string, cb: (code: number, stderr: string, stdout: string) => void) {
+function runOPAStatus(path: string, args: string[], stdin: string, cb: (code: number, stderr: string, stdout: string) => void) {
 
     if (!commandExistsSync(path)) {
         cb(199, path + ' does not exist in $PATH. Check that OPA executable is installed into $PATH and VS Code was started with correct $PATH.', '');
@@ -434,7 +435,7 @@ function getPackage(parsed: any): string {
     return getPathString(parsed["package"].path.slice(1));
 }
 
-function getImports(parsed: any): Array<string> {
+function getImports(parsed: any): string[] {
     if (parsed.imports !== undefined) {
         return parsed.imports.map((x: any) => {
             let str = getPathString(x.path.value);
