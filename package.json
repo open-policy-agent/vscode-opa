@@ -12,7 +12,7 @@
         "vscode": "^1.21.0"
     },
     "categories": [
-        "Languages"
+        "Programming Languages"
     ],
     "activationEvents": [
         "onLanguage:rego"
