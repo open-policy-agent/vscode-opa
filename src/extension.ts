@@ -55,6 +55,7 @@ export function activate(context: vscode.ExtensionContext) {
     vscode.window.onDidChangeActiveTextEditor(showCoverageOnEditorChange, null, context.subscriptions);
     vscode.workspace.onDidChangeTextDocument(removeCoverageOnDocumentChange, null, context.subscriptions);
 
+    activateCheckFile(context);
     activateCoverWorkspace(context);
     activateEvalPackage(context);
     activateEvalSelection(context);
@@ -108,15 +109,46 @@ function removeCoverage() {
                 value.setDecorations(coveredHighlight, []);
                 value.setDecorations(notCoveredHighlight, []);
             }
-        })
+        });
     });
     fileCoverage = {};
 }
 
+function activateCheckFile(context: vscode.ExtensionContext) {
+    const checkRegoFile = () => {
+        let editor = vscode.window.activeTextEditor;
+        if (!editor) {
+            return;
+        }
+        const doc = editor.document;
+
+        // Only check rego files
+        if (doc.languageId === 'rego') {
+
+            const filePath = doc.uri.fsPath;
+
+            runOPAStatus('opa', ['check', filePath], '', (code: number, stderr: string, stdout: string) => {
+                let output = stdout;
+                if (output.trim() !== '') {
+                    checkOutputChannel.show(true);
+                    checkOutputChannel.clear();
+                    checkOutputChannel.append(stdout);
+                } else {
+                    checkOutputChannel.clear();
+                    checkOutputChannel.hide();
+                }
+            });
+        }
+    };
+    const checkFileCommand = vscode.commands.registerCommand('opa.check.file', checkRegoFile);
+    vscode.workspace.onDidSaveTextDocument(checkRegoFile, null, context.subscriptions);
+
+    context.subscriptions.push(checkFileCommand);
+}
 
 function activateCoverWorkspace(context: vscode.ExtensionContext) {
 
-    var coverWorkspaceCommand = vscode.commands.registerCommand('opa.test.coverage.workspace', () => {
+    const coverWorkspaceCommand = vscode.commands.registerCommand('opa.test.coverage.workspace', () => {
 
         let editor = vscode.window.activeTextEditor;
         if (!editor) {

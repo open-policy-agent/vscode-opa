@@ -21,6 +21,10 @@
     "contributes": {
         "commands": [
             {
+                "command": "opa.check.file",
+                "title": "OPA: Check File Syntax"
+            },
+            {
                 "command": "opa.eval.package",
                 "title": "OPA: Evaluate Package"
             },
