@@ -1,5 +1,6 @@
 {
     "name": "opa",
+    "icon": "logo.png",
     "displayName": "Open Policy Agent",
     "repository": {
         "type": "git",
