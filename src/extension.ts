@@ -212,7 +212,7 @@ function activateEvalPackage(context: vscode.ExtensionContext) {
 
     const evalPackageCommand = vscode.commands.registerCommand('opa.eval.package', onActiveWorkspaceEditor(uri, (editor: vscode.TextEditor) => {
 
-        parseOPA('opa', editor.document.uri.path, (pkg: string, _: string[]) => {
+        parseOPA('opa', editor.document.uri.fsPath, (pkg: string, _: string[]) => {
 
             let rootPath = vscode.workspace.workspaceFolders![0].uri.fsPath;
             let args: string[] = ['eval'];
@@ -251,7 +251,7 @@ function activateEvalSelection(context: vscode.ExtensionContext) {
 
     const evalSelectionCommand = vscode.commands.registerCommand('opa.eval.selection', onActiveWorkspaceEditor(uri, (editor: vscode.TextEditor) => {
 
-        parseOPA('opa', editor.document.uri.path, (pkg: string, imports: string[]) => {
+        parseOPA('opa', editor.document.uri.fsPath, (pkg: string, imports: string[]) => {
 
             let rootPath = vscode.workspace.workspaceFolders![0].uri.fsPath;
             let args: string[] = ['eval'];
@@ -328,7 +328,7 @@ function activateTraceSelection(context: vscode.ExtensionContext) {
 
         let text = editor.document.getText(editor.selection);
 
-        parseOPA('opa', editor.document.uri.path, (pkg: string, imports: string[]) => {
+        parseOPA('opa', editor.document.uri.fsPath, (pkg: string, imports: string[]) => {
 
             let rootPath = vscode.workspace.workspaceFolders![0].uri.fsPath;
             let args: string[] = ['eval'];
