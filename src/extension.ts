@@ -1,13 +1,13 @@
 'use strict';
 
+import * as fs from 'fs';
+import * as path from 'path';
 import * as vscode from 'vscode';
-import cp = require('child_process');
-const commandExistsSync = require('command-exists').sync;
-const fs = require('fs');
-const path = require('path');
 
-let testOutputChannel = vscode.window.createOutputChannel('OPA Tests');
-let checkOutputChannel = vscode.window.createOutputChannel('OPA Checks');
+import * as opa from './opa';
+import { getPrettyTime } from './util';
+
+export let opaOutputChannel = vscode.window.createOutputChannel('OPA');
 
 export class TraceProvider implements vscode.TextDocumentContentProvider {
 
@@ -127,21 +127,23 @@ function activateCheckFile(context: vscode.ExtensionContext) {
 
             const filePath = doc.uri.fsPath;
 
-            runOPAStatus('opa', ['check', filePath], '', (code: number, stderr: string, stdout: string) => {
+            opa.runWithStatus('opa', ['check', filePath], '', (code: number, stderr: string, stdout: string) => {
                 let output = stdout;
                 if (output.trim() !== '') {
-                    checkOutputChannel.show(true);
-                    checkOutputChannel.clear();
-                    checkOutputChannel.append(stdout);
+                    opaOutputChannel.show(true);
+                    opaOutputChannel.clear();
+                    opaOutputChannel.append(stdout);
                 } else {
-                    checkOutputChannel.clear();
-                    checkOutputChannel.hide();
+                    opaOutputChannel.clear();
+                    opaOutputChannel.hide();
                 }
             });
         }
     };
     const checkFileCommand = vscode.commands.registerCommand('opa.check.file', checkRegoFile);
-    vscode.workspace.onDidSaveTextDocument(checkRegoFile, null, context.subscriptions);
+    // Need to use onWillSave instead of onDidSave because there's a weird race condition
+    // that causes the callback to get called twice when we prompt for installing OPA
+    vscode.workspace.onWillSaveTextDocument(checkRegoFile, null, context.subscriptions);
 
     context.subscriptions.push(checkFileCommand);
 }
@@ -165,11 +167,11 @@ function activateCoverWorkspace(context: vscode.ExtensionContext) {
         let rootPath = vscode.workspace.workspaceFolders![0].uri.fsPath;
         fileCoverage = {};
 
-        runOPA('opa', ['test', '--coverage', '--format', 'json', rootPath], '', (error: string, result: any) => {
+        opa.run('opa', ['test', '--coverage', '--format', 'json', rootPath], '', (error: string, result: any) => {
             if (error !== '') {
-                testOutputChannel.clear();
-                testOutputChannel.append(error);
-                testOutputChannel.show(true);
+                opaOutputChannel.clear();
+                opaOutputChannel.append(error);
+                opaOutputChannel.show(true);
             } else {
                 Object.keys(result.files).forEach(fileName => {
                     let report = result.files[fileName];
@@ -212,7 +214,8 @@ function activateEvalPackage(context: vscode.ExtensionContext) {
 
     const evalPackageCommand = vscode.commands.registerCommand('opa.eval.package', onActiveWorkspaceEditor(uri, (editor: vscode.TextEditor) => {
 
-        parseOPA('opa', editor.document.uri.fsPath, (pkg: string, _: string[]) => {
+
+        opa.parse('opa', editor.document.uri.fsPath, (pkg: string, _: string[]) => {
 
             let rootPath = vscode.workspace.workspaceFolders![0].uri.fsPath;
             let args: string[] = ['eval'];
@@ -227,7 +230,7 @@ function activateEvalPackage(context: vscode.ExtensionContext) {
                 args.push('--input', inputPath);
             }
 
-            runOPA('opa', args, 'data.' + pkg, (error: string, result: any) => {
+            opa.run('opa', args, 'data.' + pkg, (error: string, result: any) => {
                 if (error !== '') {
                     vscode.window.showErrorMessage(error);
                 } else {
@@ -251,7 +254,8 @@ function activateEvalSelection(context: vscode.ExtensionContext) {
 
     const evalSelectionCommand = vscode.commands.registerCommand('opa.eval.selection', onActiveWorkspaceEditor(uri, (editor: vscode.TextEditor) => {
 
-        parseOPA('opa', editor.document.uri.fsPath, (pkg: string, imports: string[]) => {
+
+        opa.parse('opa', editor.document.uri.fsPath, (pkg: string, imports: string[]) => {
 
             let rootPath = vscode.workspace.workspaceFolders![0].uri.fsPath;
             let args: string[] = ['eval'];
@@ -272,7 +276,7 @@ function activateEvalSelection(context: vscode.ExtensionContext) {
 
             let text = editor.document.getText(editor.selection);
 
-            runOPA('opa', args, text, (error: string, result: any) => {
+            opa.run('opa', args, text, (error: string, result: any) => {
                 if (error !== '') {
                     vscode.window.showErrorMessage(error);
                 } else {
@@ -298,8 +302,8 @@ function activateEvalSelection(context: vscode.ExtensionContext) {
 function activateTestWorkspace(context: vscode.ExtensionContext) {
 
     const testWorkspaceCommand = vscode.commands.registerCommand('opa.test.workspace', () => {
-        testOutputChannel.show(true);
-        testOutputChannel.clear();
+        opaOutputChannel.show(true);
+        opaOutputChannel.clear();
 
         let rootPath = vscode.workspace.workspaceFolders![0].uri.fsPath;
         let args: string[] = ['test'];
@@ -307,9 +311,9 @@ function activateTestWorkspace(context: vscode.ExtensionContext) {
         args.push('--verbose');
         args.push(rootPath);
 
-        runOPAStatus('opa', args, '', (code: number, stderr: string, stdout: string) => {
+        opa.runWithStatus('opa', args, '', (code: number, stderr: string, stdout: string) => {
             if (code === 0 || code === 2) {
-                testOutputChannel.append(stdout);
+                opaOutputChannel.append(stdout);
             } else {
                 vscode.window.showErrorMessage(stderr);
             }
@@ -328,7 +332,8 @@ function activateTraceSelection(context: vscode.ExtensionContext) {
 
         let text = editor.document.getText(editor.selection);
 
-        parseOPA('opa', editor.document.uri.fsPath, (pkg: string, imports: string[]) => {
+
+        opa.parse('opa', editor.document.uri.fsPath, (pkg: string, imports: string[]) => {
 
             let rootPath = vscode.workspace.workspaceFolders![0].uri.fsPath;
             let args: string[] = ['eval'];
@@ -348,7 +353,7 @@ function activateTraceSelection(context: vscode.ExtensionContext) {
 
             args.push('--explain', 'full');
 
-            runOPA('opa', args, text, (error: string, result: any) => {
+            opa.run('opa', args, text, (error: string, result: any) => {
                 if (error !== '') {
                     vscode.window.showErrorMessage(error);
                 } else {
@@ -396,115 +401,6 @@ function onActiveWorkspaceEditor(forURI: vscode.Uri, cb: (editor: vscode.TextEdi
 
         cb(editor);
     };
-}
-
-/**
- * Helpers for executing OPA as a subprocess.
- */
-
-function parseOPA(opaPath: string, path: string, cb: (pkg: string, imports: string[]) => void) {
-    runOPA(opaPath, ['parse', path, '--format', 'json'], '', (error: string, result: any) => {
-        if (error !== '') {
-            vscode.window.showErrorMessage(error);
-        } else {
-            let pkg = getPackage(result);
-            let imports = getImports(result);
-            cb(pkg, imports);
-        }
-    });
-}
-
-// runOPA executes the OPA binary at path with args and stdin.  The callback is
-// invoked with an error message on failure or JSON object on success.
-function runOPA(path: string, args: string[], stdin: string, cb: (error: string, result: any) => void) {
-    runOPAStatus(path, args, stdin, (code: number, stderr: string, stdout: string) => {
-        if (code !== 0) {
-            cb(stderr, '');
-        } else {
-            cb('', JSON.parse(stdout));
-        }
-    });
-}
-
-// runOPAStatus executes the OPA binary at path with args and stdin. The
-// callback is invoked with the exit status, stderr, and stdout buffers.
-function runOPAStatus(path: string, args: string[], stdin: string, cb: (code: number, stderr: string, stdout: string) => void) {
-
-    if (!commandExistsSync(path)) {
-        cb(199, path + ' does not exist in $PATH. Check that OPA executable is installed into $PATH and VS Code was started with correct $PATH.', '');
-        return;
-    }
-
-    let proc = cp.spawn(path, args);
-
-    proc.stdin.write(stdin);
-    proc.stdin.end();
-    let stdout = "";
-    let stderr = "";
-
-    proc.stdout.on('data', (data) => {
-        stdout += data;
-    });
-
-    proc.stderr.on('data', (data) => {
-        stderr += data;
-    });
-
-    proc.on('exit', (code, signal) => {
-        console.log("code:", code);
-        console.log("stdout:", stdout);
-        console.log("stderr:", stderr);
-        cb(code, stderr, stdout);
-    });
-
-}
-
-/**
- * String helpers for OPA types.
- */
-
-function getPackage(parsed: any): string {
-    return getPathString(parsed["package"].path.slice(1));
-}
-
-function getImports(parsed: any): string[] {
-    if (parsed.imports !== undefined) {
-        return parsed.imports.map((x: any) => {
-            let str = getPathString(x.path.value);
-            if (!x.alias) {
-                return str;
-            }
-            return str + " as " + x.alias;
-        });
-    }
-    return [];
-}
-
-function getPathString(path: any): string {
-    let i = -1;
-    return path.map((x: any) => {
-        i++;
-        if (i === 0) {
-            return x.value;
-        } else {
-            if (x.value.match('^[a-zA-Z_][a-zA-Z_0-9]*$')) {
-                return "." + x.value;
-            }
-            return '["' + x.value + '"]';
-        }
-    }).join('');
-}
-
-function getPrettyTime(ns: number): string {
-    let seconds = ns / 1e9;
-    if (seconds >= 1) {
-        return seconds.toString() + 's';
-    }
-    let milliseconds = ns / 1e6;
-    if (milliseconds >= 1) {
-        return milliseconds.toString() + 'ms';
-    }
-    return (ns / 1e3).toString() + 'µs';
 }
 
 export function deactivate() {

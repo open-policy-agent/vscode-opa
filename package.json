@@ -46,6 +46,17 @@
                 "title": "OPA: Trace Selection"
             }
         ],
+        "configuration": {
+            "type": "object",
+            "title": "OPA Configuration",
+            "properties": {
+                "opa.path": {
+                    "type": ["string", "null"],
+                    "default": null,
+                    "description": "Path of the OPA executable."
+                }
+            }
+        },
         "languages": [
             {
                 "id": "rego",
