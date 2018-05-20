@@ -77,7 +77,7 @@
             {
                 "language": "rego",
                 "scopeName": "source.rego",
-                "path": "./syntaxes/rego.tmLanguage"
+                "path": "./syntaxes/Rego.tmLanguage"
             }
         ]
     },
