@@ -19,6 +19,32 @@ This plugin requires the [Open Policy Agent](https://github.com/open-policy-agen
 
 Search for "Open Policy Agent" in the Extensions (Shift ⌘ X) panel and then install and reload the extension.
 
+## Tips
+
+### Bind keyboard shortcuts for frequently used commands.
+
+Open the keyboard shortcuts file (`keybindings.json`) for VS Code (⌘ Shift p → `Preferences: Open Keyboard Shortcuts File`) and add the following JSON snippets.
+
+Bind the `OPA: Evaluate Selection` command to a keyboard shortcut (e.g., ⌘ e) to quickly evaluate visually selected blocks in the policy.
+
+```json
+{
+    "key": "cmd+e",
+    "command": "opa.eval.selection",
+    "when": "editorLangId == rego"
+}
+```
+
+Bind the `OPA: Evaluate Package` command to a keyboard shortcut (e.g., ⌘ Shift a) to quickly evaluate the entire package adn see all of the decisions.
+
+```json
+{
+    "key": "shift+cmd+a",
+    "command": "opa.eval.package",
+    "when": "editorLangId == rego"
+}
+```
+
 ## Development
 
 If you want to hack on the extension itself, you should clone this repository and use Visual Studio Code's Debugger (F5) to test your changes.
