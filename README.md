@@ -6,6 +6,7 @@
 * Evaluate Packages
 * Evaluate Selections
 * Trace Selections
+* Profile Selections
 * Run Tests in Workspace
 * Toggle Coverage in Worskspace
 
@@ -14,7 +15,6 @@
 ## Requirements
 
 * This plugin requires the [Open Policy Agent](https://github.com/open-policy-agent/opa) executable (`opa`) to be installed in your $PATH. Alternatively, you can configure the `opa.path` setting to point to the executable. If you do not have OPA installed, the plugin will prompt you to install the executable the first time you evaluate a policy, run tests, etc.
-* You may need to run `npm install` to install any missing dependencies.
 
 ## Installation
 
@@ -48,7 +48,7 @@ Bind the `OPA: Evaluate Package` command to a keyboard shortcut (e.g., ⌘ Shift
 
 ## Development
 
-If you want to hack on the extension itself, you should clone this repository and use Visual Studio Code's Debugger (F5) to test your changes.
+If you want to hack on the extension itself, you should clone this repository, install the dependencies (`npm install`) and use Visual Studio Code's Debugger (F5) to test your changes.
 
 ## ROADMAP
 
