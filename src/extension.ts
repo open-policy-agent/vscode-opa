@@ -9,25 +9,6 @@ import { getPrettyTime } from './util';
 
 export let opaOutputChannel = vscode.window.createOutputChannel('OPA');
 
-export class TraceProvider implements vscode.TextDocumentContentProvider {
-
-    private _onDidChange = new vscode.EventEmitter<vscode.Uri>();
-    private content = "";
-
-    public provideTextDocumentContent(uri: vscode.Uri): string {
-        return this.content;
-    }
-
-    get onDidChange(): vscode.Event<vscode.Uri> {
-        return this._onDidChange.event;
-    }
-
-    public set(uri: vscode.Uri, trace: any) {
-        this.content = trace.join("\n");
-        this._onDidChange.fire(uri);
-    }
-}
-
 export class JSONProvider implements vscode.TextDocumentContentProvider {
 
     private _onDidChange = new vscode.EventEmitter<vscode.Uri>();
@@ -326,14 +307,13 @@ function activateTestWorkspace(context: vscode.ExtensionContext) {
 }
 
 function activateTraceSelection(context: vscode.ExtensionContext) {
-    const uri = vscode.Uri.parse(`opa+trace://trace/output.trace`);
-    const provider = new TraceProvider();
-    const registration = vscode.workspace.registerTextDocumentContentProvider(uri.scheme, provider);
+    const traceSelectionCommand = vscode.commands.registerCommand('opa.trace.selection', () => {
 
-    const traceSelectionCommand = vscode.commands.registerCommand('opa.trace.selection', onActiveWorkspaceEditor(uri, (editor: vscode.TextEditor) => {
-
+        let editor = vscode.window.activeTextEditor;
+        if (!editor) {
+            return;
+        }
         let text = editor.document.getText(editor.selection);
-
 
         opa.parse('opa', editor.document.uri.fsPath, (pkg: string, imports: string[]) => {
 
@@ -343,6 +323,7 @@ function activateTraceSelection(context: vscode.ExtensionContext) {
             args.push('--stdin');
             args.push('--data', rootPath);
             args.push('--package', pkg);
+            args.push('--format', 'pretty');
 
             let inputPath = path.join(rootPath, 'input.json');
             if (fs.existsSync(inputPath)) {
@@ -355,17 +336,20 @@ function activateTraceSelection(context: vscode.ExtensionContext) {
 
             args.push('--explain', 'full');
 
-            opa.run('opa', args, text, (error: string, result: any) => {
-                if (error !== '') {
-                    vscode.window.showErrorMessage(error);
+            opa.runWithStatus('opa', args, text, (code: number, stderr: string, stdout: string) => {
+                opaOutputChannel.show(true);
+                opaOutputChannel.clear();
+
+                if (code === 0 || code === 2) {
+                    opaOutputChannel.append(stdout);
                 } else {
-                    provider.set(uri, result.explanation);
+                    vscode.window.showErrorMessage(stderr);
                 }
             });
         });
-    }));
+    });
 
-    context.subscriptions.push(traceSelectionCommand, registration);
+    context.subscriptions.push(traceSelectionCommand);
 }
 
 function activateProfilePackage(context: vscode.ExtensionContext) {
