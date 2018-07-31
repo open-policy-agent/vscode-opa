@@ -22,6 +22,10 @@ Search for "Open Policy Agent" in the Extensions (Shift ⌘ X) panel and then in
 
 ## Tips
 
+### Set the `input` document by creating `input.json` at the root of your workspace.
+
+The extension will look for a file called `input.json` in the root of the workspace to specify for the `input` document when you evaluate policies. If you modify this file and re-run evaluation you will see the affect of the changes.
+
 ### Bind keyboard shortcuts for frequently used commands.
 
 Open the keyboard shortcuts file (`keybindings.json`) for VS Code (⌘ Shift p → `Preferences: Open Keyboard Shortcuts File`) and add the following JSON snippets.
