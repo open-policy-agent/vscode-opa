@@ -44,6 +44,7 @@ export function activate(context: vscode.ExtensionContext) {
     activateTraceSelection(context);
     activateProfilePackage(context);
     activateProfileSelection(context);
+    activatePartialSelection(context);
 }
 
 
@@ -433,6 +434,50 @@ function activateProfileSelection(context: vscode.ExtensionContext) {
     });
 
     context.subscriptions.push(profileSelectionCommand);
+}
+
+function activatePartialSelection(context: vscode.ExtensionContext) {
+    const partialSelectionCommand = vscode.commands.registerCommand('opa.partial.selection', () => {
+
+        let editor = vscode.window.activeTextEditor;
+        if (!editor) {
+            return;
+        }
+        let text = editor.document.getText(editor.selection);
+
+        opa.parse('opa', editor.document.uri.fsPath, (pkg: string, imports: string[]) => {
+            opaOutputChannel.show(true);
+            opaOutputChannel.clear();
+
+            let rootPath = vscode.workspace.workspaceFolders![0].uri.fsPath;
+            let args: string[] = ['eval'];
+
+            args.push('--partial');
+            args.push('--stdin');
+            args.push('--data', rootPath);
+            args.push('--package', pkg);
+            args.push('--format', 'pretty');
+
+            let inputPath = path.join(rootPath, 'input.json');
+            if (fs.existsSync(inputPath)) {
+                args.push('--input', inputPath);
+            }
+
+            imports.forEach((x: string) => {
+                args.push('--import', x);
+            });
+
+            opa.runWithStatus('opa', args, text, (code: number, stderr: string, stdout: string) => {
+                if (code === 0 || code === 2) {
+                    opaOutputChannel.append(stdout);
+                } else {
+                    vscode.window.showErrorMessage(stderr);
+                }
+            });
+        });
+    });
+
+    context.subscriptions.push(partialSelectionCommand);
 }
 
 function onActiveWorkspaceEditor(forURI: vscode.Uri, cb: (editor: vscode.TextEditor) => void): () => void {
