@@ -42,7 +42,6 @@ export function activate(context: vscode.ExtensionContext) {
     activateEvalSelection(context);
     activateTestWorkspace(context);
     activateTraceSelection(context);
-    activateProfilePackage(context);
     activateProfileSelection(context);
     activatePartialSelection(context);
 }
@@ -351,45 +350,6 @@ function activateTraceSelection(context: vscode.ExtensionContext) {
     });
 
     context.subscriptions.push(traceSelectionCommand);
-}
-
-function activateProfilePackage(context: vscode.ExtensionContext) {
-    const profilePackageCommand = vscode.commands.registerCommand('opa.profile.package', () => {
-
-        let editor = vscode.window.activeTextEditor;
-        if (!editor) {
-            return;
-        }
-
-        opa.parse('opa', editor.document.uri.fsPath, (pkg: string, _: string[]) => {
-            opaOutputChannel.show(true);
-            opaOutputChannel.clear();
-
-            let rootPath = vscode.workspace.workspaceFolders![0].uri.fsPath;
-            let args: string[] = ['eval'];
-
-            args.push('--stdin');
-            args.push('--data', rootPath);
-            args.push('--package', pkg);
-            args.push('--profile');
-            args.push('--format', 'pretty');
-
-            let inputPath = path.join(rootPath, 'input.json');
-            if (fs.existsSync(inputPath)) {
-                args.push('--input', inputPath);
-            }
-
-            opa.runWithStatus('opa', args, 'data.' + pkg, (code: number, stderr: string, stdout: string) => {
-                if (code === 0 || code === 2) {
-                    opaOutputChannel.append(stdout);
-                } else {
-                    vscode.window.showErrorMessage(stderr);
-                }
-            });
-        });
-    });
-
-    context.subscriptions.push(profilePackageCommand);
 }
 
 function activateProfileSelection(context: vscode.ExtensionContext) {

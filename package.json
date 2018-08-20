@@ -46,10 +46,6 @@
                 "title": "OPA: Trace Selection"
             },
             {
-                "command": "opa.profile.package",
-                "title": "OPA: Profile Package"
-            },
-            {
                 "command": "opa.profile.selection",
                 "title": "OPA: Profile Selection"
             },
