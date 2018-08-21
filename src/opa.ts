@@ -7,6 +7,26 @@ import * as vscode from 'vscode';
 import { promptForInstall } from './install-opa';
 import { getImports, getPackage } from './util';
 
+var regoVarPattern = new RegExp('^[a-zA-Z_][a-zA-Z0-9_]*$');
+
+// refToString formats a ref as a string. Strings are special-cased for
+// dot-style lookup. Note: this function is currently only used for populating
+// picklists based on dependencies. As such it doesn't handle all term types
+// properly.
+export function refToString(ref: any[]): string {
+    let result = ref[0].value;
+    for (let i = 1; i < ref.length; i++) {
+        if (ref[i].type === "string") {
+            if (regoVarPattern.test(ref[i].value)) {
+                result += '.' + ref[i].value;
+                continue;
+            }
+        }
+        result += '[' + JSON.stringify(ref[i].value) + ']';
+    }
+    return result;
+}
+
 /**
  * Helpers for executing OPA as a subprocess.
  */

@@ -406,33 +406,42 @@ function activatePartialSelection(context: vscode.ExtensionContext) {
         let text = editor.document.getText(editor.selection);
 
         opa.parse('opa', editor.document.uri.fsPath, (pkg: string, imports: string[]) => {
-            opaOutputChannel.show(true);
-            opaOutputChannel.clear();
-
             let rootPath = vscode.workspace.workspaceFolders![0].uri.fsPath;
-            let args: string[] = ['eval'];
+            opa.run('opa', ['deps', '--format', 'json', '--data', rootPath, 'data.' + pkg], '', (err: string, result: any) => {
+                let refs = result.base.map((ref: any) => opa.refToString(ref));
+                refs.push('input');
+                vscode.window.showQuickPick(refs).then((selection: string | undefined) => {
+                    if (selection !== undefined) {
+                        opaOutputChannel.show(true);
+                        opaOutputChannel.clear();
 
-            args.push('--partial');
-            args.push('--stdin');
-            args.push('--data', rootPath);
-            args.push('--package', pkg);
-            args.push('--format', 'pretty');
+                        let args: string[] = ['eval'];
 
-            let inputPath = path.join(rootPath, 'input.json');
-            if (fs.existsSync(inputPath)) {
-                args.push('--input', inputPath);
-            }
+                        args.push('--partial');
+                        args.push('--stdin');
+                        args.push('--data', rootPath);
+                        args.push('--package', pkg);
+                        args.push('--format', 'pretty');
 
-            imports.forEach((x: string) => {
-                args.push('--import', x);
-            });
+                        let inputPath = path.join(rootPath, 'input.json');
+                        if (fs.existsSync(inputPath)) {
+                            args.push('--input', inputPath);
+                        }
 
-            opa.runWithStatus('opa', args, text, (code: number, stderr: string, stdout: string) => {
-                if (code === 0 || code === 2) {
-                    opaOutputChannel.append(stdout);
-                } else {
-                    vscode.window.showErrorMessage(stderr);
-                }
+                        imports.forEach((x: string) => {
+                            args.push('--import', x);
+                        });
+
+                        opa.runWithStatus('opa', args, text, (code: number, stderr: string, stdout: string) => {
+                            if (code === 0 || code === 2) {
+                                opaOutputChannel.append(stdout);
+                            } else {
+                                vscode.window.showErrorMessage(stderr);
+                            }
+                        });
+
+                    }
+                });
             });
         });
     });
