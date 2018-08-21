@@ -5,6 +5,7 @@
 * Check Syntax on Save
 * Evaluate Packages
 * Evaluate Selections
+* Partially Evaluate Selections
 * Trace Selections
 * Profile Selections
 * Run Tests in Workspace
