@@ -108,9 +108,9 @@ function activateCheckFile(context: vscode.ExtensionContext) {
         // Only check rego files
         if (doc.languageId === 'rego') {
 
-            const filePath = doc.uri.fsPath;
+            let rootPath = vscode.workspace.workspaceFolders![0].uri.fsPath;
 
-            opa.runWithStatus('opa', ['check', filePath], '', (code: number, stderr: string, stdout: string) => {
+            opa.runWithStatus('opa', ['check', rootPath], '', (code: number, stderr: string, stdout: string) => {
                 let output = stdout;
                 if (output.trim() !== '') {
                     opaOutputChannel.show(true);
