@@ -422,6 +422,7 @@ function activatePartialSelection(context: vscode.ExtensionContext) {
                         args.push('--data', rootPath);
                         args.push('--package', pkg);
                         args.push('--format', 'pretty');
+                        args.push('--unknowns', selection);
 
                         let inputPath = path.join(rootPath, 'input.json');
                         if (fs.existsSync(inputPath)) {
