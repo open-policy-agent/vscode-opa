@@ -9,7 +9,7 @@
 * Trace Selections
 * Profile Selections
 * Run Tests in Workspace
-* Toggle Coverage in Worskspace
+* Toggle Coverage in Workspace
 
 ![Eval](https://raw.githubusercontent.com/tsandall/vscode-opa/master/eval.gif)
 
