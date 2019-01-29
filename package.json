@@ -1,113 +1,113 @@
 {
-    "name": "opa",
-    "icon": "logo.png",
-    "displayName": "Open Policy Agent",
-    "repository": {
-        "type": "git",
-        "url": "https://github.com/tsandall/vscode-opa.git"
-    },
-    "description": "Develop, test, debug, and analyze policies for the Open Policy Agent project.",
-    "version": "0.2.0",
-    "publisher": "tsandall",
-    "engines": {
-        "vscode": "^1.21.0"
-    },
-    "categories": [
-        "Programming Languages"
+  "name": "opa",
+  "icon": "logo.png",
+  "displayName": "Open Policy Agent",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/tsandall/vscode-opa.git"
+  },
+  "description": "Develop, test, debug, and analyze policies for the Open Policy Agent project.",
+  "version": "0.2.1",
+  "publisher": "tsandall",
+  "engines": {
+    "vscode": "^1.21.0"
+  },
+  "categories": [
+    "Programming Languages"
+  ],
+  "activationEvents": [
+    "onLanguage:rego"
+  ],
+  "main": "./out/extension",
+  "contributes": {
+    "commands": [
+      {
+        "command": "opa.check.file",
+        "title": "OPA: Check File Syntax"
+      },
+      {
+        "command": "opa.eval.package",
+        "title": "OPA: Evaluate Package"
+      },
+      {
+        "command": "opa.eval.selection",
+        "title": "OPA: Evaluate Selection"
+      },
+      {
+        "command": "opa.eval.coverage",
+        "title": "OPA: Toggle Evaluation Coverage"
+      },
+      {
+        "command": "opa.test.workspace",
+        "title": "OPA: Test Workspace"
+      },
+      {
+        "command": "opa.test.coverage.workspace",
+        "title": "OPA: Toggle Workspace Coverage"
+      },
+      {
+        "command": "opa.trace.selection",
+        "title": "OPA: Trace Selection"
+      },
+      {
+        "command": "opa.profile.selection",
+        "title": "OPA: Profile Selection"
+      },
+      {
+        "command": "opa.partial.selection",
+        "title": "OPA: Partial Evaluation: Selection"
+      }
     ],
-    "activationEvents": [
-        "onLanguage:rego"
+    "configuration": {
+      "type": "object",
+      "title": "OPA Configuration",
+      "properties": {
+        "opa.path": {
+          "type": [
+            "string",
+            "null"
+          ],
+          "default": null,
+          "description": "Path of the OPA executable."
+        }
+      }
+    },
+    "languages": [
+      {
+        "id": "rego",
+        "aliases": [
+          "Rego",
+          "rego"
+        ],
+        "extensions": [
+          ".rego"
+        ],
+        "configuration": "./language-configuration.json"
+      }
     ],
-    "main": "./out/extension",
-    "contributes": {
-        "commands": [
-            {
-                "command": "opa.check.file",
-                "title": "OPA: Check File Syntax"
-            },
-            {
-                "command": "opa.eval.package",
-                "title": "OPA: Evaluate Package"
-            },
-            {
-                "command": "opa.eval.selection",
-                "title": "OPA: Evaluate Selection"
-            },
-            {
-                "command": "opa.eval.coverage",
-                "title": "OPA: Toggle Evaluation Coverage"
-            },
-            {
-                "command": "opa.test.workspace",
-                "title": "OPA: Test Workspace"
-            },
-            {
-                "command": "opa.test.coverage.workspace",
-                "title": "OPA: Toggle Workspace Coverage"
-            },
-            {
-                "command": "opa.trace.selection",
-                "title": "OPA: Trace Selection"
-            },
-            {
-                "command": "opa.profile.selection",
-                "title": "OPA: Profile Selection"
-            },
-            {
-                "command": "opa.partial.selection",
-                "title": "OPA: Partial Evaluation: Selection"
-            }
-        ],
-        "configuration": {
-            "type": "object",
-            "title": "OPA Configuration",
-            "properties": {
-                "opa.path": {
-                    "type": [
-                        "string",
-                        "null"
-                    ],
-                    "default": null,
-                    "description": "Path of the OPA executable."
-                }
-            }
-        },
-        "languages": [
-            {
-                "id": "rego",
-                "aliases": [
-                    "Rego",
-                    "rego"
-                ],
-                "extensions": [
-                    ".rego"
-                ],
-                "configuration": "./language-configuration.json"
-            }
-        ],
-        "grammars": [
-            {
-                "language": "rego",
-                "scopeName": "source.rego",
-                "path": "./syntaxes/Rego.tmLanguage"
-            }
-        ]
-    },
-    "scripts": {
-        "vscode:prepublish": "npm run compile",
-        "compile": "tsc -p ./",
-        "watch": "tsc -watch -p ./",
-        "postinstall": "node ./node_modules/vscode/bin/install",
-        "test": "npm run compile && node ./node_modules/vscode/bin/test"
-    },
-    "devDependencies": {
-        "@types/mocha": "^2.2.42",
-        "@types/node": "^7.0.64",
-        "tslint": "^5.10.0",
-        "typescript": "^2.8.3",
-        "vscode": "^1.1.17"
-    },
-    "dependencies": {
-        "command-exists": "^1.2.6"
-    }
+    "grammars": [
+      {
+        "language": "rego",
+        "scopeName": "source.rego",
+        "path": "./syntaxes/Rego.tmLanguage"
+      }
+    ]
+  },
+  "scripts": {
+    "vscode:prepublish": "npm run compile",
+    "compile": "tsc -p ./",
+    "watch": "tsc -watch -p ./",
+    "postinstall": "node ./node_modules/vscode/bin/install",
+    "test": "npm run compile && node ./node_modules/vscode/bin/test"
+  },
+  "devDependencies": {
+    "@types/mocha": "^2.2.42",
+    "@types/node": "^7.0.64",
+    "tslint": "^5.10.0",
+    "typescript": "^2.8.3",
+    "vscode": "^1.1.17"
+  },
+  "dependencies": {
+    "command-exists": "^1.2.6"
+  }
 }
