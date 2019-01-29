@@ -34,6 +34,10 @@
                 "title": "OPA: Evaluate Selection"
             },
             {
+                "command": "opa.eval.coverage",
+                "title": "OPA: Toggle Evaluation Coverage"
+            },
+            {
                 "command": "opa.test.workspace",
                 "title": "OPA: Test Workspace"
             },

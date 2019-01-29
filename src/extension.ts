@@ -6,6 +6,7 @@ import * as vscode from 'vscode';
 
 import * as opa from './opa';
 import { getPrettyTime } from './util';
+import { EEXIST } from 'constants';
 
 export let opaOutputChannel = vscode.window.createOutputChannel('OPA');
 
@@ -40,12 +41,14 @@ export function activate(context: vscode.ExtensionContext) {
     activateCoverWorkspace(context);
     activateEvalPackage(context);
     activateEvalSelection(context);
+    activateEvalCoverage(context);
     activateTestWorkspace(context);
     activateTraceSelection(context);
     activateProfileSelection(context);
     activatePartialSelection(context);
 }
 
+const outputUri = vscode.Uri.parse(`json:output.json`);
 
 let coveredHighlight = vscode.window.createTextEditorDecorationType({
     backgroundColor: 'rgba(64,128,64,0.5)',
@@ -71,7 +74,10 @@ function showCoverageOnEditorChange(editor: vscode.TextEditor | undefined) {
 }
 
 function removeCoverageOnDocumentChange(e: vscode.TextDocumentChangeEvent) {
-    removeCoverage();
+    // Do not remove coverage if the output document changed.
+    if (`${e.document.uri}` !== `${outputUri}`) {
+        removeCoverage();
+    }
 }
 
 function showCoverageForEditor(editor: vscode.TextEditor) {
@@ -85,6 +91,12 @@ function showCoverageForEditor(editor: vscode.TextEditor) {
     });
 }
 
+function showCoverageForWindow() {
+    vscode.window.visibleTextEditors.forEach((value, index, obj) => {
+        showCoverageForEditor(value);
+    });
+}
+
 function removeCoverage() {
     Object.keys(fileCoverage).forEach(fileName => {
         vscode.window.visibleTextEditors.forEach((value, index, obj) => {
@@ -95,6 +107,49 @@ function removeCoverage() {
         });
     });
     fileCoverage = {};
+}
+
+function setFileCoverage(result: any) {
+    Object.keys(result.files).forEach(fileName => {
+        let report = result.files[fileName];
+        if (!report) {
+            return;
+        }
+        let covered = [];
+        if (report.covered !== undefined) {
+            covered = report.covered.map((range: any) => {
+                return new vscode.Range(range.start.row - 1, 0, range.end.row - 1, 1000);
+            });
+        }
+        let notCovered = [];
+        if (report.not_covered !== undefined) {
+            notCovered = report.not_covered.map((range: any) => {
+                return new vscode.Range(range.start.row - 1, 0, range.end.row - 1, 1000);
+            });
+        }
+        fileCoverage[fileName] = {
+            covered: covered,
+            notCovered: notCovered
+        };
+    });
+}
+
+function setEvalOutput(provider: JSONProvider, uri: vscode.Uri, error: string, result: any) {
+    if (error !== '') {
+        vscode.window.showErrorMessage(error);
+    } else {
+        if (result.result === undefined) {
+            provider.set(uri, "// No results found.", undefined);
+        } else {
+            let output: any;
+            if (result.result[0].bindings === undefined) {
+                output = result.result.map((x: any) => x.expressions.map((x: any) => x.value));
+            } else {
+                output = result.result.map((x: any) => x.bindings);
+            }
+            provider.set(uri, `// Found ${result.result.length} result${result.result.length === 1 ? "" : "s"} in ${getPrettyTime(result.metrics.timer_rego_query_eval_ns)}.`, output);
+        }
+    }
 }
 
 function activateCheckFile(context: vscode.ExtensionContext) {
@@ -156,32 +211,8 @@ function activateCoverWorkspace(context: vscode.ExtensionContext) {
                 opaOutputChannel.append(error);
                 opaOutputChannel.show(true);
             } else {
-                Object.keys(result.files).forEach(fileName => {
-                    let report = result.files[fileName];
-                    if (!report) {
-                        return;
-                    }
-                    let covered = [];
-                    if (report.covered !== undefined) {
-                        covered = report.covered.map((range: any) => {
-                            return new vscode.Range(range.start.row - 1, 0, range.end.row - 1, 1000);
-                        });
-                    }
-                    let notCovered = [];
-                    if (report.not_covered !== undefined) {
-                        notCovered = report.not_covered.map((range: any) => {
-                            return new vscode.Range(range.start.row - 1, 0, range.end.row - 1, 1000);
-                        });
-                    }
-                    fileCoverage[fileName] = {
-                        covered: covered,
-                        notCovered: notCovered
-                    };
-                });
-                vscode.window.visibleTextEditors.forEach((value, index, obj) => {
-                    showCoverageForEditor(value);
-                });
-
+                setFileCoverage(result);
+                showCoverageForWindow();
             }
         });
 
@@ -191,11 +222,11 @@ function activateCoverWorkspace(context: vscode.ExtensionContext) {
 }
 
 function activateEvalPackage(context: vscode.ExtensionContext) {
-    const uri = vscode.Uri.parse(`json:output.json`);
-    const provider = new JSONProvider();
-    const registration = vscode.workspace.registerTextDocumentContentProvider(uri.scheme, provider);
 
-    const evalPackageCommand = vscode.commands.registerCommand('opa.eval.package', onActiveWorkspaceEditor(uri, (editor: vscode.TextEditor) => {
+    const provider = new JSONProvider();
+    const registration = vscode.workspace.registerTextDocumentContentProvider(outputUri.scheme, provider);
+
+    const evalPackageCommand = vscode.commands.registerCommand('opa.eval.package', onActiveWorkspaceEditor(outputUri, (editor: vscode.TextEditor) => {
 
 
         opa.parse('opa', editor.document.uri.fsPath, (pkg: string, _: string[]) => {
@@ -218,9 +249,9 @@ function activateEvalPackage(context: vscode.ExtensionContext) {
                     vscode.window.showErrorMessage(error);
                 } else {
                     if (result.result === undefined) {
-                        provider.set(uri, "// No results found.", undefined);
+                        provider.set(outputUri, "// No results found.", undefined);
                     } else {
-                        provider.set(uri, `// Evaluated package in ${getPrettyTime(result.metrics.timer_rego_query_eval_ns)}.`, result.result[0].expressions[0].value);
+                        provider.set(outputUri, `// Evaluated package in ${getPrettyTime(result.metrics.timer_rego_query_eval_ns)}.`, result.result[0].expressions[0].value);
                     }
                 }
             });
@@ -231,11 +262,11 @@ function activateEvalPackage(context: vscode.ExtensionContext) {
 }
 
 function activateEvalSelection(context: vscode.ExtensionContext) {
-    const uri = vscode.Uri.parse(`json:output.json`);
-    const provider = new JSONProvider();
-    const registration = vscode.workspace.registerTextDocumentContentProvider(uri.scheme, provider);
 
-    const evalSelectionCommand = vscode.commands.registerCommand('opa.eval.selection', onActiveWorkspaceEditor(uri, (editor: vscode.TextEditor) => {
+    const provider = new JSONProvider();
+    const registration = vscode.workspace.registerTextDocumentContentProvider(outputUri.scheme, provider);
+
+    const evalSelectionCommand = vscode.commands.registerCommand('opa.eval.selection', onActiveWorkspaceEditor(outputUri, (editor: vscode.TextEditor) => {
 
 
         opa.parse('opa', editor.document.uri.fsPath, (pkg: string, imports: string[]) => {
@@ -260,26 +291,62 @@ function activateEvalSelection(context: vscode.ExtensionContext) {
             let text = editor.document.getText(editor.selection);
 
             opa.run('opa', args, text, (error: string, result: any) => {
-                if (error !== '') {
-                    vscode.window.showErrorMessage(error);
-                } else {
-                    if (result.result === undefined) {
-                        provider.set(uri, "// No results found.", undefined);
-                    } else {
-                        let output: any;
-                        if (result.result[0].bindings === undefined) {
-                            output = result.result.map((x: any) => x.expressions.map((x: any) => x.value));
-                        } else {
-                            output = result.result.map((x: any) => x.bindings);
-                        }
-                        provider.set(uri, `// Found ${result.result.length} result${result.result.length === 1 ? "" : "s"} in ${getPrettyTime(result.metrics.timer_rego_query_eval_ns)}.`, output);
-                    }
-                }
+                setEvalOutput(provider, outputUri, error, result);
             });
         });
     }));
 
     context.subscriptions.push(evalSelectionCommand, registration);
+}
+
+
+function activateEvalCoverage(context: vscode.ExtensionContext) {
+
+    const provider = new JSONProvider();
+    const registration = vscode.workspace.registerTextDocumentContentProvider(outputUri.scheme, provider);
+
+    const evalCoverageCommand = vscode.commands.registerCommand('opa.eval.coverage', onActiveWorkspaceEditor(outputUri, (editor: vscode.TextEditor) => {
+
+        for (let fileName in fileCoverage) {
+            if (editor.document.fileName.endsWith(fileName)) {
+                removeCoverage();
+                return;
+            }
+        }
+
+        let rootPath = vscode.workspace.workspaceFolders![0].uri.fsPath;
+        fileCoverage = {};
+
+        opa.parse('opa', editor.document.uri.fsPath, (pkg: string, imports: string[]) => {
+
+            let args: string[] = ['eval'];
+
+            args.push('--coverage');
+            args.push('--stdin');
+            args.push('--data', rootPath);
+            args.push('--package', pkg);
+            args.push('--metrics');
+
+            let inputPath = path.join(rootPath, 'input.json');
+            if (fs.existsSync(inputPath)) {
+                args.push('--input', inputPath);
+            }
+
+            imports.forEach((x: string) => {
+                args.push('--import', x);
+            });
+
+            let text = editor.document.getText(editor.selection);
+
+            opa.run('opa', args, text, (error: string, result: any) => {
+                setEvalOutput(provider, outputUri, error, result);
+                setFileCoverage(result.coverage);
+                showCoverageForWindow();
+            });
+        });
+    }));
+
+    context.subscriptions.push(evalCoverageCommand, registration);
 }
 
 function activateTestWorkspace(context: vscode.ExtensionContext) {
