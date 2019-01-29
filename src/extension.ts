@@ -6,7 +6,6 @@ import * as vscode from 'vscode';
 
 import * as opa from './opa';
 import { getPrettyTime } from './util';
-import { EEXIST } from 'constants';
 
 export let opaOutputChannel = vscode.window.createOutputChannel('OPA');
 
