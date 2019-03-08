@@ -6,6 +6,7 @@ import * as vscode from 'vscode';
 
 import { promptForInstall } from './install-opa';
 import { getImports, getPackage } from './util';
+import { existsSync } from 'fs';
 
 var regoVarPattern = new RegExp('^[a-zA-Z_][a-zA-Z0-9_]*$');
 
@@ -60,7 +61,7 @@ export function run(path: string, args: string[], stdin: string, cb: (error: str
 export function runWithStatus(path: string, args: string[], stdin: string, cb: (code: number, stderr: string, stdout: string) => void) {
     const opaPath = vscode.workspace.getConfiguration('opa').get<string>('path');
     const existsOnPath = commandExistsSync(path);
-    const existsInUserSettings = opaPath !== null && commandExistsSync(opaPath);
+    const existsInUserSettings = opaPath !== undefined && opaPath !== null && existsSync(opaPath);
 
     if (!(existsOnPath || existsInUserSettings)) {
         promptForInstall();
