@@ -22,6 +22,13 @@
 
 Search for "Open Policy Agent" in the Extensions (Shift ⌘ X) panel and then install and reload the extension.
 
+## Configuration
+
+| Field | Default | Description |
+| --- | --- | --- |
+| `opa.path` | `null` | Set path of OPA executable. |
+| `opa.checkOnSave` | `false` | Enable automatic checking of .rego files on save. |
+
 ## Tips
 
 ### Set the `input` document by creating `input.json` at the root of your workspace.

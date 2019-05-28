@@ -160,7 +160,7 @@ function activateCheckFile(context: vscode.ExtensionContext) {
         const doc = editor.document;
 
         // Only check rego files
-        if (doc.languageId === 'rego') {
+        if (doc.languageId === 'rego' && checkOnSaveEnabled()) {
 
             let rootPath = vscode.workspace.workspaceFolders![0].uri.fsPath;
 
@@ -554,4 +554,8 @@ function onActiveWorkspaceEditor(forURI: vscode.Uri, cb: (editor: vscode.TextEdi
 }
 
 export function deactivate() {
+}
+
+function checkOnSaveEnabled() {
+    return vscode.workspace.getConfiguration('opa').get<boolean>('checkOnSave')
 }

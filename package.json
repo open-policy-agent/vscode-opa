@@ -69,6 +69,13 @@
           ],
           "default": null,
           "description": "Path of the OPA executable."
+        },
+        "opa.checkOnSave": {
+          "type": [
+            "boolean"
+          ],
+          "default": false,
+          "description": "Run opa check on save"
         }
       }
     },
