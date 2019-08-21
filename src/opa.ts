@@ -73,6 +73,8 @@ export function runWithStatus(path: string, args: string[], stdin: string, cb: (
         path = opaPath;
     }
 
+    console.log("spawn:", path, "args:", args.toString());
+
     let proc = cp.spawn(path, args);
 
     proc.stdin.write(stdin);
