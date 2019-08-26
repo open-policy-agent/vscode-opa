@@ -162,7 +162,7 @@ function activateCheckFile(context: vscode.ExtensionContext) {
         // Only check rego files
         if (doc.languageId === 'rego' && checkOnSaveEnabled()) {
 
-            let rootPath = vscode.workspace.workspaceFolders![0].uri.toString();
+            let rootPath = opa.getDataDir(vscode.workspace.workspaceFolders![0].uri);
 
             opa.runWithStatus('opa', ['check', rootPath], '', (code: number, stderr: string, stdout: string) => {
                 let output = stdout;
@@ -201,7 +201,7 @@ function activateCoverWorkspace(context: vscode.ExtensionContext) {
             }
         }
 
-        let rootPath = vscode.workspace.workspaceFolders![0].uri.toString();
+        let rootPath = opa.getDataDir(vscode.workspace.workspaceFolders![0].uri);
         fileCoverage = {};
 
         opa.run('opa', ['test', '--coverage', '--format', 'json', rootPath], '', (error: string, result: any) => {
@@ -228,9 +228,9 @@ function activateEvalPackage(context: vscode.ExtensionContext) {
     const evalPackageCommand = vscode.commands.registerCommand('opa.eval.package', onActiveWorkspaceEditor(outputUri, (editor: vscode.TextEditor) => {
 
 
-        opa.parse('opa', editor.document.uri.toString(), (pkg: string, _: string[]) => {
+        opa.parse('opa', opa.getDataDir(editor.document.uri), (pkg: string, _: string[]) => {
 
-            let rootPath = vscode.workspace.workspaceFolders![0].uri.toString();
+            let rootPath = opa.getDataDir(vscode.workspace.workspaceFolders![0].uri);
             let args: string[] = ['eval'];
 
             args.push('--stdin');
@@ -268,9 +268,9 @@ function activateEvalSelection(context: vscode.ExtensionContext) {
     const evalSelectionCommand = vscode.commands.registerCommand('opa.eval.selection', onActiveWorkspaceEditor(outputUri, (editor: vscode.TextEditor) => {
 
 
-        opa.parse('opa', editor.document.uri.toString(), (pkg: string, imports: string[]) => {
+        opa.parse('opa', opa.getDataDir(editor.document.uri), (pkg: string, imports: string[]) => {
 
-            let rootPath = vscode.workspace.workspaceFolders![0].uri.toString();
+            let rootPath = opa.getDataDir(vscode.workspace.workspaceFolders![0].uri);
             let args: string[] = ['eval'];
 
             args.push('--stdin');
@@ -313,10 +313,10 @@ function activateEvalCoverage(context: vscode.ExtensionContext) {
             }
         }
 
-        let rootPath = vscode.workspace.workspaceFolders![0].uri.toString();
+        let rootPath = opa.getDataDir(vscode.workspace.workspaceFolders![0].uri);
         fileCoverage = {};
 
-        opa.parse('opa', editor.document.uri.toString(), (pkg: string, imports: string[]) => {
+        opa.parse('opa', opa.getDataDir(editor.document.uri), (pkg: string, imports: string[]) => {
 
             let args: string[] = ['eval'];
 
@@ -354,7 +354,7 @@ function activateTestWorkspace(context: vscode.ExtensionContext) {
         opaOutputChannel.show(true);
         opaOutputChannel.clear();
 
-        let rootPath = vscode.workspace.workspaceFolders![0].uri.toString();
+        let rootPath = opa.getDataDir(vscode.workspace.workspaceFolders![0].uri);
         let args: string[] = ['test'];
 
         args.push('--verbose');
@@ -381,9 +381,9 @@ function activateTraceSelection(context: vscode.ExtensionContext) {
         }
         let text = editor.document.getText(editor.selection);
 
-        opa.parse('opa', editor.document.uri.toString(), (pkg: string, imports: string[]) => {
+        opa.parse('opa', opa.getDataDir(editor.document.uri), (pkg: string, imports: string[]) => {
 
-            let rootPath = vscode.workspace.workspaceFolders![0].uri.toString();
+            let rootPath = opa.getDataDir(vscode.workspace.workspaceFolders![0].uri);
             let args: string[] = ['eval'];
 
             args.push('--stdin');
@@ -427,11 +427,11 @@ function activateProfileSelection(context: vscode.ExtensionContext) {
         }
         let text = editor.document.getText(editor.selection);
 
-        opa.parse('opa', editor.document.uri.toString(), (pkg: string, imports: string[]) => {
+        opa.parse('opa', opa.getDataDir(editor.document.uri), (pkg: string, imports: string[]) => {
             opaOutputChannel.show(true);
             opaOutputChannel.clear();
 
-            let rootPath = vscode.workspace.workspaceFolders![0].uri.toString();
+            let rootPath = opa.getDataDir(vscode.workspace.workspaceFolders![0].uri);
             let args: string[] = ['eval'];
 
             args.push('--stdin');
@@ -471,8 +471,8 @@ function activatePartialSelection(context: vscode.ExtensionContext) {
         }
         let text = editor.document.getText(editor.selection);
 
-        opa.parse('opa', editor.document.uri.toString(), (pkg: string, imports: string[]) => {
-            let rootPath = vscode.workspace.workspaceFolders![0].uri.toString();
+        opa.parse('opa', opa.getDataDir(editor.document.uri), (pkg: string, imports: string[]) => {
+            let rootPath = opa.getDataDir(vscode.workspace.workspaceFolders![0].uri);
             opa.run('opa', ['deps', '--format', 'json', '--data', rootPath, 'data.' + pkg], '', (err: string, result: any) => {
                 let refs = result.base.map((ref: any) => opa.refToString(ref));
                 refs.push('input');
