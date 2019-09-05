@@ -19,6 +19,17 @@ export function getDataDir(uri: vscode.Uri): string {
     return uri.toString();
 }
 
+export function canUseBundleFlags(): boolean {
+    return installedOPASameOrNewerThan("0.14.0-dev");
+}
+
+export function dataParam(): string {
+    if (canUseBundleFlags()) {
+        return "--bundle";
+    }
+    return "--data";
+}
+
 // returns true if installed OPA is same or newer than OPA version x.
 function installedOPASameOrNewerThan(x: string): boolean {
     const s = getOPAVersionString();

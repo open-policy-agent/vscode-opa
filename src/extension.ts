@@ -163,8 +163,12 @@ function activateCheckFile(context: vscode.ExtensionContext) {
         if (doc.languageId === 'rego' && checkOnSaveEnabled()) {
 
             let rootPath = opa.getDataDir(vscode.workspace.workspaceFolders![0].uri);
-
-            opa.runWithStatus('opa', ['check', rootPath], '', (code: number, stderr: string, stdout: string) => {
+            let args: string[] = ['check'];
+            if (opa.canUseBundleFlags()) {
+                args.push('--bundle')
+            }
+            args.push(rootPath)
+            opa.runWithStatus('opa', args, '', (code: number, stderr: string, stdout: string) => {
                 let output = stdout;
                 if (output.trim() !== '') {
                     opaOutputChannel.show(true);
@@ -204,7 +208,13 @@ function activateCoverWorkspace(context: vscode.ExtensionContext) {
         let rootPath = opa.getDataDir(vscode.workspace.workspaceFolders![0].uri);
         fileCoverage = {};
 
-        opa.run('opa', ['test', '--coverage', '--format', 'json', rootPath], '', (error: string, result: any) => {
+        let args: string[] = ['test', '--coverage', '--format', 'json']
+        if (opa.canUseBundleFlags()) {
+            args.push('--bundle')
+        }
+        args.push(rootPath)
+
+        opa.run('opa', args, '', (error: string, result: any) => {
             if (error !== '') {
                 opaOutputChannel.clear();
                 opaOutputChannel.append(error);
@@ -234,7 +244,7 @@ function activateEvalPackage(context: vscode.ExtensionContext) {
             let args: string[] = ['eval'];
 
             args.push('--stdin');
-            args.push('--data', rootPath);
+            args.push(opa.dataParam(), rootPath);
             args.push('--package', pkg);
             args.push('--metrics');
 
@@ -274,7 +284,7 @@ function activateEvalSelection(context: vscode.ExtensionContext) {
             let args: string[] = ['eval'];
 
             args.push('--stdin');
-            args.push('--data', rootPath);
+            args.push(opa.dataParam(), rootPath);
             args.push('--package', pkg);
             args.push('--metrics');
 
@@ -322,7 +332,7 @@ function activateEvalCoverage(context: vscode.ExtensionContext) {
 
             args.push('--coverage');
             args.push('--stdin');
-            args.push('--data', rootPath);
+            args.push(opa.dataParam(), rootPath);
             args.push('--package', pkg);
             args.push('--metrics');
 
@@ -358,6 +368,9 @@ function activateTestWorkspace(context: vscode.ExtensionContext) {
         let args: string[] = ['test'];
 
         args.push('--verbose');
+        if (opa.canUseBundleFlags) {
+            args.push("--bundle")
+        }
         args.push(rootPath);
 
         opa.runWithStatus('opa', args, '', (code: number, stderr: string, stdout: string) => {
@@ -387,7 +400,7 @@ function activateTraceSelection(context: vscode.ExtensionContext) {
             let args: string[] = ['eval'];
 
             args.push('--stdin');
-            args.push('--data', rootPath);
+            args.push(opa.dataParam(), rootPath);
             args.push('--package', pkg);
             args.push('--format', 'pretty');
 
@@ -435,7 +448,7 @@ function activateProfileSelection(context: vscode.ExtensionContext) {
             let args: string[] = ['eval'];
 
             args.push('--stdin');
-            args.push('--data', rootPath);
+            args.push(opa.dataParam(), rootPath);
             args.push('--package', pkg);
             args.push('--profile');
             args.push('--format', 'pretty');
@@ -473,7 +486,7 @@ function activatePartialSelection(context: vscode.ExtensionContext) {
 
         opa.parse('opa', opa.getDataDir(editor.document.uri), (pkg: string, imports: string[]) => {
             let rootPath = opa.getDataDir(vscode.workspace.workspaceFolders![0].uri);
-            opa.run('opa', ['deps', '--format', 'json', '--data', rootPath, 'data.' + pkg], '', (err: string, result: any) => {
+            opa.run('opa', ['deps', '--format', 'json', opa.dataParam(), rootPath, 'data.' + pkg], '', (err: string, result: any) => {
                 let refs = result.base.map((ref: any) => opa.refToString(ref));
                 refs.push('input');
                 vscode.window.showQuickPick(refs).then((selection: string | undefined) => {
@@ -485,7 +498,7 @@ function activatePartialSelection(context: vscode.ExtensionContext) {
 
                         args.push('--partial');
                         args.push('--stdin');
-                        args.push('--data', rootPath);
+                        args.push(opa.dataParam(), rootPath);
                         args.push('--package', pkg);
                         args.push('--format', 'pretty');
                         args.push('--unknowns', selection);
