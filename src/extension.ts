@@ -238,8 +238,8 @@ function activateEvalPackage(context: vscode.ExtensionContext) {
             args.push('--package', pkg);
             args.push('--metrics');
 
-            let inputPath = path.join(rootPath, 'input.json');
-            if (fs.existsSync(inputPath)) {
+            let inputPath = getInputPath(rootPath);
+            if (existsSync(inputPath)) {
                 args.push('--input', inputPath);
             }
 
@@ -278,8 +278,8 @@ function activateEvalSelection(context: vscode.ExtensionContext) {
             args.push('--package', pkg);
             args.push('--metrics');
 
-            let inputPath = path.join(rootPath, 'input.json');
-            if (fs.existsSync(inputPath)) {
+            let inputPath = getInputPath(rootPath);
+            if (existsSync(inputPath)) {
                 args.push('--input', inputPath);
             }
 
@@ -326,8 +326,8 @@ function activateEvalCoverage(context: vscode.ExtensionContext) {
             args.push('--package', pkg);
             args.push('--metrics');
 
-            let inputPath = path.join(rootPath, 'input.json');
-            if (fs.existsSync(inputPath)) {
+            let inputPath = getInputPath(rootPath);
+            if (existsSync(inputPath)) {
                 args.push('--input', inputPath);
             }
 
@@ -391,8 +391,8 @@ function activateTraceSelection(context: vscode.ExtensionContext) {
             args.push('--package', pkg);
             args.push('--format', 'pretty');
 
-            let inputPath = path.join(rootPath, 'input.json');
-            if (fs.existsSync(inputPath)) {
+            let inputPath = getInputPath(rootPath);
+            if (existsSync(inputPath)) {
                 args.push('--input', inputPath);
             }
 
@@ -440,8 +440,8 @@ function activateProfileSelection(context: vscode.ExtensionContext) {
             args.push('--profile');
             args.push('--format', 'pretty');
 
-            let inputPath = path.join(rootPath, 'input.json');
-            if (fs.existsSync(inputPath)) {
+            let inputPath = getInputPath(rootPath);
+            if (existsSync(inputPath)) {
                 args.push('--input', inputPath);
             }
 
@@ -490,8 +490,8 @@ function activatePartialSelection(context: vscode.ExtensionContext) {
                         args.push('--format', 'pretty');
                         args.push('--unknowns', selection);
 
-                        let inputPath = path.join(rootPath, 'input.json');
-                        if (fs.existsSync(inputPath)) {
+                        let inputPath = getInputPath(rootPath);
+                        if (existsSync(inputPath)) {
                             args.push('--input', inputPath);
                         }
 
@@ -558,4 +558,29 @@ export function deactivate() {
 
 function checkOnSaveEnabled() {
     return vscode.workspace.getConfiguration('opa').get<boolean>('checkOnSave');
+}
+
+function existsSync(path: string): boolean {
+
+    const parsed = vscode.Uri.parse(path);
+
+    if (parsed.scheme === 'file') {
+        return fs.existsSync(parsed.fsPath);
+    }
+
+    return fs.existsSync(path);
+}
+
+function getInputPath(rootDir: string): string {
+
+    // If the rootDir is a file:// URL then just append /input.json onto the
+    // end. Otherwise use the path.join function to get a platform-specific file
+    // path returned.
+    const parsed = vscode.Uri.parse(rootDir);
+
+    if (parsed.scheme === 'file') {
+        return parsed.toString() + '/input.json';
+    }
+
+    return path.join(rootDir, 'input.json');
 }
