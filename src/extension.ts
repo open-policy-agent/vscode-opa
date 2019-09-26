@@ -138,7 +138,7 @@ function setEvalOutput(provider: JSONProvider, uri: vscode.Uri, error: string, r
         vscode.window.showErrorMessage(error);
     } else {
         if (result.result === undefined) {
-            provider.set(uri, "// No results found.", undefined);
+            provider.set(outputUri, `// No results found. Took ${getPrettyTime(result.metrics.timer_rego_query_eval_ns)}.`, undefined);
         } else {
             let output: any;
             if (result.result[0].bindings === undefined) {
@@ -237,7 +237,6 @@ function activateEvalPackage(context: vscode.ExtensionContext) {
 
     const evalPackageCommand = vscode.commands.registerCommand('opa.eval.package', onActiveWorkspaceEditor(outputUri, (editor: vscode.TextEditor) => {
 
-
         opa.parse('opa', opa.getDataDir(editor.document.uri), (pkg: string, _: string[]) => {
 
             let rootPath = opa.getDataDir(vscode.workspace.workspaceFolders![0].uri);
@@ -258,7 +257,7 @@ function activateEvalPackage(context: vscode.ExtensionContext) {
                     vscode.window.showErrorMessage(error);
                 } else {
                     if (result.result === undefined) {
-                        provider.set(outputUri, "// No results found.", undefined);
+                        provider.set(outputUri, `// No results found. Took ${getPrettyTime(result.metrics.timer_rego_query_eval_ns)}.`, undefined);
                     } else {
                         provider.set(outputUri, `// Evaluated package in ${getPrettyTime(result.metrics.timer_rego_query_eval_ns)}.`, result.result[0].expressions[0].value);
                     }
@@ -276,8 +275,6 @@ function activateEvalSelection(context: vscode.ExtensionContext) {
     const registration = vscode.workspace.registerTextDocumentContentProvider(outputUri.scheme, provider);
 
     const evalSelectionCommand = vscode.commands.registerCommand('opa.eval.selection', onActiveWorkspaceEditor(outputUri, (editor: vscode.TextEditor) => {
-
-
         opa.parse('opa', opa.getDataDir(editor.document.uri), (pkg: string, imports: string[]) => {
 
             let rootPath = opa.getDataDir(vscode.workspace.workspaceFolders![0].uri);
