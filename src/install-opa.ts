@@ -4,11 +4,11 @@ import * as fs from 'fs';
 import * as http from 'http';
 import * as https from 'https';
 import * as os from 'os';
-import * as path from 'path';
 import { URL } from 'url';
 import * as vscode from 'vscode';
 
 import { opaOutputChannel } from './extension';
+const releaseDownloader = require('@fohlen/github-release-downloader');
 
 let installDeclined = false;
 
@@ -81,38 +81,9 @@ async function install() {
 async function downloadFile(url: URL): Promise<string> {
     // Use the user's home directory as the default base directory
     const dest = os.homedir();
-    // Get the absolute path to the location where OPA will be downloaded
-    const fullPath = path.resolve(dest, getOPAExecutableName());
-    const outFile = fs.createWriteStream(fullPath);
-
-    return new Promise<string>((resolve, reject) => {
-        const writeFile = (res: http.IncomingMessage) => {
-            // Lame progress bar
-            res.on('data', (chunk) => opaOutputChannel.append('.'))
-               .on('end', () => opaOutputChannel.appendLine(''));
-            // Stream downloaded data straight to file
-            res.pipe(outFile);
-            outFile.on('finish', () => {
-                outFile.close();
-                resolve(fullPath);
-            });
-        };
-        // TODO: Honor HTTP proxy settings from `vscode.workspace.getConfiguration('http').get('proxy')`
-        https.get(url, (res: http.IncomingMessage) => {
-            // Github redirects to an AWS S3 url
-            if (res.statusCode && res.statusCode >= 300 && res.statusCode < 400) {
-                const { location } = res.headers;
-                if (location) {
-                    https.get(new URL(location), (nextRes) => writeFile(nextRes))
-                        .on('error', (e) => reject(e));
-                } else {
-                    reject(`Bad redirect from ${url.toString}`);
-                }
-            } else {
-                writeFile(res);
-            }
-        })
-        .on('error', (e) => reject(e));
+    return releaseDownloader.downloadAsset(url.href, getOPAExecutableName(), dest, () => {
+        // Lame progress bar
+        opaOutputChannel.append('.');
     });
 }
 
