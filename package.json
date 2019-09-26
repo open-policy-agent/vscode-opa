@@ -109,12 +109,13 @@
   },
   "devDependencies": {
     "@types/mocha": "^2.2.42",
-    "@types/node": "^7.0.64",
-    "tslint": "^5.10.0",
-    "typescript": "^2.8.3",
+    "@types/node": "^7.10.7",
+    "tslint": "^5.20.0",
+    "typescript": "^2.9.2",
     "vscode": "^1.1.36"
   },
   "dependencies": {
+    "@fohlen/github-release-downloader": "^1.0.0",
     "command-exists": "^1.2.6"
   }
 }
