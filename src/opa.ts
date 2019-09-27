@@ -134,10 +134,10 @@ export function refToString(ref: any[]): string {
  * Helpers for executing OPA as a subprocess.
  */
 
-export function parse(opaPath: string, path: string, cb: (pkg: string, imports: string[]) => void) {
+export function parse(opaPath: string, path: string, cb: (pkg: string, imports: string[]) => void, onerror: (output: string) => void) {
     run(opaPath, ['parse', path, '--format', 'json'], '', (error: string, result: any) => {
         if (error !== '') {
-            vscode.window.showErrorMessage(error);
+            onerror(error);
         } else {
             let pkg = getPackage(result);
             let imports = getImports(result);
@@ -151,7 +151,11 @@ export function parse(opaPath: string, path: string, cb: (pkg: string, imports: 
 export function run(path: string, args: string[], stdin: string, cb: (error: string, result: any) => void) {
     runWithStatus(path, args, stdin, (code: number, stderr: string, stdout: string) => {
         if (code !== 0) {
-            cb(stderr, '');
+            if (stdout !== '') {
+                cb(stdout, '');
+            } else {
+                cb(stderr, '');
+            }
         } else {
             cb('', JSON.parse(stdout));
         }
