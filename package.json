@@ -68,14 +68,28 @@
 						"null"
 					],
 					"default": null,
-					"description": "Path of the OPA executable."
+					"description": "Path of the OPA executable. Defaults to null."
 				},
 				"opa.checkOnSave": {
 					"type": [
 						"boolean"
 					],
 					"default": false,
-					"description": "Run opa check on save"
+					"description": "Run opa check on save. Defaults to false"
+				},
+				"opa.roots": {
+					"type": [
+						"array"
+					],
+					"default": ["${workspaceFolder}"],
+					"description": "List of paths to load as bundles for policy and data. Defaults to [\"${workspaceFolder}\"]"
+				},
+				"opa.bundleMode": {
+					"type": [
+						"boolean"
+					],
+					"default": true,
+					"description": "Enable treating the workspace as a bundle."
 				}
 			}
 		},
