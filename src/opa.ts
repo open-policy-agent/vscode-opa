@@ -20,10 +20,11 @@ export function getDataDir(uri: vscode.Uri): string {
 }
 
 export function canUseBundleFlags(): boolean {
-    return installedOPASameOrNewerThan("0.14.0-dev");
+    let bundleMode = vscode.workspace.getConfiguration('opa').get<boolean>('bundleMode', true);
+    return installedOPASameOrNewerThan("0.14.0-dev") && bundleMode;
 }
 
-export function dataParam(): string {
+function dataFlag(): string {
     if (canUseBundleFlags()) {
         return "--bundle";
     }
@@ -35,6 +36,32 @@ function installedOPASameOrNewerThan(x: string): boolean {
     const s = getOPAVersionString();
     return opaVersionSameOrNewerThan(s, x);
 }
+
+// Returns a list of root data path URIs based on the plugin configuration.
+export function getRoots(): string[] {
+    const roots = vscode.workspace.getConfiguration('opa').get<string[]>('roots', []);
+    let formattedRoots = new Array();
+    roots.forEach(root => {
+        root = root.replace('${workspaceFolder}', vscode.workspace.workspaceFolders![0].uri.toString());
+        formattedRoots.push(getDataDir(vscode.Uri.parse(root)));
+    });
+
+    return formattedRoots;
+}
+
+// Returns a list of root data parameters in an array
+// like ["--bundle=file:///a/b/x/", "--bundle=file:///a/b/y"] in bundle mode
+// or ["--data=file:///a/b/x", "--data=file://a/b/y"] otherwise.
+export function getRootParams(): string[] {
+    const flag = dataFlag();
+    const roots = getRoots();
+    let params = new Array();
+    roots.forEach(root => {
+        params.push(`${flag}=${root}`);
+    });
+    return params;
+}
+
 
 // returns true if OPA version a is same or newer than OPA version b. If either
 // version is not in the expected format (i.e.,
