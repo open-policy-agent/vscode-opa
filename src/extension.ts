@@ -45,6 +45,16 @@ export function activate(context: vscode.ExtensionContext) {
     activateTraceSelection(context);
     activateProfileSelection(context);
     activatePartialSelection(context);
+    activateDefinitionProvider(context);
+
+    context.subscriptions.push(vscode.commands.registerCommand('opa.show.commands', () => {
+        const extension = vscode.extensions.getExtension("tsandall.opa");
+        if (extension !== undefined) {
+            let commands = extension.packageJSON.contributes.commands;
+            commands.push({command: 'editor.action.goToDeclaration', title: 'Go to Definition'});
+        }
+    }));
+
 }
 
 const outputUri = vscode.Uri.parse(`json:output.json`);
@@ -362,7 +372,7 @@ function activateTestWorkspace(context: vscode.ExtensionContext) {
         let args: string[] = ['test'];
 
         args.push('--verbose');
-        if (opa.canUseBundleFlags) {
+        if (opa.canUseBundleFlags()) {
             args.push("--bundle");
         }
         args.push(...opa.getRoots());
@@ -531,6 +541,10 @@ function activatePartialSelection(context: vscode.ExtensionContext) {
     context.subscriptions.push(partialSelectionCommand);
 }
 
+function activateDefinitionProvider(context: vscode.ExtensionContext) {
+    context.subscriptions.push(vscode.languages.registerDefinitionProvider({language: 'rego', scheme: 'file'}, new RegoDefinitionProvider()));
+}
+
 function onActiveWorkspaceEditor(forURI: vscode.Uri, cb: (editor: vscode.TextEditor) => void): () => void {
     return () => {
 
@@ -640,4 +654,33 @@ function getInputPath(): string {
     }
 
     return path.join(rootDir, 'input.json');
+}
+
+class RegoDefinitionProvider implements vscode.DefinitionProvider {
+    public provideDefinition(
+        document: vscode.TextDocument,
+        position: vscode.Position,
+        token: vscode.CancellationToken): Thenable<vscode.Location> {
+
+        let args: string[] = ['oracle', 'find-definition', '--stdin-buffer'];
+        args.push(...opa.getRootParams());
+        args.push(document.fileName + ':' +  document.offsetAt(position).toString());
+
+        return new Promise<vscode.Location>((resolve, reject) => {
+            opa.runWithStatus('opa', args, document.getText(), (code: number, stderr: string, stdout: string) => {
+                if (code === 0) {
+                    const result = JSON.parse(stdout);
+                    if (result.result !== undefined) {
+                        resolve(new vscode.Location(vscode.Uri.file(result.result.file), new vscode.Position(result.result.row-1, result.result.col-1)));
+                    } else if (result.error !== undefined) {
+                        reject(result.error);
+                    } else {
+                        reject("internal error");
+                    }
+                } else {
+                    reject(stderr);
+                }
+            });
+        });
+    }
 }
