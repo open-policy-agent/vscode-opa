@@ -7,6 +7,7 @@ import * as vscode from 'vscode';
 import { promptForInstall } from './install-opa';
 import { getImports, getPackage } from './util';
 import { existsSync } from 'fs';
+import { dirname } from 'path';
 
 var regoVarPattern = new RegExp('^[a-zA-Z_][a-zA-Z0-9_]*$');
 
@@ -43,6 +44,7 @@ export function getRoots(): string[] {
     let formattedRoots = new Array();
     roots.forEach(root => {
         root = root.replace('${workspaceFolder}', vscode.workspace.workspaceFolders![0].uri.toString());
+        root = root.replace('${fileDirname}', dirname(vscode.window.activeTextEditor!.document.fileName));
         formattedRoots.push(getDataDir(vscode.Uri.parse(root)));
     });
 
