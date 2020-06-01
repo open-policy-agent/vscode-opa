@@ -143,13 +143,20 @@ function setFileCoverage(result: any) {
     });
 }
 
-function setEvalOutput(provider: JSONProvider, uri: vscode.Uri, error: string, result: any) {
+function setEvalOutput(provider: JSONProvider, uri: vscode.Uri, error: string, result: any, inputPath: string) {
     if (error !== '') {
         opaOutputShowError(error);
     } else {
         opaOutputHide();
+        let inputMessage: string
+        if (inputPath === '') {
+            inputMessage = 'no input file'
+        } else {
+            inputMessage = inputPath.replace('file://','');
+            inputMessage = vscode.workspace.asRelativePath(inputMessage);
+        }
         if (result.result === undefined) {
-            provider.set(outputUri, `// No results found. Took ${getPrettyTime(result.metrics.timer_rego_query_eval_ns)}.`, undefined);
+            provider.set(outputUri, `// No results found. Took ${getPrettyTime(result.metrics.timer_rego_query_eval_ns)}. Used ${inputMessage} as input.`, undefined);
         } else {
             let output: any;
             if (result.result[0].bindings === undefined) {
@@ -157,7 +164,7 @@ function setEvalOutput(provider: JSONProvider, uri: vscode.Uri, error: string, r
             } else {
                 output = result.result.map((x: any) => x.bindings);
             }
-            provider.set(uri, `// Found ${result.result.length} result${result.result.length === 1 ? "" : "s"} in ${getPrettyTime(result.metrics.timer_rego_query_eval_ns)}.`, output);
+            provider.set(uri, `// Found ${result.result.length} result${result.result.length === 1 ? "" : "s"} in ${getPrettyTime(result.metrics.timer_rego_query_eval_ns)} using ${inputMessage} as input.`, output);
         }
     }
 }
@@ -253,19 +260,12 @@ function activateEvalPackage(context: vscode.ExtensionContext) {
             let inputPath = getInputPath();
             if (existsSync(inputPath)) {
                 args.push('--input', inputPath);
+            } else {
+                inputPath = '';
             }
 
             opa.run('opa', args, 'data.' + pkg, (error: string, result: any) => {
-                if (error !== '') {
-                    opaOutputShowError(error);
-                } else {
-                    opaOutputHide();
-                    if (result.result === undefined) {
-                        provider.set(outputUri, `// No results found. Took ${getPrettyTime(result.metrics.timer_rego_query_eval_ns)}.`, undefined);
-                    } else {
-                        provider.set(outputUri, `// Evaluated package in ${getPrettyTime(result.metrics.timer_rego_query_eval_ns)}.`, result.result[0].expressions[0].value);
-                    }
-                }
+                setEvalOutput(provider, outputUri, error, result, inputPath);
             });
         }, (error: string) => {
             opaOutputShowError(error);
@@ -293,6 +293,8 @@ function activateEvalSelection(context: vscode.ExtensionContext) {
             let inputPath = getInputPath();
             if (existsSync(inputPath)) {
                 args.push('--input', inputPath);
+            } else {
+                inputPath = '';
             }
 
             imports.forEach((x: string) => {
@@ -302,7 +304,7 @@ function activateEvalSelection(context: vscode.ExtensionContext) {
             let text = editor.document.getText(editor.selection);
 
             opa.run('opa', args, text, (error: string, result: any) => {
-                setEvalOutput(provider, outputUri, error, result);
+                setEvalOutput(provider, outputUri, error, result, inputPath);
             });
         }, (error: string) => {
             opaOutputShowError(error);
@@ -342,6 +344,8 @@ function activateEvalCoverage(context: vscode.ExtensionContext) {
             let inputPath = getInputPath();
             if (existsSync(inputPath)) {
                 args.push('--input', inputPath);
+            } else {
+                inputPath = '';
             }
 
             imports.forEach((x: string) => {
@@ -351,7 +355,7 @@ function activateEvalCoverage(context: vscode.ExtensionContext) {
             let text = editor.document.getText(editor.selection);
 
             opa.run('opa', args, text, (error: string, result: any) => {
-                setEvalOutput(provider, outputUri, error, result);
+                setEvalOutput(provider, outputUri, error, result, inputPath);
                 setFileCoverage(result.coverage);
                 showCoverageForWindow();
             });
@@ -642,11 +646,16 @@ function existsSync(path: string): boolean {
 }
 
 function getInputPath(): string {
-
+    // look for input.json at the active editor's directory, or the workspace directory
+    let parsed = vscode.workspace.workspaceFolders![0].uri;
+    const activeDir = path.dirname(vscode.window.activeTextEditor!.document.uri.fsPath)
+    if (fs.existsSync(path.join(activeDir,'/input.json'))) {
+        parsed = vscode.Uri.parse(activeDir)
+    }
+    
     // If the rootDir is a file:// URL then just append /input.json onto the
     // end. Otherwise use the path.join function to get a platform-specific file
     // path returned.
-    const parsed = vscode.workspace.workspaceFolders![0].uri;
     let rootDir = opa.getDataDir(parsed);
 
     if (parsed.scheme === 'file') {

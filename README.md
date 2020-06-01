@@ -36,9 +36,9 @@ Search for "Open Policy Agent" in the Extensions (Shift ⌘ X) panel and then in
 
 ## Tips
 
-### Set the `input` document by creating `input.json` at the root of your workspace.
+### Set the `input` document by creating `input.json`
 
-The extension will look for a file called `input.json` in the root of the workspace to specify for the `input` document when you evaluate policies. If you modify this file and re-run evaluation you will see the affect of the changes.
+The extension will look for a file called `input.json` in the current directory of the policy file being evaluated, or at the root of the workspace, and will use it as the `input` document when evaluating policies. If you modify this file and re-run evaluation you will see the affect of the changes.
 
 ### Bind keyboard shortcuts for frequently used commands.
 
