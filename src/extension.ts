@@ -649,10 +649,10 @@ function getInputPath(): string {
     // look for input.json at the active editor's directory, or the workspace directory
     let parsed = vscode.workspace.workspaceFolders![0].uri;
     const activeDir = path.dirname(vscode.window.activeTextEditor!.document.uri.fsPath)
-    if (fs.existsSync(path.join(activeDir,'/input.json'))) {
-        parsed = vscode.Uri.parse(activeDir)
+    if (fs.existsSync(path.join(activeDir, 'input.json'))) {
+        parsed = vscode.Uri.file(activeDir)
     }
-    
+
     // If the rootDir is a file:// URL then just append /input.json onto the
     // end. Otherwise use the path.join function to get a platform-specific file
     // path returned.
