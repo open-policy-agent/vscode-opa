@@ -55,6 +55,41 @@ export function activate(context: vscode.ExtensionContext) {
         }
     }));
 
+    vscode.languages.registerDocumentFormattingEditProvider({ scheme: 'file', language: 'rego' }, {
+        provideDocumentFormattingEdits(document: vscode.TextDocument): vscode.TextEdit[] | Thenable<vscode.TextEdit[]> {
+            let editor = vscode.window.activeTextEditor;
+            if (!editor) {
+                return [vscode.TextEdit.insert(document.lineAt(0).range.end, "")];
+            }
+
+            let file = editor.document.fileName;
+
+            let args: string[] = ['fmt', '--write']
+            args.push(file)
+
+            return new Promise((resolve, reject) => {
+                opa.runWithStatus('opa', args, '', (code: number, stderr: string, stdout: string) => {
+                    if (code !== 0) {
+                        let err = new Error("error running opa fmt :: " + stderr);
+                        opaOutputShowError(err.message);
+                        reject(err);
+                    } else {
+                        opaOutputHide();
+                    }
+
+                    let content = fs.readFileSync(file, "utf-8");
+                    let range = document.validateRange(
+                      new vscode.Range(
+                        new vscode.Position(0, 0),
+                        new vscode.Position(1000000, 1000000)
+                      )
+                    );
+
+                    resolve([vscode.TextEdit.replace(range, content)]);
+                });
+            });
+        }
+    });
 }
 
 const outputUri = vscode.Uri.parse(`json:output.json`);
