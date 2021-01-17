@@ -59,16 +59,24 @@ export function activate(context: vscode.ExtensionContext) {
         provideDocumentFormattingEdits(document: vscode.TextDocument): vscode.TextEdit[] | Thenable<vscode.TextEdit[]> {
             let editor = vscode.window.activeTextEditor;
             if (!editor) {
-                return [vscode.TextEdit.insert(document.lineAt(0).range.end, "")];
+                return [];
             }
 
-            let file = editor.document.fileName;
-
-            let args: string[] = ['fmt', '--write']
-            args.push(file)
+            let selectionRange = editor.selection;
+            let content = "";
+            if (selectionRange.isEmpty) {
+                let firstLine = editor.document.lineAt(0);
+                let lastLine = editor.document.lineAt(editor.document.lineCount - 1);
+                selectionRange = new vscode.Selection(firstLine.range.start, lastLine.range.end);
+            }
+            content = editor.document.getText(selectionRange);
 
             return new Promise((resolve, reject) => {
-                opa.runWithStatus('opa', args, '', (code: number, stderr: string, stdout: string) => {
+                opa.runWithStatus('opa', ['fmt'], content, (code: number, stderr: string, stdout: string) => {
+                    if (!editor) {
+                        return [];
+                    }
+
                     if (code !== 0) {
                         let err = new Error("error running opa fmt :: " + stderr);
                         opaOutputShowError(err.message);
@@ -77,15 +85,7 @@ export function activate(context: vscode.ExtensionContext) {
                         opaOutputHide();
                     }
 
-                    let content = fs.readFileSync(file, "utf-8");
-                    let range = document.validateRange(
-                      new vscode.Range(
-                        new vscode.Position(0, 0),
-                        new vscode.Position(1000000, 1000000)
-                      )
-                    );
-
-                    resolve([vscode.TextEdit.replace(range, content)]);
+                    resolve([vscode.TextEdit.replace(selectionRange, stdout)]);
                 });
             });
         }
