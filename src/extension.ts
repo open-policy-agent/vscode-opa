@@ -51,7 +51,7 @@ export function activate(context: vscode.ExtensionContext) {
         const extension = vscode.extensions.getExtension("tsandall.opa");
         if (extension !== undefined) {
             let commands = extension.packageJSON.contributes.commands;
-            commands.push({command: 'editor.action.goToDeclaration', title: 'Go to Definition'});
+            commands.push({ command: 'editor.action.goToDeclaration', title: 'Go to Definition' });
         }
     }));
 
@@ -62,14 +62,11 @@ export function activate(context: vscode.ExtensionContext) {
                 return [];
             }
 
-            let selectionRange = editor.selection;
-            let content = "";
-
             // opa fmt doesn't support block formatting
             // so we must always select the entire document
-            selectionRange = getFullDocumentSelection(editor, selectionRange);
+            let selectionRange = getFullDocumentSelection(editor);
 
-            content = editor.document.getText(selectionRange);
+            let content = editor.document.getText(selectionRange);
 
             return new Promise((resolve, reject) => {
                 runOPAFormatter(content, editor, reject, resolve, selectionRange);
@@ -112,8 +109,9 @@ interface UntypedObject {
 let fileCoverage: UntypedObject = {};
 
 function runOPAFormatter(content: string, editor: vscode.TextEditor | undefined,
-            reject: (reason?: any) => void,
-            resolve: (value: vscode.TextEdit[] | PromiseLike<vscode.TextEdit[]>) => void, selectionRange: vscode.Selection) {
+    reject: (reason?: any) => void,
+    resolve: (value: vscode.TextEdit[] | PromiseLike<vscode.TextEdit[]>) => void,
+    selectionRange: vscode.Selection) {
 
     opa.runWithStatus('opa', ['fmt'], content, (code: number, stderr: string, stdout: string) => {
         if (!editor) {
@@ -132,7 +130,7 @@ function runOPAFormatter(content: string, editor: vscode.TextEditor | undefined,
     });
 }
 
-function getFullDocumentSelection(editor: vscode.TextEditor, selectionRange: vscode.Selection) {
+function getFullDocumentSelection(editor: vscode.TextEditor) {
     let firstLine = editor.document.lineAt(0);
     let lastLine = editor.document.lineAt(editor.document.lineCount - 1);
     return new vscode.Selection(firstLine.range.start, lastLine.range.end);
@@ -215,7 +213,7 @@ function setEvalOutput(provider: JSONProvider, uri: vscode.Uri, error: string, r
         if (inputPath === '') {
             inputMessage = 'no input file'
         } else {
-            inputMessage = inputPath.replace('file://','');
+            inputMessage = inputPath.replace('file://', '');
             inputMessage = vscode.workspace.asRelativePath(inputMessage);
         }
         if (result.result === undefined) {
@@ -609,7 +607,7 @@ function activatePartialSelection(context: vscode.ExtensionContext) {
 }
 
 function activateDefinitionProvider(context: vscode.ExtensionContext) {
-    context.subscriptions.push(vscode.languages.registerDefinitionProvider({language: 'rego', scheme: 'file'}, new RegoDefinitionProvider()));
+    context.subscriptions.push(vscode.languages.registerDefinitionProvider({ language: 'rego', scheme: 'file' }, new RegoDefinitionProvider()));
 }
 
 function onActiveWorkspaceEditor(forURI: vscode.Uri, cb: (editor: vscode.TextEditor) => void): () => void {
@@ -736,14 +734,14 @@ class RegoDefinitionProvider implements vscode.DefinitionProvider {
 
         let args: string[] = ['oracle', 'find-definition', '--stdin-buffer'];
         args.push(...opa.getRootParams());
-        args.push(document.fileName + ':' +  document.offsetAt(position).toString());
+        args.push(document.fileName + ':' + document.offsetAt(position).toString());
 
         return new Promise<vscode.Location>((resolve, reject) => {
             opa.runWithStatus('opa', args, document.getText(), (code: number, stderr: string, stdout: string) => {
                 if (code === 0) {
                     const result = JSON.parse(stdout);
                     if (result.result !== undefined) {
-                        resolve(new vscode.Location(vscode.Uri.file(result.result.file), new vscode.Position(result.result.row-1, result.result.col-1)));
+                        resolve(new vscode.Location(vscode.Uri.file(result.result.file), new vscode.Position(result.result.row - 1, result.result.col - 1)));
                     } else if (result.error !== undefined) {
                         reject(result.error);
                     } else {
