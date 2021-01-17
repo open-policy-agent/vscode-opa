@@ -64,31 +64,32 @@ export function activate(context: vscode.ExtensionContext) {
 
             let selectionRange = editor.selection;
             let content = "";
-            if (selectionRange.isEmpty) {
-                let firstLine = editor.document.lineAt(0);
-                let lastLine = editor.document.lineAt(editor.document.lineCount - 1);
-                selectionRange = new vscode.Selection(firstLine.range.start, lastLine.range.end);
-            }
+
+            // opa fmt doesn't support block formatting
+            // so we must always select the entire document
+            selectionRange = getFullDocumentSelection(editor, selectionRange);
+
             content = editor.document.getText(selectionRange);
 
             return new Promise((resolve, reject) => {
-                opa.runWithStatus('opa', ['fmt'], content, (code: number, stderr: string, stdout: string) => {
-                    if (!editor) {
-                        return [];
-                    }
-
-                    if (code !== 0) {
-                        let err = new Error("error running opa fmt :: " + stderr);
-                        opaOutputShowError(err.message);
-                        reject(err);
-                    } else {
-                        opaOutputHide();
-                    }
-
-                    resolve([vscode.TextEdit.replace(selectionRange, stdout)]);
-                });
+                runOPAFormatter(content, editor, reject, resolve, selectionRange);
             });
         }
+    });
+
+    vscode.workspace.onDidSaveTextDocument((document: vscode.TextDocument) => {
+        let onFormat: boolean = vscode.workspace.getConfiguration('formatOnSave')['on'];
+        if (onFormat != true) {
+            return;
+        }
+        let editor = vscode.window.activeTextEditor;
+        if (!editor) {
+            return;
+        }
+
+        vscode.commands.executeCommand('editor.action.formatDocument')
+        editor.document.save();
+        return;
     });
 }
 
@@ -109,6 +110,33 @@ interface UntypedObject {
 }
 
 let fileCoverage: UntypedObject = {};
+
+function runOPAFormatter(content: string, editor: vscode.TextEditor | undefined,
+            reject: (reason?: any) => void,
+            resolve: (value: vscode.TextEdit[] | PromiseLike<vscode.TextEdit[]>) => void, selectionRange: vscode.Selection) {
+
+    opa.runWithStatus('opa', ['fmt'], content, (code: number, stderr: string, stdout: string) => {
+        if (!editor) {
+            return [];
+        }
+
+        if (code !== 0) {
+            let err = new Error("error running opa fmt :: " + stderr);
+            opaOutputShowError(err.message);
+            reject(err);
+        } else {
+            opaOutputHide();
+        }
+
+        resolve([vscode.TextEdit.replace(selectionRange, stdout)]);
+    });
+}
+
+function getFullDocumentSelection(editor: vscode.TextEditor, selectionRange: vscode.Selection) {
+    let firstLine = editor.document.lineAt(0);
+    let lastLine = editor.document.lineAt(editor.document.lineCount - 1);
+    return new vscode.Selection(firstLine.range.start, lastLine.range.end);
+}
 
 function showCoverageOnEditorChange(editor: vscode.TextEditor | undefined) {
     if (!editor) {
