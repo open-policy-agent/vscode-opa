@@ -3,6 +3,7 @@
 ## Features
 
 * Check Syntax on Save
+* Reformat File on Save
 * Evaluate Packages
 * Evaluate Selections
 * Partially Evaluate Selections
@@ -77,6 +78,5 @@ If you want to hack on the extension itself, you should clone this repository, i
 
 ## ROADMAP
 
-* [x] run `opa fmt` on save to reformat file
 * [ ] run `opa test` on package instead of entire workspace
 * [ ] highlight syntax errors in file
