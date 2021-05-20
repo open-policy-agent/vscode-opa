@@ -17,7 +17,10 @@ export function getDataDir(uri: vscode.Uri): string {
     if (!installedOPASameOrNewerThan("0.14.0-dev")) {
         return uri.fsPath;
     }
-    return uri.toString();
+    if (uri.scheme === "file") {
+        return uri.toString()
+    }
+    return decodeURIComponent(uri.toString())
 }
 
 export function canUseBundleFlags(): boolean {
