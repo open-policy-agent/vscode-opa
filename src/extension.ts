@@ -204,29 +204,31 @@ function setFileCoverage(result: any) {
     });
 }
 
-function setEvalOutput(provider: JSONProvider, uri: vscode.Uri, error: string, result: any, inputPath: string) {
-    if (error !== '') {
-        opaOutputShowError(error);
+function setEvalOutput(provider: JSONProvider, uri: vscode.Uri, stderr: string, result: any, inputPath: string) {
+
+    if (stderr !== '') {
+        opaOutputShow(stderr);
     } else {
         opaOutputHide();
-        let inputMessage: string
-        if (inputPath === '') {
-            inputMessage = 'no input file'
+    }
+
+    let inputMessage: string
+    if (inputPath === '') {
+        inputMessage = 'no input file'
+    } else {
+        inputMessage = inputPath.replace('file://', '');
+        inputMessage = vscode.workspace.asRelativePath(inputMessage);
+    }
+    if (result.result === undefined) {
+        provider.set(outputUri, `// No results found. Took ${getPrettyTime(result.metrics.timer_rego_query_eval_ns)}. Used ${inputMessage} as input.`, undefined);
+    } else {
+        let output: any;
+        if (result.result[0].bindings === undefined) {
+            output = result.result.map((x: any) => x.expressions.map((x: any) => x.value));
         } else {
-            inputMessage = inputPath.replace('file://', '');
-            inputMessage = vscode.workspace.asRelativePath(inputMessage);
+            output = result.result.map((x: any) => x.bindings);
         }
-        if (result.result === undefined) {
-            provider.set(outputUri, `// No results found. Took ${getPrettyTime(result.metrics.timer_rego_query_eval_ns)}. Used ${inputMessage} as input.`, undefined);
-        } else {
-            let output: any;
-            if (result.result[0].bindings === undefined) {
-                output = result.result.map((x: any) => x.expressions.map((x: any) => x.value));
-            } else {
-                output = result.result.map((x: any) => x.bindings);
-            }
-            provider.set(uri, `// Found ${result.result.length} result${result.result.length === 1 ? "" : "s"} in ${getPrettyTime(result.metrics.timer_rego_query_eval_ns)} using ${inputMessage} as input.`, output);
-        }
+        provider.set(uri, `// Found ${result.result.length} result${result.result.length === 1 ? "" : "s"} in ${getPrettyTime(result.metrics.timer_rego_query_eval_ns)} using ${inputMessage} as input.`, output);
     }
 }
 
@@ -287,15 +289,11 @@ function activateCoverWorkspace(context: vscode.ExtensionContext) {
         }
         args.push(...opa.getRoots());
 
-        opa.run('opa', args, '', (error: string, result: any) => {
-            if (error !== '') {
-                opaOutputShowError(error);
-            } else {
-                opaOutputHide();
-                setFileCoverage(result);
-                showCoverageForWindow();
-            }
-        });
+        opa.run('opa', args, '', (_, result) => {
+            opaOutputHide();
+            setFileCoverage(result);
+            showCoverageForWindow();
+        }, opaOutputShowError);
 
     });
 
@@ -325,9 +323,10 @@ function activateEvalPackage(context: vscode.ExtensionContext) {
                 inputPath = '';
             }
 
-            opa.run('opa', args, 'data.' + pkg, (error: string, result: any) => {
-                setEvalOutput(provider, outputUri, error, result, inputPath);
-            });
+            opa.run('opa', args, 'data.' + pkg, (stderr, result) => {
+                setEvalOutput(provider, outputUri, stderr, result, inputPath);
+            }, opaOutputShowError);
+
         }, (error: string) => {
             opaOutputShowError(error);
         });
@@ -364,9 +363,9 @@ function activateEvalSelection(context: vscode.ExtensionContext) {
 
             let text = editor.document.getText(editor.selection);
 
-            opa.run('opa', args, text, (error: string, result: any) => {
-                setEvalOutput(provider, outputUri, error, result, inputPath);
-            });
+            opa.run('opa', args, text, (stderr, result) => {
+                setEvalOutput(provider, outputUri, stderr, result, inputPath);
+            }, opaOutputShowError);
         }, (error: string) => {
             opaOutputShowError(error);
         });
@@ -415,11 +414,11 @@ function activateEvalCoverage(context: vscode.ExtensionContext) {
 
             let text = editor.document.getText(editor.selection);
 
-            opa.run('opa', args, text, (error: string, result: any) => {
-                setEvalOutput(provider, outputUri, error, result, inputPath);
+            opa.run('opa', args, text, (stderr, result) => {
+                setEvalOutput(provider, outputUri, stderr, result, inputPath);
                 setFileCoverage(result.coverage);
                 showCoverageForWindow();
-            });
+            }, opaOutputShowError);
         }, (error: string) => {
             opaOutputShowError(error);
         });
@@ -561,7 +560,7 @@ function activatePartialSelection(context: vscode.ExtensionContext) {
             depsArgs.push(...opa.getRootParams());
             depsArgs.push('data.' + pkg);
 
-            opa.run('opa', depsArgs, '', (err: string, result: any) => {
+            opa.run('opa', depsArgs, '', (_, result: any) => {
                 let refs = result.base.map((ref: any) => opa.refToString(ref));
                 refs.push('input');
                 vscode.window.showQuickPick(refs).then((selection: string | undefined) => {
@@ -597,6 +596,8 @@ function activatePartialSelection(context: vscode.ExtensionContext) {
 
                     }
                 });
+            }, (msg) => {
+                opaOutputShowError(msg);
             });
         }, (error: string) => {
             opaOutputShowError(error);
@@ -648,6 +649,12 @@ function onActiveWorkspaceEditor(forURI: vscode.Uri, cb: (editor: vscode.TextEdi
 }
 
 export function deactivate() {
+}
+
+function opaOutputShow(msg: string) {
+    opaOutputChannel.clear();
+    opaOutputChannel.append(msg);
+    opaOutputChannel.show(true);
 }
 
 function opaOutputShowError(error: string) {
