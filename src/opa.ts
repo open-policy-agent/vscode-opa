@@ -167,29 +167,21 @@ export function refToString(ref: any[]): string {
  */
 
 export function parse(opaPath: string, path: string, cb: (pkg: string, imports: string[]) => void, onerror: (output: string) => void) {
-    run(opaPath, ['parse', path, '--format', 'json'], '', (error: string, result: any) => {
-        if (error !== '') {
-            onerror(error);
-        } else {
-            let pkg = getPackage(result);
-            let imports = getImports(result);
-            cb(pkg, imports);
-        }
-    });
+    run(opaPath, ['parse', path, '--format', 'json'], '', (_, result) => {
+        let pkg = getPackage(result);
+        let imports = getImports(result);
+        cb(pkg, imports);
+    }, onerror);
 }
 
-// run executes the OPA binary at path with args and stdin.  The callback is
-// invoked with an error message on failure or JSON object on success.
-export function run(path: string, args: string[], stdin: string, cb: (error: string, result: any) => void) {
+export function run(path: string, args: string[], stdin: string, onSuccess: (stderr: string, result: any) => void, onFailure: (msg: string) => void) {
     runWithStatus(path, args, stdin, (code: number, stderr: string, stdout: string) => {
-        if (code !== 0) {
-            if (stdout !== '') {
-                cb(stdout, '');
-            } else {
-                cb(stderr, '');
-            }
+        if (code === 0) {
+            onSuccess(stderr, JSON.parse(stdout));
+        } else if (stdout !== '') {
+            onFailure(stdout);
         } else {
-            cb('', JSON.parse(stdout));
+            onFailure(stderr);
         }
     });
 }
