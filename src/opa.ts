@@ -193,7 +193,6 @@ export function runWithStatus(path: string, args: string[], stdin: string, cb: (
     if (opaPath !== undefined) {
         opaPath = opaPath.replace('${workspaceFolder}', vscode.workspace.workspaceFolders![0].uri.fsPath.toString())
     }
-    vscode.Uri.file
 
     const existsOnPath = commandExistsSync(path);
     const existsInUserSettings = opaPath !== undefined && opaPath !== null && existsSync(opaPath);
