@@ -189,7 +189,11 @@ export function run(path: string, args: string[], stdin: string, onSuccess: (std
 // runWithStatus executes the OPA binary at path with args and stdin. The
 // callback is invoked with the exit status, stderr, and stdout buffers.
 export function runWithStatus(path: string, args: string[], stdin: string, cb: (code: number, stderr: string, stdout: string) => void) {
-    const opaPath = vscode.workspace.getConfiguration('opa').get<string>('path');
+    let opaPath = vscode.workspace.getConfiguration('opa').get<string>('path');
+    if (opaPath !== undefined) {
+        opaPath = opaPath.replace('${workspaceFolder}', vscode.workspace.workspaceFolders![0].uri.fsPath.toString())
+    }
+
     const existsOnPath = commandExistsSync(path);
     const existsInUserSettings = opaPath !== undefined && opaPath !== null && existsSync(opaPath);
 
