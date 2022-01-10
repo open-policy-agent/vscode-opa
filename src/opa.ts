@@ -190,8 +190,8 @@ export function run(path: string, args: string[], stdin: string, onSuccess: (std
 // callback is invoked with the exit status, stderr, and stdout buffers.
 export function runWithStatus(path: string, args: string[], stdin: string, cb: (code: number, stderr: string, stdout: string) => void) {
     let opaPath = vscode.workspace.getConfiguration('opa').get<string>('path');
-    if (opaPath !== undefined) {
-        opaPath = opaPath.replace('${workspaceFolder}', vscode.workspace.workspaceFolders![0].uri.fsPath.toString())
+    if (opaPath !== undefined && opaPath !== null) {
+        opaPath = opaPath.replace('${workspaceFolder}', vscode.workspace.workspaceFolders![0].uri.fsPath.toString());
     }
 
     const existsOnPath = commandExistsSync(path);
