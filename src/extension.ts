@@ -76,7 +76,7 @@ export function activate(context: vscode.ExtensionContext) {
 
     vscode.workspace.onDidSaveTextDocument((document: vscode.TextDocument) => {
         let onFormat: boolean = vscode.workspace.getConfiguration('formatOnSave')['on'];
-        if (onFormat != true) {
+        if (onFormat !== true) {
             return;
         }
         let editor = vscode.window.activeTextEditor;
@@ -84,7 +84,7 @@ export function activate(context: vscode.ExtensionContext) {
             return;
         }
 
-        vscode.commands.executeCommand('editor.action.formatDocument')
+        vscode.commands.executeCommand('editor.action.formatDocument');
         editor.document.save();
         return;
     });
@@ -212,9 +212,9 @@ function setEvalOutput(provider: JSONProvider, uri: vscode.Uri, stderr: string, 
         opaOutputHide();
     }
 
-    let inputMessage: string
+    let inputMessage: string;
     if (inputPath === '') {
-        inputMessage = 'no input file'
+        inputMessage = 'no input file';
     } else {
         inputMessage = inputPath.replace('file://', '');
         inputMessage = vscode.workspace.asRelativePath(inputMessage);
@@ -716,9 +716,9 @@ function existsSync(path: string): boolean {
 function getInputPath(): string {
     // look for input.json at the active editor's directory, or the workspace directory
     let parsed = vscode.workspace.workspaceFolders![0].uri;
-    const activeDir = path.dirname(vscode.window.activeTextEditor!.document.uri.fsPath)
+    const activeDir = path.dirname(vscode.window.activeTextEditor!.document.uri.fsPath);
     if (fs.existsSync(path.join(activeDir, 'input.json'))) {
-        parsed = vscode.Uri.file(activeDir)
+        parsed = vscode.Uri.file(activeDir);
     }
 
     // If the rootDir is a file:// URL then just append /input.json onto the

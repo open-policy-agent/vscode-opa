@@ -18,9 +18,9 @@ export function getDataDir(uri: vscode.Uri): string {
         return uri.fsPath;
     }
     if (uri.scheme === "file") {
-        return uri.toString()
+        return uri.toString();
     }
-    return decodeURIComponent(uri.toString())
+    return decodeURIComponent(uri.toString());
 }
 
 export function canUseBundleFlags(): boolean {
