@@ -241,14 +241,14 @@ function activateCheckFile(context: vscode.ExtensionContext) {
         const doc = editor.document;
 
         // Only check rego files
-        if (doc.languageId === 'rego' && checkOnSaveEnabled()) {
+        if (doc.languageId === 'rego') {
             let args: string[] = ['check'];
             if (opa.canUseBundleFlags()) {
                 args.push('--bundle');
             }
             args.push(...opa.getRoots());
             opa.runWithStatus('opa', args, '', (code: number, stderr: string, stdout: string) => {
-                let output = stdout;
+                let output = stderr;
                 if (output.trim() !== '') {
                     opaOutputShowError(output);
                 } else {
@@ -257,10 +257,17 @@ function activateCheckFile(context: vscode.ExtensionContext) {
             });
         }
     };
+
+    const checkRegoFileOnSave = () => {
+        if (checkOnSaveEnabled()) {
+            checkRegoFile();
+        }
+    };
+
     const checkFileCommand = vscode.commands.registerCommand('opa.check.file', checkRegoFile);
     // Need to use onWillSave instead of onDidSave because there's a weird race condition
     // that causes the callback to get called twice when we prompt for installing OPA
-    vscode.workspace.onWillSaveTextDocument(checkRegoFile, null, context.subscriptions);
+    vscode.workspace.onWillSaveTextDocument(checkRegoFileOnSave, null, context.subscriptions);
 
     context.subscriptions.push(checkFileCommand);
 }
