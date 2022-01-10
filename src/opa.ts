@@ -18,9 +18,9 @@ export function getDataDir(uri: vscode.Uri): string {
         return uri.fsPath;
     }
     if (uri.scheme === "file") {
-        return uri.toString()
+        return uri.toString();
     }
-    return decodeURIComponent(uri.toString())
+    return decodeURIComponent(uri.toString());
 }
 
 export function canUseBundleFlags(): boolean {
@@ -191,7 +191,7 @@ export function run(path: string, args: string[], stdin: string, onSuccess: (std
 export function runWithStatus(path: string, args: string[], stdin: string, cb: (code: number, stderr: string, stdout: string) => void) {
     let opaPath = vscode.workspace.getConfiguration('opa').get<string>('path');
     if (opaPath !== undefined) {
-        opaPath = opaPath.replace('${workspaceFolder}', vscode.workspace.workspaceFolders![0].uri.fsPath.toString())
+        opaPath = opaPath.replace('${workspaceFolder}', vscode.workspace.workspaceFolders![0].uri.fsPath.toString());
     }
 
     const existsOnPath = commandExistsSync(path);
