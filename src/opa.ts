@@ -67,6 +67,20 @@ export function getRootParams(): string[] {
     return params;
 }
 
+// Returns a list of schema parameters in an array.
+// The returned array either contains a single entry; or is empty, if the 'opa.schema' setting isn't set.
+export function getSchemaParams(): string[] {
+    let schemaPath = vscode.workspace.getConfiguration('opa').get<string>('schema');
+    if (schemaPath === undefined || schemaPath === null) {
+        return [];
+    }
+
+    schemaPath = schemaPath.replace('${workspaceFolder}', vscode.workspace.workspaceFolders![0].uri.fsPath.toString());
+    schemaPath = schemaPath.replace('${fileDirname}', dirname(vscode.window.activeTextEditor!.document.fileName));
+
+    // At this stage, we don't care if the path is valid; let the OPA command return an error.
+    return [`--schema=${schemaPath}`];
+}
 
 // returns true if OPA version a is same or newer than OPA version b. If either
 // version is not in the expected format (i.e.,

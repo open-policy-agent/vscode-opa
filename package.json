@@ -92,6 +92,14 @@
 					],
 					"default": true,
 					"description": "Enable treating the workspace as a bundle."
+				},
+				"opa.schema": {
+					"type": [
+						"string",
+						"null"
+					],
+					"default": null,
+					"description": "Path to the schema file or directory. Defaults to null. If null, schema evaluation is disabled."
 				}
 			}
 		},
