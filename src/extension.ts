@@ -247,6 +247,7 @@ function activateCheckFile(context: vscode.ExtensionContext) {
                 args.push('--bundle');
             }
             args.push(...opa.getRoots());
+            args.push(...opa.getSchemaParams());
             opa.runWithStatus('opa', args, '', (code: number, stderr: string, stdout: string) => {
                 let output = stderr;
                 if (output.trim() !== '') {
@@ -322,6 +323,7 @@ function activateEvalPackage(context: vscode.ExtensionContext) {
             args.push(...opa.getRootParams());
             args.push('--package', pkg);
             args.push('--metrics');
+            args.push(...opa.getSchemaParams());
 
             let inputPath = getInputPath();
             if (existsSync(inputPath)) {
@@ -356,6 +358,7 @@ function activateEvalSelection(context: vscode.ExtensionContext) {
             args.push(...opa.getRootParams());
             args.push('--package', pkg);
             args.push('--metrics');
+            args.push(...opa.getSchemaParams());
 
             let inputPath = getInputPath();
             if (existsSync(inputPath)) {
@@ -407,6 +410,7 @@ function activateEvalCoverage(context: vscode.ExtensionContext) {
             args.push(...opa.getRootParams());
             args.push('--package', pkg);
             args.push('--metrics');
+            args.push(...opa.getSchemaParams());
 
             let inputPath = getInputPath();
             if (existsSync(inputPath)) {
@@ -477,6 +481,7 @@ function activateTraceSelection(context: vscode.ExtensionContext) {
             args.push(...opa.getRootParams());
             args.push('--package', pkg);
             args.push('--format', 'pretty');
+            args.push(...opa.getSchemaParams());
 
             let inputPath = getInputPath();
             if (existsSync(inputPath)) {
@@ -527,6 +532,7 @@ function activateProfileSelection(context: vscode.ExtensionContext) {
             args.push('--package', pkg);
             args.push('--profile');
             args.push('--format', 'pretty');
+            args.push(...opa.getSchemaParams());
 
             let inputPath = getInputPath();
             if (existsSync(inputPath)) {
@@ -583,6 +589,7 @@ function activatePartialSelection(context: vscode.ExtensionContext) {
                         args.push('--package', pkg);
                         args.push('--format', 'pretty');
                         args.push('--unknowns', selection);
+                        args.push(...opa.getSchemaParams());
 
                         let inputPath = getInputPath();
                         if (existsSync(inputPath)) {
