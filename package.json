@@ -4,10 +4,10 @@
 	"displayName": "Open Policy Agent",
 	"repository": {
 		"type": "git",
-		"url": "https://github.com/tsandall/vscode-opa.git"
+		"url": "https://github.com/open-policy-agent/vscode-opa.git"
 	},
 	"description": "Develop, test, debug, and analyze policies for the Open Policy Agent project.",
-	"version": "0.8.0",
+	"version": "0.10.0",
 	"publisher": "tsandall",
 	"engines": {
 		"vscode": "^1.21.0"
