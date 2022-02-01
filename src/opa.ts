@@ -30,7 +30,7 @@ export function canUseBundleFlags(): boolean {
 
 export function canUseStrictFlag(): boolean {
     let strictMode = vscode.workspace.getConfiguration('opa').get<boolean>('strictMode', true);
-    return strictMode && installedOPASameOrNewerThan("0.37.0-dev");
+    return strictMode && installedOPASameOrNewerThan("0.37.0");
 }
 
 function dataFlag(): string {
@@ -143,7 +143,7 @@ function parseOPAVersion(s: string): any[] {
 
 // returns the installed OPA version as a string.
 function getOPAVersionString(): string {
-    let opaPath = getOpaPath('opa', false);
+    const opaPath = getOpaPath('opa', false);
     if (opaPath === undefined) {
         return '';
     }

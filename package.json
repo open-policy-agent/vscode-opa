@@ -106,7 +106,7 @@
 						"boolean"
 					],
 					"default": false,
-					"description": "Enable strict-mode for the OPA: Check File Syntax command (OPA check)"
+					"description": "Enable strict-mode for the \"OPA: Check File Syntax\" command (OPA check)"
 				}
 			}
 		},
