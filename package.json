@@ -75,7 +75,7 @@
 						"boolean"
 					],
 					"default": false,
-					"description": "Run opa check on save. Defaults to false"
+					"description": "Run OPA check on save. Defaults to false"
 				},
 				"opa.roots": {
 					"type": [
@@ -100,6 +100,13 @@
 					],
 					"default": null,
 					"description": "Path to the schema file or directory. Defaults to null. If null, schema evaluation is disabled."
+				},
+				"opa.strictMode": {
+					"type": [
+						"boolean"
+					],
+					"default": false,
+					"description": "Enable strict-mode for the \"OPA: Check File Syntax\" command (OPA check)"
 				}
 			}
 		},

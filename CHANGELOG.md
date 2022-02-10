@@ -1,6 +1,8 @@
 # Change Log
 
-All notable changes to the vscode-opa extension will be documented in this file.
+## 0.11.0
+
+- Adding support for compiler strict-mode (`--strict`) for OPA `check` command
 
 ## 0.10.0
 

@@ -28,6 +28,11 @@ export function canUseBundleFlags(): boolean {
     return installedOPASameOrNewerThan("0.14.0-dev") && bundleMode;
 }
 
+export function canUseStrictFlag(): boolean {
+    let strictMode = vscode.workspace.getConfiguration('opa').get<boolean>('strictMode', true);
+    return strictMode && installedOPASameOrNewerThan("0.37.0");
+}
+
 function dataFlag(): string {
     if (canUseBundleFlags()) {
         return "--bundle";
@@ -138,8 +143,12 @@ function parseOPAVersion(s: string): any[] {
 
 // returns the installed OPA version as a string.
 function getOPAVersionString(): string {
+    const opaPath = getOpaPath('opa', false);
+    if (opaPath === undefined) {
+        return '';
+    }
 
-    const result = cp.spawnSync('opa', ['version']);
+    const result = cp.spawnSync(opaPath, ['version']);
     if (result.status !== 0) {
         return '';
     }
@@ -200,9 +209,7 @@ export function run(path: string, args: string[], stdin: string, onSuccess: (std
     });
 }
 
-// runWithStatus executes the OPA binary at path with args and stdin. The
-// callback is invoked with the exit status, stderr, and stdout buffers.
-export function runWithStatus(path: string, args: string[], stdin: string, cb: (code: number, stderr: string, stdout: string) => void) {
+function getOpaPath(path: string, shouldPromptForInstall: boolean): string | undefined {
     let opaPath = vscode.workspace.getConfiguration('opa').get<string>('path');
     if (opaPath !== undefined && opaPath !== null) {
         opaPath = opaPath.replace('${workspaceFolder}', vscode.workspace.workspaceFolders![0].uri.fsPath.toString());
@@ -212,18 +219,31 @@ export function runWithStatus(path: string, args: string[], stdin: string, cb: (
     const existsInUserSettings = opaPath !== undefined && opaPath !== null && existsSync(opaPath);
 
     if (!(existsOnPath || existsInUserSettings)) {
-        promptForInstall();
-        return;
+        if (shouldPromptForInstall) {
+            promptForInstall();
+        }
+        return undefined;
     }
 
     if (existsInUserSettings && opaPath !== undefined) {
         // Prefer OPA in User Settings to the one installed on $PATH
-        path = opaPath;
+        return opaPath;
     }
 
-    console.log("spawn:", path, "args:", args.toString());
+    return path;
+}
 
-    let proc = cp.spawn(path, args);
+// runWithStatus executes the OPA binary at path with args and stdin. The
+// callback is invoked with the exit status, stderr, and stdout buffers.
+export function runWithStatus(path: string, args: string[], stdin: string, cb: (code: number, stderr: string, stdout: string) => void) {
+    let opaPath = getOpaPath(path, true);
+    if (opaPath === undefined) {
+        return;
+    }
+
+    console.log("spawn:", opaPath, "args:", args.toString());
+
+    let proc = cp.spawn(opaPath, args);
 
     proc.stdin.write(stdin);
     proc.stdin.end();

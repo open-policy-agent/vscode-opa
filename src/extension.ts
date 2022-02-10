@@ -242,7 +242,10 @@ function activateCheckFile(context: vscode.ExtensionContext) {
 
         // Only check rego files
         if (doc.languageId === 'rego') {
-            let args: string[] = ['check'];
+            let args: string[] = ['check']; 
+            if (opa.canUseStrictFlag()) {
+                args.push('--strict');
+            }
             if (opa.canUseBundleFlags()) {
                 args.push('--bundle');
             }
