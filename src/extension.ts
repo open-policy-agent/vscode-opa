@@ -243,14 +243,21 @@ function activateCheckFile(context: vscode.ExtensionContext) {
         // Only check rego files
         if (doc.languageId === 'rego') {
             let args: string[] = ['check']; 
+            
+            ifInWorkspace(() => {
+                if (opa.canUseBundleFlags()) {
+                    args.push('--bundle');
+                }
+                args.push(...opa.getRoots());
+                args.push(...opa.getSchemaParams());
+            }, () => {
+                args.push(doc.uri.fsPath);
+            });
+
             if (opa.canUseStrictFlag()) {
                 args.push('--strict');
             }
-            if (opa.canUseBundleFlags()) {
-                args.push('--bundle');
-            }
-            args.push(...opa.getRoots());
-            args.push(...opa.getSchemaParams());
+
             opa.runWithStatus('opa', args, '', (code: number, stderr: string, stdout: string) => {
                 let output = stderr;
                 if (output.trim() !== '') {
@@ -280,7 +287,7 @@ function activateCoverWorkspace(context: vscode.ExtensionContext) {
 
     const coverWorkspaceCommand = vscode.commands.registerCommand('opa.test.coverage.workspace', () => {
 
-        let editor = vscode.window.activeTextEditor;
+        const editor = vscode.window.activeTextEditor;
         if (!editor) {
             return;
         }
@@ -295,10 +302,16 @@ function activateCoverWorkspace(context: vscode.ExtensionContext) {
         fileCoverage = {};
 
         let args: string[] = ['test', '--coverage', '--format', 'json'];
-        if (opa.canUseBundleFlags()) {
-            args.push('--bundle');
-        }
-        args.push(...opa.getRoots());
+
+        ifInWorkspace(() => {
+            if (opa.canUseBundleFlags()) {
+                args.push('--bundle');
+            }
+
+            args.push(...opa.getRoots());
+        }, () => {
+            args.push(editor.document.uri.fsPath);
+        });
 
         opa.run('opa', args, '', (_, result) => {
             opaOutputHide();
@@ -316,24 +329,30 @@ function activateEvalPackage(context: vscode.ExtensionContext) {
     const provider = new JSONProvider();
     const registration = vscode.workspace.registerTextDocumentContentProvider(outputUri.scheme, provider);
 
-    const evalPackageCommand = vscode.commands.registerCommand('opa.eval.package', onActiveWorkspaceEditor(outputUri, (editor: vscode.TextEditor) => {
+    const evalPackageCommand = vscode.commands.registerCommand('opa.eval.package', onActiveWorkspaceEditor(outputUri, (editor: vscode.TextEditor, inWorkspace: boolean) => {
 
         opa.parse('opa', opa.getDataDir(editor.document.uri), (pkg: string, _: string[]) => {
 
             let args: string[] = ['eval'];
+            let inputPath = '';
 
             args.push('--stdin');
-            args.push(...opa.getRootParams());
             args.push('--package', pkg);
             args.push('--metrics');
-            args.push(...opa.getSchemaParams());
 
-            let inputPath = getInputPath();
-            if (existsSync(inputPath)) {
-                args.push('--input', inputPath);
-            } else {
-                inputPath = '';
-            }
+            ifInWorkspace(() => {
+                args.push(...opa.getRootParams());
+                args.push(...opa.getSchemaParams());
+
+                inputPath = getInputPath();
+                if (existsSync(inputPath)) {
+                    args.push('--input', inputPath);
+                } else {
+                    inputPath = '';
+                }
+            }, () => {
+                args.push('--data', editor.document.uri.fsPath);
+            });
 
             opa.run('opa', args, 'data.' + pkg, (stderr, result) => {
                 setEvalOutput(provider, outputUri, stderr, result, inputPath);
@@ -356,22 +375,28 @@ function activateEvalSelection(context: vscode.ExtensionContext) {
         opa.parse('opa', opa.getDataDir(editor.document.uri), (pkg: string, imports: string[]) => {
 
             let args: string[] = ['eval'];
+            let inputPath = '';
 
             args.push('--stdin');
-            args.push(...opa.getRootParams());
             args.push('--package', pkg);
             args.push('--metrics');
-            args.push(...opa.getSchemaParams());
-
-            let inputPath = getInputPath();
-            if (existsSync(inputPath)) {
-                args.push('--input', inputPath);
-            } else {
-                inputPath = '';
-            }
-
+            
             imports.forEach((x: string) => {
                 args.push('--import', x);
+            });
+
+            ifInWorkspace(() => {
+                args.push(...opa.getRootParams());
+                args.push(...opa.getSchemaParams());
+
+                let inputPath = getInputPath();
+                if (existsSync(inputPath)) {
+                    args.push('--input', inputPath);
+                } else {
+                    inputPath = '';
+                }
+            }, () => {
+                args.push('--data', editor.document.uri.fsPath);
             });
 
             let text = editor.document.getText(editor.selection);
@@ -407,23 +432,29 @@ function activateEvalCoverage(context: vscode.ExtensionContext) {
         opa.parse('opa', opa.getDataDir(editor.document.uri), (pkg: string, imports: string[]) => {
 
             let args: string[] = ['eval'];
+            let inputPath = '';
 
             args.push('--coverage');
             args.push('--stdin');
-            args.push(...opa.getRootParams());
             args.push('--package', pkg);
             args.push('--metrics');
-            args.push(...opa.getSchemaParams());
-
-            let inputPath = getInputPath();
-            if (existsSync(inputPath)) {
-                args.push('--input', inputPath);
-            } else {
-                inputPath = '';
-            }
-
+            
             imports.forEach((x: string) => {
                 args.push('--import', x);
+            });
+
+            ifInWorkspace(() => {
+                args.push(...opa.getRootParams());
+                args.push(...opa.getSchemaParams());
+
+                let inputPath = getInputPath();
+                if (existsSync(inputPath)) {
+                    args.push('--input', inputPath);
+                } else {
+                    inputPath = '';
+                }
+            }, () => {
+                args.push('--data', editor.document.uri.fsPath);
             });
 
             let text = editor.document.getText(editor.selection);
@@ -442,6 +473,10 @@ function activateEvalCoverage(context: vscode.ExtensionContext) {
 }
 
 function activateTestWorkspace(context: vscode.ExtensionContext) {
+    const editor = vscode.window.activeTextEditor;
+    if (!editor) {
+        return;
+    }
 
     const testWorkspaceCommand = vscode.commands.registerCommand('opa.test.workspace', () => {
         opaOutputChannel.show(true);
@@ -450,10 +485,15 @@ function activateTestWorkspace(context: vscode.ExtensionContext) {
         let args: string[] = ['test'];
 
         args.push('--verbose');
-        if (opa.canUseBundleFlags()) {
-            args.push("--bundle");
-        }
-        args.push(...opa.getRoots());
+
+        ifInWorkspace(() => {
+            if (opa.canUseBundleFlags()) {
+                args.push("--bundle");
+            }
+            args.push(...opa.getRoots());
+        }, () => {
+            args.push(editor.document.uri.fsPath);
+        });
 
         opa.runWithStatus('opa', args, '', (code: number, stderr: string, stdout: string) => {
             if (code === 0 || code === 2) {
@@ -470,7 +510,7 @@ function activateTestWorkspace(context: vscode.ExtensionContext) {
 function activateTraceSelection(context: vscode.ExtensionContext) {
     const traceSelectionCommand = vscode.commands.registerCommand('opa.trace.selection', () => {
 
-        let editor = vscode.window.activeTextEditor;
+        const editor = vscode.window.activeTextEditor;
         if (!editor) {
             return;
         }
@@ -481,21 +521,27 @@ function activateTraceSelection(context: vscode.ExtensionContext) {
             let args: string[] = ['eval'];
 
             args.push('--stdin');
-            args.push(...opa.getRootParams());
+            
             args.push('--package', pkg);
             args.push('--format', 'pretty');
-            args.push(...opa.getSchemaParams());
-
-            let inputPath = getInputPath();
-            if (existsSync(inputPath)) {
-                args.push('--input', inputPath);
-            }
-
+            
             imports.forEach((x: string) => {
                 args.push('--import', x);
             });
 
             args.push('--explain', 'full');
+
+            ifInWorkspace(() => {
+                args.push(...opa.getRootParams());
+                args.push(...opa.getSchemaParams());
+
+                let inputPath = getInputPath();
+                if (existsSync(inputPath)) {
+                    args.push('--input', inputPath);
+                }
+            }, () => {
+                args.push('--data', editor.document.uri.fsPath);
+            });
 
             opa.runWithStatus('opa', args, text, (code: number, stderr: string, stdout: string) => {
                 opaOutputChannel.show(true);
@@ -518,7 +564,7 @@ function activateTraceSelection(context: vscode.ExtensionContext) {
 function activateProfileSelection(context: vscode.ExtensionContext) {
     const profileSelectionCommand = vscode.commands.registerCommand('opa.profile.selection', () => {
 
-        let editor = vscode.window.activeTextEditor;
+        const editor = vscode.window.activeTextEditor;
         if (!editor) {
             return;
         }
@@ -531,19 +577,25 @@ function activateProfileSelection(context: vscode.ExtensionContext) {
             let args: string[] = ['eval'];
 
             args.push('--stdin');
-            args.push(...opa.getRootParams());
+            
             args.push('--package', pkg);
             args.push('--profile');
             args.push('--format', 'pretty');
-            args.push(...opa.getSchemaParams());
-
-            let inputPath = getInputPath();
-            if (existsSync(inputPath)) {
-                args.push('--input', inputPath);
-            }
 
             imports.forEach((x: string) => {
                 args.push('--import', x);
+            });
+
+            ifInWorkspace(() => {
+                args.push(...opa.getRootParams());
+                args.push(...opa.getSchemaParams());
+
+                let inputPath = getInputPath();
+                if (existsSync(inputPath)) {
+                    args.push('--input', inputPath);
+                }
+            }, () => {
+                args.push('--data', editor.document.uri.fsPath);
             });
 
             opa.runWithStatus('opa', args, text, (code: number, stderr: string, stdout: string) => {
@@ -564,7 +616,7 @@ function activateProfileSelection(context: vscode.ExtensionContext) {
 function activatePartialSelection(context: vscode.ExtensionContext) {
     const partialSelectionCommand = vscode.commands.registerCommand('opa.partial.selection', () => {
 
-        let editor = vscode.window.activeTextEditor;
+        const editor = vscode.window.activeTextEditor;
         if (!editor) {
             return;
         }
@@ -573,7 +625,13 @@ function activatePartialSelection(context: vscode.ExtensionContext) {
         opa.parse('opa', opa.getDataDir(editor.document.uri), (pkg: string, imports: string[]) => {
 
             let depsArgs = ['deps', '--format', 'json',];
-            depsArgs.push(...opa.getRootParams());
+
+            ifInWorkspace(() => {
+                depsArgs.push(...opa.getRootParams());
+            }, () => {
+                depsArgs.push('--data', editor.document.uri.fsPath);
+            });
+
             depsArgs.push('data.' + pkg);
 
             opa.run('opa', depsArgs, '', (_, result: any) => {
@@ -588,19 +646,24 @@ function activatePartialSelection(context: vscode.ExtensionContext) {
 
                         args.push('--partial');
                         args.push('--stdin');
-                        args.push(...opa.getRootParams());
                         args.push('--package', pkg);
                         args.push('--format', 'pretty');
                         args.push('--unknowns', selection);
-                        args.push(...opa.getSchemaParams());
-
-                        let inputPath = getInputPath();
-                        if (existsSync(inputPath)) {
-                            args.push('--input', inputPath);
-                        }
 
                         imports.forEach((x: string) => {
                             args.push('--import', x);
+                        });
+
+                        ifInWorkspace(() => {
+                            args.push(...opa.getRootParams());
+                            args.push(...opa.getSchemaParams());
+
+                            let inputPath = getInputPath();
+                            if (existsSync(inputPath)) {
+                                args.push('--input', inputPath);
+                            }
+                        }, () => {
+                            args.push('--data', editor.document.uri.fsPath);
                         });
 
                         opa.runWithStatus('opa', args, text, (code: number, stderr: string, stdout: string) => {
@@ -628,7 +691,7 @@ function activateDefinitionProvider(context: vscode.ExtensionContext) {
     context.subscriptions.push(vscode.languages.registerDefinitionProvider({ language: 'rego', scheme: 'file' }, new RegoDefinitionProvider()));
 }
 
-function onActiveWorkspaceEditor(forURI: vscode.Uri, cb: (editor: vscode.TextEditor) => void): () => void {
+function onActiveWorkspaceEditor(forURI: vscode.Uri, cb: (editor: vscode.TextEditor, inWorkspace: boolean) => void): () => void {
     return () => {
 
         // Open the read-only document on the right most column. If no
@@ -653,16 +716,33 @@ function onActiveWorkspaceEditor(forURI: vscode.Uri, cb: (editor: vscode.TextEdi
         // but many can.
         let editor = vscode.window.activeTextEditor;
         if (!editor) {
+            vscode.window.showErrorMessage('No active editor');
             return;
         }
 
-        let folders = vscode.workspace.workspaceFolders;
-        if (!folders) {
-            return;
-        }
+        let inWorkspace = !!vscode.workspace.workspaceFolders;
 
-        cb(editor);
+        cb(editor, !!inWorkspace);
     };
+}
+
+let informAboutWorkspace = true;
+const informAboutWorkspaceOption = "Don't show this tip again";
+
+function ifInWorkspace(yes: () => void, no: () => void = () => {}) {
+    if (!!vscode.workspace.workspaceFolders) {
+        yes();
+    } else {
+        if (informAboutWorkspace) {
+            vscode.window.showInformationMessage("You're editing a single file. Open it inside a workspace to include " +
+                "any relative input.json file, modules and schemas in the command you just ran.", informAboutWorkspaceOption).then((selection) => {
+                    if (selection === informAboutWorkspaceOption) {
+                        informAboutWorkspace = false;
+                    }
+                });
+        }
+        no();
+    }
 }
 
 export function deactivate() {

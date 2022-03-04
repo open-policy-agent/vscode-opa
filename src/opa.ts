@@ -46,13 +46,32 @@ function installedOPASameOrNewerThan(x: string): boolean {
     return opaVersionSameOrNewerThan(s, x);
 }
 
+function replaceWorkspaceFolderPathVariable(path: string): string {
+    if (vscode.workspace.workspaceFolders !== undefined) {
+        path = path.replace('${workspaceFolder}', vscode.workspace.workspaceFolders![0].uri.toString());
+    } else if (path.indexOf('${workspaceFolder}') >= 0) {
+        vscode.window.showWarningMessage('${workspaceFolder} variable configured in settings, but no workspace is active');
+    }
+    return path;
+}
+
+function replacePathVariables(path: string): string {
+    let result = replaceWorkspaceFolderPathVariable(path);
+    if (vscode.window.activeTextEditor !== undefined) {
+        result = result.replace('${fileDirname}', dirname(vscode.window.activeTextEditor!.document.fileName));
+    } else if (path.indexOf('${fileDirname}') >= 0) {
+        // Report on the original path
+        vscode.window.showWarningMessage('${fileDirname} variable configured in settings, but no document is active');
+    }
+    return result;
+}
+
 // Returns a list of root data path URIs based on the plugin configuration.
 export function getRoots(): string[] {
     const roots = vscode.workspace.getConfiguration('opa').get<string[]>('roots', []);
     let formattedRoots = new Array();
     roots.forEach(root => {
-        root = root.replace('${workspaceFolder}', vscode.workspace.workspaceFolders![0].uri.toString());
-        root = root.replace('${fileDirname}', dirname(vscode.window.activeTextEditor!.document.fileName));
+        root = replacePathVariables(root);
         formattedRoots.push(getDataDir(vscode.Uri.parse(root)));
     });
 
@@ -80,8 +99,7 @@ export function getSchemaParams(): string[] {
         return [];
     }
 
-    schemaPath = schemaPath.replace('${workspaceFolder}', vscode.workspace.workspaceFolders![0].uri.fsPath.toString());
-    schemaPath = schemaPath.replace('${fileDirname}', dirname(vscode.window.activeTextEditor!.document.fileName));
+    schemaPath = replacePathVariables(schemaPath);
 
     // At this stage, we don't care if the path is valid; let the OPA command return an error.
     return [`--schema=${schemaPath}`];
@@ -212,11 +230,19 @@ export function run(path: string, args: string[], stdin: string, onSuccess: (std
 function getOpaPath(path: string, shouldPromptForInstall: boolean): string | undefined {
     let opaPath = vscode.workspace.getConfiguration('opa').get<string>('path');
     if (opaPath !== undefined && opaPath !== null) {
-        opaPath = opaPath.replace('${workspaceFolder}', vscode.workspace.workspaceFolders![0].uri.fsPath.toString());
+        opaPath = replaceWorkspaceFolderPathVariable(opaPath);
     }
 
     const existsOnPath = commandExistsSync(path);
-    const existsInUserSettings = opaPath !== undefined && opaPath !== null && existsSync(opaPath);
+    let existsInUserSettings = false;
+
+    if (opaPath !== undefined && opaPath !== null && opaPath.length > 0) {
+        if (existsSync(opaPath)) {
+            existsInUserSettings = true;
+        } else {
+            console.warn("'opa.path' setting configured with invalid path:", opaPath);
+        }
+    }
 
     if (!(existsOnPath || existsInUserSettings)) {
         if (shouldPromptForInstall) {
