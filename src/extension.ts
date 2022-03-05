@@ -389,7 +389,7 @@ function activateEvalSelection(context: vscode.ExtensionContext) {
                 args.push(...opa.getRootParams());
                 args.push(...opa.getSchemaParams());
 
-                let inputPath = getInputPath();
+                inputPath = getInputPath();
                 if (existsSync(inputPath)) {
                     args.push('--input', inputPath);
                 } else {
@@ -411,7 +411,6 @@ function activateEvalSelection(context: vscode.ExtensionContext) {
 
     context.subscriptions.push(evalSelectionCommand, registration);
 }
-
 
 function activateEvalCoverage(context: vscode.ExtensionContext) {
 
@@ -447,7 +446,7 @@ function activateEvalCoverage(context: vscode.ExtensionContext) {
                 args.push(...opa.getRootParams());
                 args.push(...opa.getSchemaParams());
 
-                let inputPath = getInputPath();
+                inputPath = getInputPath();
                 if (existsSync(inputPath)) {
                     args.push('--input', inputPath);
                 } else {
