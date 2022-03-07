@@ -27,7 +27,7 @@ Search for "Open Policy Agent" in the Extensions (Shift ⌘ X) panel and then in
 
 | Field | Default | Description |
 | --- | --- | --- |
-| `opa.path` | `null` | Set path of OPA executable. The variable `${workspaceFolder}` will be resolved as the current workspace root. |
+| `opa.path` | `null` | Set path of OPA executable. If the path contains the string `${workspaceFolder}` it will be replaced with the current workspace root. E.g., if the path is set to `${workspaceFolder}/bin/opa` and the current workspace root is `/home/alice/project`, the OPA executable path will resolve to `/home/alice/project/bin/opa`. |
 | `opa.checkOnSave` | `false` | Enable automatic checking of .rego files on save. |
 | `opa.strictMode` | `false` | Enable [strict-mode](https://www.openpolicyagent.org/docs/latest/strict/) for the `OPA: Check File Syntax command`. |
 | `opa.roots` | `[${workspaceFolder}]` | List of paths to load as bundles for policy and data. Defaults to a single entry which is the current workspace root. The variable `${workspaceFolder}` will be resolved as the current workspace root. The variable `${fileDirname}` will be resolved as the directory of the file currently opened in the active window. |
