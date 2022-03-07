@@ -333,26 +333,8 @@ function activateEvalPackage(context: vscode.ExtensionContext) {
 
         opa.parse('opa', opa.getDataDir(editor.document.uri), (pkg: string, _: string[]) => {
 
-            let args: string[] = ['eval'];
-            let inputPath = '';
-
-            args.push('--stdin');
-            args.push('--package', pkg);
+            let {inputPath, args} = createOpaEvalArgs(editor, pkg);
             args.push('--metrics');
-
-            ifInWorkspace(() => {
-                args.push(...opa.getRootParams());
-                args.push(...opa.getSchemaParams());
-
-                inputPath = getInputPath();
-                if (existsSync(inputPath)) {
-                    args.push('--input', inputPath);
-                } else {
-                    inputPath = '';
-                }
-            }, () => {
-                args.push('--data', editor.document.uri.fsPath);
-            });
 
             opa.run('opa', args, 'data.' + pkg, (stderr, result) => {
                 setEvalOutput(provider, outputUri, stderr, result, inputPath);
@@ -374,30 +356,8 @@ function activateEvalSelection(context: vscode.ExtensionContext) {
     const evalSelectionCommand = vscode.commands.registerCommand('opa.eval.selection', onActiveWorkspaceEditor(outputUri, (editor: vscode.TextEditor) => {
         opa.parse('opa', opa.getDataDir(editor.document.uri), (pkg: string, imports: string[]) => {
 
-            let args: string[] = ['eval'];
-            let inputPath = '';
-
-            args.push('--stdin');
-            args.push('--package', pkg);
+            let {inputPath, args} = createOpaEvalArgs(editor, pkg, imports);
             args.push('--metrics');
-            
-            imports.forEach((x: string) => {
-                args.push('--import', x);
-            });
-
-            ifInWorkspace(() => {
-                args.push(...opa.getRootParams());
-                args.push(...opa.getSchemaParams());
-
-                inputPath = getInputPath();
-                if (existsSync(inputPath)) {
-                    args.push('--input', inputPath);
-                } else {
-                    inputPath = '';
-                }
-            }, () => {
-                args.push('--data', editor.document.uri.fsPath);
-            });
 
             let text = editor.document.getText(editor.selection);
 
@@ -430,32 +390,10 @@ function activateEvalCoverage(context: vscode.ExtensionContext) {
 
         opa.parse('opa', opa.getDataDir(editor.document.uri), (pkg: string, imports: string[]) => {
 
-            let args: string[] = ['eval'];
-            let inputPath = '';
-
-            args.push('--coverage');
-            args.push('--stdin');
-            args.push('--package', pkg);
+            let {inputPath, args} = createOpaEvalArgs(editor, pkg, imports);
             args.push('--metrics');
+            args.push('--coverage');
             
-            imports.forEach((x: string) => {
-                args.push('--import', x);
-            });
-
-            ifInWorkspace(() => {
-                args.push(...opa.getRootParams());
-                args.push(...opa.getSchemaParams());
-
-                inputPath = getInputPath();
-                if (existsSync(inputPath)) {
-                    args.push('--input', inputPath);
-                } else {
-                    inputPath = '';
-                }
-            }, () => {
-                args.push('--data', editor.document.uri.fsPath);
-            });
-
             let text = editor.document.getText(editor.selection);
 
             opa.run('opa', args, text, (stderr, result) => {
@@ -517,30 +455,9 @@ function activateTraceSelection(context: vscode.ExtensionContext) {
 
         opa.parse('opa', opa.getDataDir(editor.document.uri), (pkg: string, imports: string[]) => {
 
-            let args: string[] = ['eval'];
-
-            args.push('--stdin');
-            
-            args.push('--package', pkg);
+            let {args} = createOpaEvalArgs(editor, pkg, imports);
             args.push('--format', 'pretty');
-            
-            imports.forEach((x: string) => {
-                args.push('--import', x);
-            });
-
             args.push('--explain', 'full');
-
-            ifInWorkspace(() => {
-                args.push(...opa.getRootParams());
-                args.push(...opa.getSchemaParams());
-
-                let inputPath = getInputPath();
-                if (existsSync(inputPath)) {
-                    args.push('--input', inputPath);
-                }
-            }, () => {
-                args.push('--data', editor.document.uri.fsPath);
-            });
 
             opa.runWithStatus('opa', args, text, (code: number, stderr: string, stdout: string) => {
                 opaOutputChannel.show(true);
@@ -573,29 +490,9 @@ function activateProfileSelection(context: vscode.ExtensionContext) {
             opaOutputChannel.show(true);
             opaOutputChannel.clear();
 
-            let args: string[] = ['eval'];
-
-            args.push('--stdin');
-            
-            args.push('--package', pkg);
+            let {args} = createOpaEvalArgs(editor, pkg, imports);
             args.push('--profile');
             args.push('--format', 'pretty');
-
-            imports.forEach((x: string) => {
-                args.push('--import', x);
-            });
-
-            ifInWorkspace(() => {
-                args.push(...opa.getRootParams());
-                args.push(...opa.getSchemaParams());
-
-                let inputPath = getInputPath();
-                if (existsSync(inputPath)) {
-                    args.push('--input', inputPath);
-                }
-            }, () => {
-                args.push('--data', editor.document.uri.fsPath);
-            });
 
             opa.runWithStatus('opa', args, text, (code: number, stderr: string, stdout: string) => {
                 if (code === 0 || code === 2) {
@@ -641,29 +538,10 @@ function activatePartialSelection(context: vscode.ExtensionContext) {
                         opaOutputChannel.show(true);
                         opaOutputChannel.clear();
 
-                        let args: string[] = ['eval'];
-
+                        let {args} = createOpaEvalArgs(editor, pkg, imports);
                         args.push('--partial');
-                        args.push('--stdin');
-                        args.push('--package', pkg);
                         args.push('--format', 'pretty');
                         args.push('--unknowns', selection);
-
-                        imports.forEach((x: string) => {
-                            args.push('--import', x);
-                        });
-
-                        ifInWorkspace(() => {
-                            args.push(...opa.getRootParams());
-                            args.push(...opa.getSchemaParams());
-
-                            let inputPath = getInputPath();
-                            if (existsSync(inputPath)) {
-                                args.push('--input', inputPath);
-                            }
-                        }, () => {
-                            args.push('--data', editor.document.uri.fsPath);
-                        });
 
                         opa.runWithStatus('opa', args, text, (code: number, stderr: string, stdout: string) => {
                             if (code === 0 || code === 2) {
@@ -734,7 +612,7 @@ function ifInWorkspace(yes: () => void, no: () => void = () => {}) {
     } else {
         if (informAboutWorkspace) {
             vscode.window.showInformationMessage("You're editing a single file. Open it inside a workspace to include " +
-                "any relative input.json file, modules and schemas in the command you just ran.", informAboutWorkspaceOption).then((selection) => {
+                "any relative modules and schemas in the OPA commands you run.", informAboutWorkspaceOption).then((selection) => {
                     if (selection === informAboutWorkspaceOption) {
                         informAboutWorkspace = false;
                     }
@@ -811,10 +689,13 @@ function existsSync(path: string): boolean {
 
 function getInputPath(): string {
     // look for input.json at the active editor's directory, or the workspace directory
-    let parsed = vscode.workspace.workspaceFolders![0].uri;
+
     const activeDir = path.dirname(vscode.window.activeTextEditor!.document.uri.fsPath);
-    if (fs.existsSync(path.join(activeDir, 'input.json'))) {
-        parsed = vscode.Uri.file(activeDir);
+    let parsed = vscode.Uri.file(activeDir);
+    
+    // If we're in a workspace, and there is no sibling input.json to the actively edited file, look for the file in the workspace root
+    if (!!vscode.workspace.workspaceFolders && !fs.existsSync(path.join(activeDir, 'input.json'))) {
+        parsed = vscode.workspace.workspaceFolders![0].uri;
     }
 
     // If the rootDir is a file:// URL then just append /input.json onto the
@@ -836,7 +717,10 @@ class RegoDefinitionProvider implements vscode.DefinitionProvider {
         token: vscode.CancellationToken): Thenable<vscode.Location> {
 
         let args: string[] = ['oracle', 'find-definition', '--stdin-buffer'];
-        args.push(...opa.getRootParams());
+        ifInWorkspace(() => {
+            args.push(...opa.getRootParams());
+        });
+        
         args.push(document.fileName + ':' + document.offsetAt(position).toString());
 
         return new Promise<vscode.Location>((resolve, reject) => {
@@ -856,4 +740,31 @@ class RegoDefinitionProvider implements vscode.DefinitionProvider {
             });
         });
     }
+}
+
+function createOpaEvalArgs(editor: vscode.TextEditor, pkg: string, imports: string[] = []): {inputPath: string, args: string[]} {
+    let args: string[] = ['eval'];
+
+    args.push('--stdin');
+    args.push('--package', pkg);
+
+    let inputPath = getInputPath();
+    if (existsSync(inputPath)) {
+        args.push('--input', inputPath);
+    } else {
+        inputPath = '';
+    }
+
+    imports.forEach((x: string) => {
+        args.push('--import', x);
+    });
+
+    ifInWorkspace(() => {
+        args.push(...opa.getRootParams());
+        args.push(...opa.getSchemaParams());
+    }, () => {
+        args.push('--data', editor.document.uri.fsPath);
+    });
+
+    return {inputPath, args};
 }
