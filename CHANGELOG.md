@@ -3,6 +3,7 @@
 ## 0.11.0
 
 - Adding support for compiler strict-mode (`--strict`) for OPA `check` command
+- Adding support for Running OPA commands on single files outside of a workspace
 
 ## 0.10.0
 
