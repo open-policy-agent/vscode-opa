@@ -4,6 +4,7 @@
 
 - Adding support for compiler strict-mode (`--strict`) for OPA `check` command
 - Adding support for Running OPA commands on single files outside of a workspace
+- Syntax highlighting of the `every` keyword
 
 ## 0.10.0
 
