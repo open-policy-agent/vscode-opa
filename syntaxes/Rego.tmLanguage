@@ -24,10 +24,6 @@
 		</dict>
 		<dict>
 			<key>include</key>
-			<string>#head</string>
-		</dict>
-		<dict>
-			<key>include</key>
 			<string>#term</string>
 		</dict>
 	</array>
@@ -69,30 +65,6 @@
 			<string>\b(?:true|false|null)\b</string>
 			<key>name</key>
 			<string>constant.language.rego</string>
-		</dict>
-		<key>head</key>
-		<dict>
-			<key>begin</key>
-			<string>^([[:alpha:]_][[:alnum:]_]*)</string>
-			<key>beginCaptures</key>
-			<dict>
-				<key>1</key>
-				<dict>
-					<key>name</key>
-					<string>entity.name.function.declaration</string>
-				</dict>
-			</dict>
-			<key>end</key>
-			<string>(=|{|\n)</string>
-			<key>name</key>
-			<string>meta.function.rego</string>
-			<key>patterns</key>
-			<array>
-				<dict>
-					<key>include</key>
-					<string>#term</string>
-				</dict>
-			</array>
 		</dict>
 		<key>keyword</key>
 		<dict>
