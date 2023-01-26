@@ -109,7 +109,7 @@ export function getSchemaParams(): string[] {
 // version is not in the expected format (i.e.,
 // <major>.<minor>.<point>[-<patch>]) this function returns true. Major, minor,
 // and point versions are compared numerically. Patch versions are compared
-// lexigraphically however an empty patch version is considered newer than a
+// lexicographically however an empty patch version is considered newer than a
 // non-empty patch version.
 function opaVersionSameOrNewerThan(a: string, b: string): boolean {
 
