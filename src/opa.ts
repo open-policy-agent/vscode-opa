@@ -233,30 +233,25 @@ function getOpaPath(path: string, shouldPromptForInstall: boolean): string | und
         opaPath = replaceWorkspaceFolderPathVariable(opaPath);
     }
 
-    const existsOnPath = commandExistsSync(path);
-    let existsInUserSettings = false;
-
     if (opaPath !== undefined && opaPath !== null && opaPath.length > 0) {
+        if (opaPath.startsWith('file://')) {
+            opaPath = opaPath.substring(7);
+        }
+
         if (existsSync(opaPath)) {
-            existsInUserSettings = true;
-        } else {
-            console.warn("'opa.path' setting configured with invalid path:", opaPath);
+            return opaPath;
         }
+
+        console.warn("'opa.path' setting configured with invalid path:", opaPath);
     }
 
-    if (!(existsOnPath || existsInUserSettings)) {
-        if (shouldPromptForInstall) {
-            promptForInstall();
-        }
-        return undefined;
+    if (commandExistsSync(path)) {
+        return path;
     }
 
-    if (existsInUserSettings && opaPath !== undefined) {
-        // Prefer OPA in User Settings to the one installed on $PATH
-        return opaPath;
+    if (shouldPromptForInstall) {
+        promptForInstall();
     }
-
-    return path;
 }
 
 // runWithStatus executes the OPA binary at path with args and stdin. The
