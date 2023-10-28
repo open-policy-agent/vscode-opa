@@ -78,6 +78,22 @@ export function getRoots(): string[] {
     return formattedRoots;
 }
 
+// Returns a list of ignore data path URIs based on the plugin configuration.
+export function getBundleIgnorePaths(): string[] {
+    const ignorePaths = vscode.workspace.getConfiguration('opa').get<string[]>('bundleIgnorePaths', []);
+    const formattedIgnorePaths: string[] = [];
+
+    ignorePaths.forEach(path => {
+        path = replacePathVariables(path);
+
+        // Add the formatted pattern to the array.
+        formattedIgnorePaths.push(path);
+    });
+
+    return formattedIgnorePaths;
+}
+
+
 // Returns a list of root data parameters in an array
 // like ["--bundle=file:///a/b/x/", "--bundle=file:///a/b/y"] in bundle mode
 // or ["--data=file:///a/b/x", "--data=file://a/b/y"] otherwise.

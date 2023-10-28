@@ -242,14 +242,19 @@ function activateCheckFile(context: vscode.ExtensionContext) {
 
         // Only check rego files
         if (doc.languageId === 'rego') {
-            let args: string[] = ['check']; 
-            
+            let args: string[] = ['check'];
+
             ifInWorkspace(() => {
                 if (opa.canUseBundleFlags()) {
                     args.push('--bundle');
                 }
                 args.push(...opa.getRoots());
                 args.push(...opa.getSchemaParams());
+                // Add the --ignore flag with exclusion patterns
+                const ignorePaths = opa.getBundleIgnorePaths();
+                if (ignorePaths.length > 0) {
+                    args.push('--ignore', ignorePaths.join(','));
+                }
             }, () => {
                 args.push(doc.uri.fsPath);
             });
@@ -309,6 +314,11 @@ function activateCoverWorkspace(context: vscode.ExtensionContext) {
             }
 
             args.push(...opa.getRoots());
+            // Add the --ignore flag with exclusion patterns
+            const ignorePaths = opa.getBundleIgnorePaths();
+            if (ignorePaths.length > 0) {
+                args.push('--ignore', ignorePaths.join(','));
+            }
         }, () => {
             args.push(editor.document.uri.fsPath);
         });
@@ -333,7 +343,7 @@ function activateEvalPackage(context: vscode.ExtensionContext) {
 
         opa.parse('opa', opa.getDataDir(editor.document.uri), (pkg: string, _: string[]) => {
 
-            let {inputPath, args} = createOpaEvalArgs(editor, pkg);
+            let { inputPath, args } = createOpaEvalArgs(editor, pkg);
             args.push('--metrics');
 
             opa.run('opa', args, 'data.' + pkg, (stderr, result) => {
@@ -356,7 +366,7 @@ function activateEvalSelection(context: vscode.ExtensionContext) {
     const evalSelectionCommand = vscode.commands.registerCommand('opa.eval.selection', onActiveWorkspaceEditor(outputUri, (editor: vscode.TextEditor) => {
         opa.parse('opa', opa.getDataDir(editor.document.uri), (pkg: string, imports: string[]) => {
 
-            let {inputPath, args} = createOpaEvalArgs(editor, pkg, imports);
+            let { inputPath, args } = createOpaEvalArgs(editor, pkg, imports);
             args.push('--metrics');
 
             let text = editor.document.getText(editor.selection);
@@ -390,10 +400,10 @@ function activateEvalCoverage(context: vscode.ExtensionContext) {
 
         opa.parse('opa', opa.getDataDir(editor.document.uri), (pkg: string, imports: string[]) => {
 
-            let {inputPath, args} = createOpaEvalArgs(editor, pkg, imports);
+            let { inputPath, args } = createOpaEvalArgs(editor, pkg, imports);
             args.push('--metrics');
             args.push('--coverage');
-            
+
             let text = editor.document.getText(editor.selection);
 
             opa.run('opa', args, text, (stderr, result) => {
@@ -428,6 +438,11 @@ function activateTestWorkspace(context: vscode.ExtensionContext) {
                 args.push("--bundle");
             }
             args.push(...opa.getRoots());
+            // Add the --ignore flag with exclusion patterns
+            const ignorePaths = opa.getBundleIgnorePaths();
+            if (ignorePaths.length > 0) {
+                args.push('--ignore', ignorePaths.join(','));
+            }
         }, () => {
             args.push(editor.document.uri.fsPath);
         });
@@ -455,7 +470,7 @@ function activateTraceSelection(context: vscode.ExtensionContext) {
 
         opa.parse('opa', opa.getDataDir(editor.document.uri), (pkg: string, imports: string[]) => {
 
-            let {args} = createOpaEvalArgs(editor, pkg, imports);
+            let { args } = createOpaEvalArgs(editor, pkg, imports);
             args.push('--format', 'pretty');
             args.push('--explain', 'full');
 
@@ -490,7 +505,7 @@ function activateProfileSelection(context: vscode.ExtensionContext) {
             opaOutputChannel.show(true);
             opaOutputChannel.clear();
 
-            let {args} = createOpaEvalArgs(editor, pkg, imports);
+            let { args } = createOpaEvalArgs(editor, pkg, imports);
             args.push('--profile');
             args.push('--format', 'pretty');
 
@@ -538,7 +553,7 @@ function activatePartialSelection(context: vscode.ExtensionContext) {
                         opaOutputChannel.show(true);
                         opaOutputChannel.clear();
 
-                        let {args} = createOpaEvalArgs(editor, pkg, imports);
+                        let { args } = createOpaEvalArgs(editor, pkg, imports);
                         args.push('--partial');
                         args.push('--format', 'pretty');
                         args.push('--unknowns', selection);
@@ -606,7 +621,7 @@ function onActiveWorkspaceEditor(forURI: vscode.Uri, cb: (editor: vscode.TextEdi
 let informAboutWorkspace = true;
 const informAboutWorkspaceOption = "Don't show this tip again";
 
-function ifInWorkspace(yes: () => void, no: () => void = () => {}) {
+function ifInWorkspace(yes: () => void, no: () => void = () => { }) {
     if (!!vscode.workspace.workspaceFolders) {
         yes();
     } else {
@@ -692,7 +707,7 @@ function getInputPath(): string {
 
     const activeDir = path.dirname(vscode.window.activeTextEditor!.document.uri.fsPath);
     let parsed = vscode.Uri.file(activeDir);
-    
+
     // If we're in a workspace, and there is no sibling input.json to the actively edited file, look for the file in the workspace root
     if (!!vscode.workspace.workspaceFolders && !fs.existsSync(path.join(activeDir, 'input.json'))) {
         parsed = vscode.workspace.workspaceFolders![0].uri;
@@ -720,7 +735,7 @@ class RegoDefinitionProvider implements vscode.DefinitionProvider {
         ifInWorkspace(() => {
             args.push(...opa.getRootParams());
         });
-        
+
         args.push(document.fileName + ':' + document.offsetAt(position).toString());
 
         return new Promise<vscode.Location>((resolve, reject) => {
@@ -742,7 +757,7 @@ class RegoDefinitionProvider implements vscode.DefinitionProvider {
     }
 }
 
-function createOpaEvalArgs(editor: vscode.TextEditor, pkg: string, imports: string[] = []): {inputPath: string, args: string[]} {
+function createOpaEvalArgs(editor: vscode.TextEditor, pkg: string, imports: string[] = []): { inputPath: string, args: string[] } {
     let args: string[] = ['eval'];
 
     args.push('--stdin');
@@ -766,5 +781,5 @@ function createOpaEvalArgs(editor: vscode.TextEditor, pkg: string, imports: stri
         args.push('--data', editor.document.uri.fsPath);
     });
 
-    return {inputPath, args};
+    return { inputPath, args };
 }

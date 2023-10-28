@@ -107,7 +107,12 @@
 					],
 					"default": false,
 					"description": "Enable strict-mode for the \"OPA: Check File Syntax\" command (OPA check)"
-				}
+				},
+				"opa.bundleIgnorePaths": {
+					"type": ["array"],
+					"default": [],
+					"description": "List of path patterns to ignore during bundle loading."
+				}				
 			}
 		},
 		"languages": [

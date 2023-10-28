@@ -34,6 +34,7 @@ Search for "Open Policy Agent" in the Extensions (Shift ⌘ X) panel and then in
 | `opa.bundleMode`  | `true`  | Enable treating the workspace as a bundle to avoid loading erroneous data JSON/YAML files. It is _NOT_ recommended to disable this. |
 | `opa.schema` | `null` | Path to the [schema](https://www.openpolicyagent.org/docs/latest/schemas/) file or directory. If set to `null`, schema evaluation is disabled. As for `opa.roots`, `${workspaceFolder}` and `${fileDirname}` variables can be used in the path. |
 | `editor.formatOnSave` | `false` | Enable reformatting the current document on save by using `opa fmt`. |
+| `opa.bundleIgnorePaths` | `[]` | Set file and directory names to ignore during loading (e.g., '.*' excludes hidden files) |
 
 > For bundle documentation refer to [https://www.openpolicyagent.org/docs/latest/management/#bundle-file-format](https://www.openpolicyagent.org/docs/latest/management/#bundle-file-format).
   Note that data files *MUST* be named either `data.json` or `data.yaml`.
