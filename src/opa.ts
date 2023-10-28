@@ -279,7 +279,13 @@ export function runWithStatus(path: string, args: string[], stdin: string, cb: (
     }
 
     console.log("spawn:", opaPath, "args:", args.toString());
-
+    // Check if the args array does not include "--ignore" or ".git"
+    if (args.indexOf("--ignore") === -1 || args.indexOf(".git") === -1) {
+        // Add the universal "--ignore .git" option to the args array
+        args.push("--ignore");
+        args.push(".git");
+    }
+    
     let proc = cp.spawn(opaPath, args);
 
     proc.stdin.write(stdin);
