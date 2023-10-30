@@ -246,15 +246,15 @@ function activateCheckFile(context: vscode.ExtensionContext) {
 
             ifInWorkspace(() => {
                 if (opa.canUseBundleFlags()) {
-                    args.push('--bundle');
-                }
-                args.push(...opa.getRoots());
-                args.push(...opa.getSchemaParams());
                 // Add the --ignore flag with exclusion patterns
                 const ignorePaths = opa.getBundleIgnorePaths();
                 if (ignorePaths.length > 0) {
                     args.push('--ignore', ignorePaths.join(','));
                 }
+                    args.push('--bundle');
+                }
+                args.push(...opa.getRoots());
+                args.push(...opa.getSchemaParams());
             }, () => {
                 args.push(doc.uri.fsPath);
             });
@@ -310,15 +310,15 @@ function activateCoverWorkspace(context: vscode.ExtensionContext) {
 
         ifInWorkspace(() => {
             if (opa.canUseBundleFlags()) {
-                args.push('--bundle');
-            }
-
-            args.push(...opa.getRoots());
             // Add the --ignore flag with exclusion patterns
             const ignorePaths = opa.getBundleIgnorePaths();
             if (ignorePaths.length > 0) {
                 args.push('--ignore', ignorePaths.join(','));
             }
+                args.push('--bundle');
+            }
+
+            args.push(...opa.getRoots());
         }, () => {
             args.push(editor.document.uri.fsPath);
         });
@@ -435,14 +435,14 @@ function activateTestWorkspace(context: vscode.ExtensionContext) {
 
         ifInWorkspace(() => {
             if (opa.canUseBundleFlags()) {
-                args.push("--bundle");
-            }
-            args.push(...opa.getRoots());
             // Add the --ignore flag with exclusion patterns
             const ignorePaths = opa.getBundleIgnorePaths();
             if (ignorePaths.length > 0) {
                 args.push('--ignore', ignorePaths.join(','));
             }
+                args.push("--bundle");
+            }
+            args.push(...opa.getRoots());
         }, () => {
             args.push(editor.document.uri.fsPath);
         });
