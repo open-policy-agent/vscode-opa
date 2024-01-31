@@ -4,8 +4,8 @@ import cp = require('child_process');
 const commandExistsSync = require('command-exists').sync;
 import * as vscode from 'vscode';
 
-import { promptForInstall } from './install-opa';
-import { getImports, getPackage } from './util';
+import { promptForInstall } from './github-installer';
+import { getImports, getPackage, replaceWorkspaceFolderPathVariable } from './util';
 import { existsSync } from 'fs';
 import { dirname } from 'path';
 
@@ -46,15 +46,6 @@ function installedOPASameOrNewerThan(x: string): boolean {
     return opaVersionSameOrNewerThan(s, x);
 }
 
-function replaceWorkspaceFolderPathVariable(path: string): string {
-    if (vscode.workspace.workspaceFolders !== undefined) {
-        path = path.replace('${workspaceFolder}', vscode.workspace.workspaceFolders![0].uri.toString());
-    } else if (path.indexOf('${workspaceFolder}') >= 0) {
-        vscode.window.showWarningMessage('${workspaceFolder} variable configured in settings, but no workspace is active');
-    }
-    return path;
-}
-
 function replacePathVariables(path: string): string {
     let result = replaceWorkspaceFolderPathVariable(path);
     if (vscode.window.activeTextEditor !== undefined) {
@@ -70,7 +61,7 @@ function replacePathVariables(path: string): string {
 export function getRoots(): string[] {
     const roots = vscode.workspace.getConfiguration('opa').get<string[]>('roots', []);
     let formattedRoots = new Array();
-    roots.forEach(root => {
+    roots.forEach((root: string) => {
         root = replacePathVariables(root);
         formattedRoots.push(getDataDir(vscode.Uri.parse(root)));
     });
@@ -228,7 +219,12 @@ export function run(path: string, args: string[], stdin: string, onSuccess: (std
 }
 
 function getOpaPath(path: string, shouldPromptForInstall: boolean): string | undefined {
-    let opaPath = vscode.workspace.getConfiguration('opa').get<string>('path');
+    let opaPath = vscode.workspace.getConfiguration('opa.dependency_paths').get<string>('opa');
+    // if not set, check the deprecated setting location
+    if (opaPath === undefined || opaPath === null) {
+        opaPath = vscode.workspace.getConfiguration('opa').get<string>('path');
+    }
+
     if (opaPath !== undefined && opaPath !== null) {
         opaPath = replaceWorkspaceFolderPathVariable(opaPath);
     }
@@ -250,7 +246,43 @@ function getOpaPath(path: string, shouldPromptForInstall: boolean): string | und
     }
 
     if (shouldPromptForInstall) {
-        promptForInstall();
+        promptForInstall(
+            'opa',
+            'open-policy-agent/opa',
+            'OPA is either not installed or is missing from your path, would you like to install it?',
+            (release: any) => {
+                // release.assets.name contains {'darwin', 'linux', 'windows'}
+                const assets = release.assets || [];
+                const os = process.platform;
+                let targetAsset: { browser_download_url: string };
+                switch (os) {
+                    case 'darwin':
+                        targetAsset = assets.filter((asset: { name: string }) => asset.name.indexOf('darwin') !== -1)[0];
+                        break;
+                    case 'linux':
+                        targetAsset = assets.filter((asset: { name: string }) => asset.name.indexOf('linux') !== -1)[0];
+                        break;
+                    case 'win32':
+                        targetAsset = assets.filter((asset: { name: string }) => asset.name.indexOf('windows') !== -1)[0];
+                        break;
+                    default:
+                        targetAsset = { browser_download_url: '' };
+                }
+                return targetAsset.browser_download_url;
+            },
+            () => {
+                const os = process.platform;
+                switch (os) {
+                    case 'darwin':
+                    case 'linux':
+                        return 'opa';
+                    case 'win32':
+                        return 'opa.exe';
+                    default:
+                        return 'opa';
+                }
+            }
+        );
     }
 }
 
@@ -283,7 +315,7 @@ export function runWithStatus(path: string, args: string[], stdin: string, cb: (
         console.log("code:", code);
         console.log("stdout:", stdout);
         console.log("stderr:", stderr);
-        cb(code, stderr, stdout);
+        cb(code || 0, stderr, stdout);
     });
 
 }
