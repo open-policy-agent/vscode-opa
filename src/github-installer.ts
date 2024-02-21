@@ -18,6 +18,7 @@ export function promptForInstall(
     message: string,
     determineBinaryURLFromRelease: (release: any) => string,
     determineExecutableName: () => string,
+    callback?: () => void,
 ) {
     if (installDeclined[binaryConfigKey]) {
         return;
@@ -31,7 +32,9 @@ export function promptForInstall(
                     repo,
                     determineBinaryURLFromRelease,
                     determineExecutableName,
-                );
+                ).then(() => {
+                    callback && callback();
+                })
             } else {
                 installDeclined[binaryConfigKey] = true;
             }

@@ -20,7 +20,7 @@ import { opaOutputChannel } from '../../extension';
 
 let client: LanguageClient;
 
-const minimumSupportedRegalVersion = '0.16.1';
+const minimumSupportedRegalVersion = '0.16.0';
 
 export function promptForInstallRegal(message: string) {
     const dlOpts = downloadOptionsRegal();
@@ -54,15 +54,18 @@ function promptForUpdateRegal() {
         return
     }
 
-    if (semver.gt(version, minimumSupportedRegalVersion)) {
+    if (semver.gte(version, minimumSupportedRegalVersion)) {
         return
     }
 
     const path = regalPath();
-    let message = 'Your version of Regal is out of date. Would you like to update it?';
-    // if the path is not the path where VS Code manages Regal, then we show another message
+    let message = 'The version of Regal that the OPA extension is using is out of date. Click "Install" to update it to a new one.'
+    // if the path is not the path where VS Code manages Regal,
+    // then we show another message
     if (path === 'regal') {
-        message = 'Please update Regal using your preferred method. Or click "Install" to use a version managed by the OPA extension.';
+        message = 'Installed Regal version ' + version + ' is out of date and is not supported. Please update Regal to ' +
+            minimumSupportedRegalVersion +
+            ' using your preferred method. Or click "Install" to use a version managed by the OPA extension.';
     }
 
     promptForInstallRegal(message);
@@ -116,6 +119,13 @@ export function activatedRegal(): boolean {
 }
 
 export function activateRegal(context: ExtensionContext) {
+    // This should not happen, but this is a safety check to avoid spawning
+    // multiple language server instances which leads to duplicate messages in clients.
+    if (activatedRegal()) {
+        opaOutputChannel.appendLine('Regal LS is already running.');
+        return;
+    }
+
     promptForUpdateRegal();
 
     const version = regalVersion();

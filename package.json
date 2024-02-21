@@ -53,6 +53,10 @@
 			{
 				"command": "opa.partial.selection",
 				"title": "OPA: Partial Evaluation: Selection"
+			},
+			{
+				"command": "opa.prompts.clear",
+				"title": "OPA: Clear Dismissed Prompts"
 			}
 		],
 		"configuration": {

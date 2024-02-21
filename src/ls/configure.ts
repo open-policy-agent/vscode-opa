@@ -10,7 +10,7 @@ import { opaOutputChannel } from '../extension';
 // are installed and prompts the user to enable them.
 // If a user opts in, the language server is added to the list of enabled
 // language servers in the OPA extension configuration.
-export function configureLanguageServers() {
+export function configureLanguageServers(context: vscode.ExtensionContext) {
     const configuration = vscode.workspace.getConfiguration('opa');
     const configuredLanguageServers = configuration.get<Array<string>>('languageServers') || [];
 
@@ -51,6 +51,14 @@ export function configureLanguageServers() {
                 if (!isInstalled) {
                     break
                 }
+
+                const globalStateKey = 'opa.prompts.configure.language_server.' + languageServerID;
+
+                if (context.globalState.get(globalStateKey)) {
+                    continue;
+                }
+
+                context.globalState.update(globalStateKey, true);
 
                 const btnText = 'Enable ' + languageServerName;
                 vscode.window.showInformationMessage(
