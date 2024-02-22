@@ -1,5 +1,13 @@
 # Change Log
 
+## 0.13.0
+
+- Support for [Regal](https://docs.styra.com/regal) Language server.
+
+## 0.12.0
+
+- Keyword highligting for `if` and `contains`
+
 ## 0.11.0
 
 - Adding support for compiler strict-mode (`--strict`) for OPA `check` command
