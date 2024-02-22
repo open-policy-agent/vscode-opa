@@ -10,13 +10,10 @@
 	"version": "0.12.2",
 	"publisher": "tsandall",
 	"engines": {
-		"vscode": "^1.21.0"
+		"vscode": "^1.75.0"
 	},
 	"categories": [
 		"Programming Languages"
-	],
-	"activationEvents": [
-		"onLanguage:rego"
 	],
 	"main": "./out/extension",
 	"contributes": {
@@ -56,6 +53,10 @@
 			{
 				"command": "opa.partial.selection",
 				"title": "OPA: Partial Evaluation: Selection"
+			},
+			{
+				"command": "opa.prompts.clear",
+				"title": "OPA: Clear Dismissed Prompts"
 			}
 		],
 		"configuration": {
@@ -68,14 +69,31 @@
 						"null"
 					],
 					"default": null,
+					"deprecationMessage": "Please use opa.dependency_paths.opa instead.",
 					"description": "Path of the OPA executable. Defaults to null."
+				},
+				"opa.dependency_paths.opa": {
+					"type": [
+						"string",
+						"null"
+					],
+					"default": null,
+					"description": "Path to OPA's binary. Defaults to null."
+				},
+				"opa.dependency_paths.regal": {
+					"type": [
+						"string",
+						"null"
+					],
+					"default": null,
+					"description": "Path to Regal's binary on disk. Defaults to null."
 				},
 				"opa.checkOnSave": {
 					"type": [
 						"boolean"
 					],
 					"default": false,
-					"description": "Run OPA check on save. Defaults to false"
+					"description": "Run OPA check on save. Defaults to false."
 				},
 				"opa.roots": {
 					"type": [
@@ -84,7 +102,7 @@
 					"default": [
 						"${workspaceFolder}"
 					],
-					"description": "List of paths to load as bundles for policy and data. Defaults to [\"${workspaceFolder}\"]"
+					"description": "List of paths to load as bundles for policy and data. Defaults to [\"${workspaceFolder}\"]."
 				},
 				"opa.bundleMode": {
 					"type": [
@@ -106,7 +124,14 @@
 						"boolean"
 					],
 					"default": false,
-					"description": "Enable strict-mode for the \"OPA: Check File Syntax\" command (OPA check)"
+					"description": "Enable strict-mode for the \"OPA: Check File Syntax\" command (OPA check)."
+				},
+				"opa.languageServers": {
+					"type": [
+						"array"
+					],
+					"default": null,
+					"description": "Enable the specified Rego and OPA related language servers. Supports: ['regal'], Default: []."
 				}
 			}
 		},
@@ -137,15 +162,19 @@
 		"watch": "tsc -watch -p ./"
 	},
 	"devDependencies": {
-		"@types/mocha": "^2.2.42",
-		"@types/node": "^7.10.7",
-		"@types/vscode": "^1.21.0",
-		"tslint": "^5.20.0",
-		"typescript": "^2.9.2"
+		"@types/mocha": "10.0.6",
+		"@types/node": "20.11.13",
+		"@types/vscode": "1.85.0",
+		"@typescript-eslint/eslint-plugin": "^6.14.0",
+		"@typescript-eslint/parser": "^6.14.0",
+		"eslint": "^8.56.0",
+		"typescript": "5.3.3"
 	},
 	"dependencies": {
 		"@fohlen/github-release-downloader": "^1.0.0",
-		"command-exists": "^1.2.6"
+		"command-exists": "^1.2.6",
+		"semver": "^7.6.0",
+		"vscode-languageclient": "^9.0.1"
 	},
 	"__metadata": {
 		"id": "ab758a0c-5cb5-417e-99bf-12a6e16bb148",

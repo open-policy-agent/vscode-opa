@@ -12,12 +12,13 @@
 * Run Tests in Workspace
 * Toggle Coverage in Workspace
 * Toggle Coverage of Selections
+* Start and show messages from the [Regal](https://docs.styra.com/regal) Language server
 
-![Eval](https://raw.githubusercontent.com/tsandall/vscode-opa/master/eval.gif)
+![Use of the extension to lint and eval Rego code](https://raw.githubusercontent.com/tsandall/vscode-opa/master/eval.gif)
 
 ## Requirements
 
-* This plugin requires the [Open Policy Agent](https://github.com/open-policy-agent/opa) executable (`opa`) to be installed in your $PATH. Alternatively, you can configure the `opa.path` setting to point to the executable. If you do not have OPA installed, the plugin will prompt you to install the executable the first time you evaluate a policy, run tests, etc.
+* This plugin requires the [Open Policy Agent](https://github.com/open-policy-agent/opa) executable (`opa`) to be installed in your $PATH. Alternatively, you can configure the `opa.dependency_paths.opa` setting to point to the executable. If you do not have OPA installed, the plugin will prompt you to install the executable the first time you evaluate a policy, run tests, etc.
 
 ## Installation
 
@@ -27,13 +28,14 @@ Search for "Open Policy Agent" in the Extensions (Shift ⌘ X) panel and then in
 
 | Field | Default | Description |
 | --- | --- | --- |
-| `opa.path` | `null` | Set path of OPA executable. If the path contains the string `${workspaceFolder}` it will be replaced with the current workspace root. E.g., if the path is set to `${workspaceFolder}/bin/opa` and the current workspace root is `/home/alice/project`, the OPA executable path will resolve to `/home/alice/project/bin/opa`. |
+| `opa.dependency_paths.opa` | `null` | Set path of OPA executable. If the path contains the string `${workspaceFolder}` it will be replaced with the current workspace root. E.g., if the path is set to `${workspaceFolder}/bin/opa` and the current workspace root is `/home/alice/project`, the OPA executable path will resolve to `/home/alice/project/bin/opa`. |
 | `opa.checkOnSave` | `false` | Enable automatic checking of .rego files on save. |
 | `opa.strictMode` | `false` | Enable [strict-mode](https://www.openpolicyagent.org/docs/latest/strict/) for the `OPA: Check File Syntax command`. |
 | `opa.roots` | `[${workspaceFolder}]` | List of paths to load as bundles for policy and data. Defaults to a single entry which is the current workspace root. The variable `${workspaceFolder}` will be resolved as the current workspace root. The variable `${fileDirname}` will be resolved as the directory of the file currently opened in the active window. |
 | `opa.bundleMode`  | `true`  | Enable treating the workspace as a bundle to avoid loading erroneous data JSON/YAML files. It is _NOT_ recommended to disable this. |
 | `opa.schema` | `null` | Path to the [schema](https://www.openpolicyagent.org/docs/latest/schemas/) file or directory. If set to `null`, schema evaluation is disabled. As for `opa.roots`, `${workspaceFolder}` and `${fileDirname}` variables can be used in the path. |
 | `editor.formatOnSave` | `false` | Enable reformatting the current document on save by using `opa fmt`. |
+| `opa.languageServers` | `null` | An array of enabled language servers (currently `["regal"]` is supported) |
 
 > For bundle documentation refer to [https://www.openpolicyagent.org/docs/latest/management/#bundle-file-format](https://www.openpolicyagent.org/docs/latest/management/#bundle-file-format).
   Note that data files *MUST* be named either `data.json` or `data.yaml`.
@@ -80,5 +82,5 @@ If you want to hack on the extension itself, you should clone this repository, i
 
 ## ROADMAP
 
+* [x] highlight syntax errors in file (available when using Regal language server)
 * [ ] run `opa test` on package instead of entire workspace
-* [ ] highlight syntax errors in file

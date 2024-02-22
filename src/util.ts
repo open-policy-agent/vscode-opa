@@ -1,5 +1,7 @@
 'use strict';
 
+import * as vscode from 'vscode';
+
 /**
  * String helpers for OPA types.
  */
@@ -45,4 +47,13 @@ export function getPrettyTime(ns: number): string {
         return milliseconds.toString() + 'ms';
     }
     return (ns / 1e3).toString() + 'µs';
+}
+
+export function replaceWorkspaceFolderPathVariable(path: string): string {
+    if (vscode.workspace.workspaceFolders !== undefined) {
+        path = path.replace('${workspaceFolder}', vscode.workspace.workspaceFolders![0].uri.toString());
+    } else if (path.indexOf('${workspaceFolder}') >= 0) {
+        vscode.window.showWarningMessage('${workspaceFolder} variable configured in settings, but no workspace is active');
+    }
+    return path;
 }

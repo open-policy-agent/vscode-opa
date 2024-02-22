@@ -4,10 +4,11 @@ import cp = require('child_process');
 const commandExistsSync = require('command-exists').sync;
 import * as vscode from 'vscode';
 
-import { promptForInstall } from './install-opa';
-import { getImports, getPackage } from './util';
+import { promptForInstall } from './github-installer';
+import { getImports, getPackage, replaceWorkspaceFolderPathVariable } from './util';
 import { existsSync } from 'fs';
 import { dirname } from 'path';
+import { advertiseLanguageServers } from './ls/advertise';
 
 var regoVarPattern = new RegExp('^[a-zA-Z_][a-zA-Z0-9_]*$');
 
@@ -42,17 +43,8 @@ function dataFlag(): string {
 
 // returns true if installed OPA is same or newer than OPA version x.
 function installedOPASameOrNewerThan(x: string): boolean {
-    const s = getOPAVersionString();
+    const s = getOPAVersionString(undefined);
     return opaVersionSameOrNewerThan(s, x);
-}
-
-function replaceWorkspaceFolderPathVariable(path: string): string {
-    if (vscode.workspace.workspaceFolders !== undefined) {
-        path = path.replace('${workspaceFolder}', vscode.workspace.workspaceFolders![0].uri.toString());
-    } else if (path.indexOf('${workspaceFolder}') >= 0) {
-        vscode.window.showWarningMessage('${workspaceFolder} variable configured in settings, but no workspace is active');
-    }
-    return path;
 }
 
 function replacePathVariables(path: string): string {
@@ -70,7 +62,7 @@ function replacePathVariables(path: string): string {
 export function getRoots(): string[] {
     const roots = vscode.workspace.getConfiguration('opa').get<string[]>('roots', []);
     let formattedRoots = new Array();
-    roots.forEach(root => {
+    roots.forEach((root: string) => {
         root = replacePathVariables(root);
         formattedRoots.push(getDataDir(vscode.Uri.parse(root)));
     });
@@ -140,7 +132,6 @@ function opaVersionSameOrNewerThan(a: string, b: string): boolean {
 // returns array of numbers and strings representing an OPA semantic version.
 function parseOPAVersion(s: string): any[] {
 
-
     const parts = s.split('.', 3);
     if (parts.length < 3) {
         return [];
@@ -160,8 +151,8 @@ function parseOPAVersion(s: string): any[] {
 }
 
 // returns the installed OPA version as a string.
-function getOPAVersionString(): string {
-    const opaPath = getOpaPath('opa', false);
+function getOPAVersionString(context?: vscode.ExtensionContext): string {
+    const opaPath = getOpaPath(context, 'opa', false);
     if (opaPath === undefined) {
         return '';
     }
@@ -207,16 +198,16 @@ export function refToString(ref: any[]): string {
  * Helpers for executing OPA as a subprocess.
  */
 
-export function parse(opaPath: string, path: string, cb: (pkg: string, imports: string[]) => void, onerror: (output: string) => void) {
-    run(opaPath, ['parse', path, '--format', 'json'], '', (_, result) => {
+export function parse(context: vscode.ExtensionContext, opaPath: string, path: string, cb: (pkg: string, imports: string[]) => void, onerror: (output: string) => void) {
+    run(context, opaPath, ['parse', path, '--format', 'json'], '', (_, result) => {
         let pkg = getPackage(result);
         let imports = getImports(result);
         cb(pkg, imports);
     }, onerror);
 }
 
-export function run(path: string, args: string[], stdin: string, onSuccess: (stderr: string, result: any) => void, onFailure: (msg: string) => void) {
-    runWithStatus(path, args, stdin, (code: number, stderr: string, stdout: string) => {
+export function run(context: vscode.ExtensionContext, path: string, args: string[], stdin: string, onSuccess: (stderr: string, result: any) => void, onFailure: (msg: string) => void) {
+    runWithStatus(context, path, args, stdin, (code: number, stderr: string, stdout: string) => {
         if (code === 0) {
             onSuccess(stderr, JSON.parse(stdout));
         } else if (stdout !== '') {
@@ -227,8 +218,17 @@ export function run(path: string, args: string[], stdin: string, onSuccess: (std
     });
 }
 
-function getOpaPath(path: string, shouldPromptForInstall: boolean): string | undefined {
-    let opaPath = vscode.workspace.getConfiguration('opa').get<string>('path');
+export function opaIsInstalled(context: vscode.ExtensionContext): boolean {
+    return getOpaPath(context, 'opa', false) !== undefined;
+}
+
+function getOpaPath(context: vscode.ExtensionContext | undefined, path: string, shouldPromptForInstall: boolean): string | undefined {
+    let opaPath = vscode.workspace.getConfiguration('opa.dependency_paths').get<string>('opa');
+    // if not set, check the deprecated setting location
+    if (opaPath === undefined || opaPath === null) {
+        opaPath = vscode.workspace.getConfiguration('opa').get<string>('path');
+    }
+
     if (opaPath !== undefined && opaPath !== null) {
         opaPath = replaceWorkspaceFolderPathVariable(opaPath);
     }
@@ -250,14 +250,60 @@ function getOpaPath(path: string, shouldPromptForInstall: boolean): string | und
     }
 
     if (shouldPromptForInstall) {
-        promptForInstall();
+        // this is used to track if the user has been offered to install OPA,
+        // this can later be used to allow other prompts to be shown
+        if (context) {
+            const globalStateKey = 'opa.prompts.install.opa';
+            context.globalState.update(globalStateKey, true);
+        }
+
+        promptForInstall(
+            'opa',
+            'open-policy-agent/opa',
+            'OPA is either not installed or is missing from your path, would you like to install it?',
+            (release: any) => {
+                // release.assets.name contains {'darwin', 'linux', 'windows'}
+                const assets = release.assets || [];
+                const os = process.platform;
+                let targetAsset: { browser_download_url: string };
+                switch (os) {
+                    case 'darwin':
+                        targetAsset = assets.filter((asset: { name: string }) => asset.name.indexOf('darwin') !== -1)[0];
+                        break;
+                    case 'linux':
+                        targetAsset = assets.filter((asset: { name: string }) => asset.name.indexOf('linux') !== -1)[0];
+                        break;
+                    case 'win32':
+                        targetAsset = assets.filter((asset: { name: string }) => asset.name.indexOf('windows') !== -1)[0];
+                        break;
+                    default:
+                        targetAsset = { browser_download_url: '' };
+                }
+                return targetAsset.browser_download_url;
+            },
+            () => {
+                const os = process.platform;
+                switch (os) {
+                    case 'darwin':
+                    case 'linux':
+                        return 'opa';
+                    case 'win32':
+                        return 'opa.exe';
+                    default:
+                        return 'opa';
+                }
+            },
+            () => {
+                context && advertiseLanguageServers(context)
+            },
+        );
     }
 }
 
 // runWithStatus executes the OPA binary at path with args and stdin. The
 // callback is invoked with the exit status, stderr, and stdout buffers.
-export function runWithStatus(path: string, args: string[], stdin: string, cb: (code: number, stderr: string, stdout: string) => void) {
-    let opaPath = getOpaPath(path, true);
+export function runWithStatus(context: vscode.ExtensionContext | undefined, path: string, args: string[], stdin: string, cb: (code: number, stderr: string, stdout: string) => void) {
+    let opaPath = getOpaPath(context, path, true);
     if (opaPath === undefined) {
         return;
     }
@@ -283,7 +329,7 @@ export function runWithStatus(path: string, args: string[], stdin: string, cb: (
         console.log("code:", code);
         console.log("stdout:", stdout);
         console.log("stderr:", stderr);
-        cb(code, stderr, stdout);
+        cb(code || 0, stderr, stdout);
     });
 
 }
