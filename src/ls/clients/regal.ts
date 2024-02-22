@@ -20,7 +20,7 @@ import { opaOutputChannel } from '../../extension';
 
 let client: LanguageClient;
 
-const minimumSupportedRegalVersion = '0.16.0';
+const minimumSupportedRegalVersion = '0.17.0';
 
 export function promptForInstallRegal(message: string) {
     const dlOpts = downloadOptionsRegal();

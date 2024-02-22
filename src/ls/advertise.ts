@@ -4,6 +4,7 @@ import * as vscode from 'vscode';
 
 import { supportedLanguageServers } from './ls';
 import { promptForInstallRegal, isInstalledRegal } from './clients/regal';
+import { opaIsInstalled } from '../opa';
 
 // advertiseLanguageServers checks if any of the supported language servers
 // are installed and prompts the user to install them if not.
@@ -12,7 +13,7 @@ export function advertiseLanguageServers(context: vscode.ExtensionContext) {
     // don't offer to install language servers and wait for that process to complete.
     // advertiseLanguageServers is run again after OPA is installed.
     const promptedForOPAInstall = context.globalState.get('opa.prompts.install.opa');
-    if (!promptedForOPAInstall) {
+    if (!opaIsInstalled(context) && !promptedForOPAInstall) {
         return;
     }
 

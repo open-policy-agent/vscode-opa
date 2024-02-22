@@ -218,6 +218,10 @@ export function run(context: vscode.ExtensionContext, path: string, args: string
     });
 }
 
+export function opaIsInstalled(context: vscode.ExtensionContext): boolean {
+    return getOpaPath(context, 'opa', false) !== undefined;
+}
+
 function getOpaPath(context: vscode.ExtensionContext | undefined, path: string, shouldPromptForInstall: boolean): string | undefined {
     let opaPath = vscode.workspace.getConfiguration('opa.dependency_paths').get<string>('opa');
     // if not set, check the deprecated setting location
