@@ -112,7 +112,7 @@ export function activate(context: vscode.ExtensionContext) {
     });
 }
 
-const outputUri = vscode.Uri.parse(`json:output.json`);
+const outputUri = vscode.Uri.parse(`json:output.jsonc`);
 
 let coveredHighlight = vscode.window.createTextEditorDecorationType({
     backgroundColor: 'rgba(64,128,64,0.5)',
