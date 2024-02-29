@@ -135,6 +135,14 @@
 					],
 					"default": null,
 					"description": "Enable the specified Rego and OPA related language servers. Supports: ['regal'], Default: []."
+				},
+				"opa.env": {
+				  "type": "object",
+				  "additionalProperties": {
+				    "type": "string"
+				  },
+				  "default": {},
+				  "description": "Environment variables passed to the process running OPA."
 				}
 			}
 		},

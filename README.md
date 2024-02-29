@@ -36,6 +36,7 @@ Search for "Open Policy Agent" in the Extensions (Shift ⌘ X) panel and then in
 | `opa.schema` | `null` | Path to the [schema](https://www.openpolicyagent.org/docs/latest/schemas/) file or directory. If set to `null`, schema evaluation is disabled. As for `opa.roots`, `${workspaceFolder}` and `${fileDirname}` variables can be used in the path. |
 | `editor.formatOnSave` | `false` | Enable reformatting the current document on save by using `opa fmt`. |
 | `opa.languageServers` | `null` | An array of enabled language servers (currently `["regal"]` is supported) |
+| `opa.env` | `{}` | Object of environment variables passed to the process running OPA (e.g. `{"key": "value"}`) |
 
 > For bundle documentation refer to [https://www.openpolicyagent.org/docs/latest/management/#bundle-file-format](https://www.openpolicyagent.org/docs/latest/management/#bundle-file-format).
   Note that data files *MUST* be named either `data.json` or `data.yaml`.

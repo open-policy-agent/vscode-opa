@@ -300,6 +300,10 @@ function getOpaPath(context: vscode.ExtensionContext | undefined, path: string, 
     }
 }
 
+function getOpaEnv(): NodeJS.ProcessEnv {
+    return vscode.workspace.getConfiguration('opa').get<NodeJS.ProcessEnv>('env', {});
+}
+
 // runWithStatus executes the OPA binary at path with args and stdin. The
 // callback is invoked with the exit status, stderr, and stdout buffers.
 export function runWithStatus(context: vscode.ExtensionContext | undefined, path: string, args: string[], stdin: string, cb: (code: number, stderr: string, stdout: string) => void) {
@@ -310,7 +314,7 @@ export function runWithStatus(context: vscode.ExtensionContext | undefined, path
 
     console.log("spawn:", opaPath, "args:", args.toString());
 
-    let proc = cp.spawn(opaPath, args);
+    let proc = cp.spawn(opaPath, args, {env: getOpaEnv()});
 
     proc.stdin.write(stdin);
     proc.stdin.end();
