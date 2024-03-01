@@ -19,8 +19,9 @@ import { replaceWorkspaceFolderPathVariable } from '../../util';
 import { opaOutputChannel } from '../../extension';
 
 let client: LanguageClient;
+let clientLock = false;
 
-const minimumSupportedRegalVersion = '0.17.0';
+const minimumSupportedRegalVersion = '0.18.0';
 
 export function promptForInstallRegal(message: string) {
     const dlOpts = downloadOptionsRegal();
@@ -106,25 +107,13 @@ export function regalPath(): string {
     return 'regal';
 }
 
-export function activatedRegal(): boolean {
-    if (client === undefined) {
-        return false;
-    }
-
-    if (!client.isRunning()) {
-        return false;
-    }
-
-    return true;
-}
-
 export function activateRegal(context: ExtensionContext) {
-    // This should not happen, but this is a safety check to avoid spawning
-    // multiple language server instances which leads to duplicate messages in clients.
-    if (activatedRegal()) {
-        opaOutputChannel.appendLine('Regal LS is already running.');
+    // activateRegal is run when the config changes, but this happens a few times
+    // at startup. We use clientLock to prevent the activation of multiple instances.
+    if (clientLock) {
         return;
     }
+    clientLock = true;
 
     promptForUpdateRegal();
 
@@ -193,9 +182,11 @@ export function activateRegal(context: ExtensionContext) {
 }
 
 export function deactivateRegal(): Thenable<void> | undefined {
+    clientLock = false;
     if (!client) {
         return undefined;
     }
+
     return client.stop();
 }
 
