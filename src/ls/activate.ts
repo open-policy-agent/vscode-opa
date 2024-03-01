@@ -4,7 +4,6 @@ import * as vscode from 'vscode';
 
 import {
     activateRegal,
-    activatedRegal,
     deactivateRegal,
 } from './clients/regal';
 import { supportedLanguageServers } from './ls';
@@ -22,9 +21,7 @@ export function activateLanguageServers(context: vscode.ExtensionContext) {
 
         switch (languageServerID) {
             case 'regal':
-                if (activatedRegal()) {
-                    deactivateRegal();
-                }
+                deactivateRegal();
                 break;
         }
     }
@@ -33,9 +30,7 @@ export function activateLanguageServers(context: vscode.ExtensionContext) {
     for (const languageServer of configuredLanguageServers) {
         switch (languageServer) {
             case 'regal':
-                if (!activatedRegal()) {
-                    activateRegal(context);
-                }
+                activateRegal(context);
                 break;
         }
     }
