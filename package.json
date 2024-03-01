@@ -7,7 +7,7 @@
 		"url": "https://github.com/open-policy-agent/vscode-opa.git"
 	},
 	"description": "Develop, test, debug, and analyze policies for the Open Policy Agent project.",
-	"version": "0.13.1",
+	"version": "0.13.2",
 	"publisher": "tsandall",
 	"engines": {
 		"vscode": "^1.75.0"
@@ -137,12 +137,12 @@
 					"description": "Enable the specified Rego and OPA related language servers. Supports: ['regal'], Default: []."
 				},
 				"opa.env": {
-				  "type": "object",
-				  "additionalProperties": {
-				    "type": "string"
-				  },
-				  "default": {},
-				  "description": "Environment variables passed to the process running OPA."
+					"type": "object",
+					"additionalProperties": {
+						"type": "string"
+					},
+					"default": {},
+					"description": "Environment variables passed to the process running OPA."
 				}
 			}
 		},
