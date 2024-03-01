@@ -14,7 +14,7 @@
 * Toggle Coverage of Selections
 * Start and show messages from the [Regal](https://docs.styra.com/regal) Language server
 
-![Use of the extension to lint and eval Rego code](https://raw.githubusercontent.com/tsandall/vscode-opa/master/eval.gif)
+![Use of the extension to lint and eval Rego code](https://raw.githubusercontent.com/open-policy-agent/vscode-opa/master/eval.gif)
 
 ## Requirements
 
