@@ -314,7 +314,7 @@ export function runWithStatus(context: vscode.ExtensionContext | undefined, path
 
     console.log("spawn:", opaPath, "args:", args.toString());
 
-    let proc = cp.spawn(opaPath, args, {env: getOpaEnv()});
+    let proc = cp.spawn(opaPath, args, {env: {...process.env, ...getOpaEnv()}});
 
     proc.stdin.write(stdin);
     proc.stdin.end();
