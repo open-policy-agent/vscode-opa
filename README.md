@@ -40,6 +40,9 @@ Search for "Open Policy Agent" in the Extensions (Shift ⌘ X) panel and then in
 
 Note that the `${workspaceFolder}` variable will expand to a full URI of the workspace, as expected by most VS Code commands. The `${workspacePath}` variable may additionally be used where only the path component (i.e. without the `file://` schema component) of the workspace URI is required.
 
+> For bundle documentation refer to [https://www.openpolicyagent.org/docs/latest/management/#bundle-file-format](https://www.openpolicyagent.org/docs/latest/management/#bundle-file-format).
+  Note that data files *MUST* be named either `data.json` or `data.yaml`.
+
 ### Using `opa.env` to set OPA command line flags
 
 From OPA v0.62.0 and onwards, it's possible to set any command line flag via environment variables as an alternative to arguments to the various `opa` commands. This allows using the `opa.env` object for setting any flag to the commmands executed by the extension. The format of the environment variables follows the pattern `OPA_<COMMAND>_<FLAG>` where `COMMAND` is the command name in uppercase (like `EVAL`) and `FLAG` is the flag name in uppercase (like `IGNORE`). For example, to set the `--capabilities` flag for the `opa check` and `opa eval` command, use the following configuration in your `.vscode/settings.json` file:
@@ -52,9 +55,6 @@ From OPA v0.62.0 and onwards, it's possible to set any command line flag via env
     }
 }
 ```
-
-> For bundle documentation refer to [https://www.openpolicyagent.org/docs/latest/management/#bundle-file-format](https://www.openpolicyagent.org/docs/latest/management/#bundle-file-format).
-  Note that data files *MUST* be named either `data.json` or `data.yaml`.
 
 ## Tips
 
