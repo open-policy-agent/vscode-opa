@@ -301,7 +301,9 @@ function getOpaPath(context: vscode.ExtensionContext | undefined, path: string, 
 }
 
 function getOpaEnv(): NodeJS.ProcessEnv {
-    return vscode.workspace.getConfiguration('opa').get<NodeJS.ProcessEnv>('env', {});
+    let env = vscode.workspace.getConfiguration('opa').get<NodeJS.ProcessEnv>('env', {});
+
+    return Object.fromEntries(Object.entries(env).map(([k, v]) => [k, replacePathVariables(v as string)]));
 }
 
 // runWithStatus executes the OPA binary at path with args and stdin. The
