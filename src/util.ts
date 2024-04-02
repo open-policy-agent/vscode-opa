@@ -12,7 +12,7 @@ export function getPackage(parsed: any): string {
 export function getImports(parsed: any): string[] {
     if (parsed.imports !== undefined) {
         return parsed.imports.map((x: any) => {
-            let str = getPathString(x.path.value);
+            const str = getPathString(x.path.value);
             if (!x.alias) {
                 return str;
             }
@@ -38,11 +38,11 @@ export function getPathString(path: any): string {
 }
 
 export function getPrettyTime(ns: number): string {
-    let seconds = ns / 1e9;
+    const seconds = ns / 1e9;
     if (seconds >= 1) {
         return seconds.toString() + 's';
     }
-    let milliseconds = ns / 1e6;
+    const milliseconds = ns / 1e6;
     if (milliseconds >= 1) {
         return milliseconds.toString() + 'ms';
     }

@@ -10,7 +10,7 @@ import { existsSync } from 'fs';
 import { dirname } from 'path';
 import { advertiseLanguageServers } from './ls/advertise';
 
-var regoVarPattern = new RegExp('^[a-zA-Z_][a-zA-Z0-9_]*$');
+const regoVarPattern = new RegExp('^[a-zA-Z_][a-zA-Z0-9_]*$');
 
 export function getDataDir(uri: vscode.Uri): string {
     // NOTE(tsandall): we don't have a precise version for 3be55ed6 so
@@ -25,12 +25,12 @@ export function getDataDir(uri: vscode.Uri): string {
 }
 
 export function canUseBundleFlags(): boolean {
-    let bundleMode = vscode.workspace.getConfiguration('opa').get<boolean>('bundleMode', true);
+    const bundleMode = vscode.workspace.getConfiguration('opa').get<boolean>('bundleMode', true);
     return installedOPASameOrNewerThan("0.14.0-dev") && bundleMode;
 }
 
 export function canUseStrictFlag(): boolean {
-    let strictMode = vscode.workspace.getConfiguration('opa').get<boolean>('strictMode', true);
+    const strictMode = vscode.workspace.getConfiguration('opa').get<boolean>('strictMode', true);
     return strictMode && installedOPASameOrNewerThan("0.37.0");
 }
 
@@ -61,13 +61,8 @@ function replacePathVariables(path: string): string {
 // Returns a list of root data path URIs based on the plugin configuration.
 export function getRoots(): string[] {
     const roots = vscode.workspace.getConfiguration('opa').get<string[]>('roots', []);
-    let formattedRoots = new Array();
-    roots.forEach((root: string) => {
-        root = replacePathVariables(root);
-        formattedRoots.push(getDataDir(vscode.Uri.parse(root)));
-    });
 
-    return formattedRoots;
+    return roots.map((root: string) => getDataDir(vscode.Uri.parse(replacePathVariables(root))));
 }
 
 // Returns a list of root data parameters in an array
@@ -76,11 +71,8 @@ export function getRoots(): string[] {
 export function getRootParams(): string[] {
     const flag = dataFlag();
     const roots = getRoots();
-    let params = new Array();
-    roots.forEach(root => {
-        params.push(`${flag}=${root}`);
-    });
-    return params;
+
+    return roots.map((root) => `${flag}=${root}`)
 }
 
 // Returns a list of schema parameters in an array.
@@ -200,8 +192,8 @@ export function refToString(ref: any[]): string {
 
 export function parse(context: vscode.ExtensionContext, opaPath: string, path: string, cb: (pkg: string, imports: string[]) => void, onerror: (output: string) => void) {
     run(context, opaPath, ['parse', path, '--format', 'json'], '', (_, result) => {
-        let pkg = getPackage(result);
-        let imports = getImports(result);
+        const pkg = getPackage(result);
+        const imports = getImports(result);
         cb(pkg, imports);
     }, onerror);
 }
@@ -301,7 +293,7 @@ function getOpaPath(context: vscode.ExtensionContext | undefined, path: string, 
 }
 
 function getOpaEnv(): NodeJS.ProcessEnv {
-    let env = vscode.workspace.getConfiguration('opa').get<NodeJS.ProcessEnv>('env', {});
+    const env = vscode.workspace.getConfiguration('opa').get<NodeJS.ProcessEnv>('env', {});
 
     return Object.fromEntries(Object.entries(env).map(([k, v]) => [k, replacePathVariables(v as string)]));
 }
@@ -309,14 +301,14 @@ function getOpaEnv(): NodeJS.ProcessEnv {
 // runWithStatus executes the OPA binary at path with args and stdin. The
 // callback is invoked with the exit status, stderr, and stdout buffers.
 export function runWithStatus(context: vscode.ExtensionContext | undefined, path: string, args: string[], stdin: string, cb: (code: number, stderr: string, stdout: string) => void) {
-    let opaPath = getOpaPath(context, path, true);
+    const opaPath = getOpaPath(context, path, true);
     if (opaPath === undefined) {
         return;
     }
 
     console.log("spawn:", opaPath, "args:", args.toString());
 
-    let proc = cp.spawn(opaPath, args, {env: {...process.env, ...getOpaEnv()}});
+    const proc = cp.spawn(opaPath, args, {env: {...process.env, ...getOpaEnv()}});
 
     proc.stdin.write(stdin);
     proc.stdin.end();
