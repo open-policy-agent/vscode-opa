@@ -16,7 +16,15 @@
     "onLanguage:rego"
   ],
   "categories": [
-    "Programming Languages"
+    "Programming Languages",
+    "Linters"
+  ],
+  "keywords": [
+    "open policy agent",
+    "opa",
+    "rego",
+    "policy",
+    "regal"
   ],
   "main": "./out/extension",
   "contributes": {
