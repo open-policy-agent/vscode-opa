@@ -10,7 +10,7 @@ import * as vscode from 'vscode';
 import { opaOutputChannel } from './extension';
 const releaseDownloader = require('@fohlen/github-release-downloader');
 
-let installDeclined: { [repo: string]: boolean } = {};
+const installDeclined: { [repo: string]: boolean } = {};
 
 export function promptForInstall(
     binaryConfigKey: string,
