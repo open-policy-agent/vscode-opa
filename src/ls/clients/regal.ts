@@ -10,13 +10,13 @@ import {
     CloseAction,
 } from 'vscode-languageclient/node';
 import * as vscode from 'vscode';
+import * as semver from 'semver';
 import { existsSync } from 'fs';
-const commandExistsSync = require('command-exists').sync;
-const semver = require('semver');
-
+import {sync as commandExistsSync} from 'command-exists';
 import { promptForInstall } from '../../github-installer';
 import { replaceWorkspaceFolderPathVariable } from '../../util';
 import { opaOutputChannel } from '../../extension';
+import { execSync } from 'child_process';
 
 let client: LanguageClient;
 let clientLock = false;
@@ -78,7 +78,6 @@ function regalVersion(): string {
     let version = 'missing';
 
     if (isInstalledRegal()) {
-        const execSync = require('child_process').execSync;
         const versionJSON = execSync(regalPath() + ' version --format=json').toString().trim();
         const versionObj = JSON.parse(versionJSON);
         version = versionObj.version || 'unknown';
@@ -107,7 +106,7 @@ export function regalPath(): string {
     return 'regal';
 }
 
-export function activateRegal(context: ExtensionContext) {
+export function activateRegal(_context: ExtensionContext) {
     // activateRegal is run when the config changes, but this happens a few times
     // at startup. We use clientLock to prevent the activation of multiple instances.
     if (clientLock) {
@@ -145,7 +144,7 @@ export function activateRegal(context: ExtensionContext) {
         traceOutputChannel: outChan,
         revealOutputChannelOn: 0,
         errorHandler: {
-            error: (error: Error, message: Message, count: number): ErrorHandlerResult => {
+            error: (error: Error, message: Message, _count: number): ErrorHandlerResult => {
                 console.error(error);
                 console.error(message);
                 return {

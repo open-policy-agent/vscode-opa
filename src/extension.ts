@@ -17,7 +17,7 @@ export class JSONProvider implements vscode.TextDocumentContentProvider {
     private _onDidChange = new vscode.EventEmitter<vscode.Uri>();
     private content = "";
 
-    public provideTextDocumentContent(uri: vscode.Uri): string {
+    public provideTextDocumentContent(_uri: vscode.Uri): string {
         return this.content;
     }
 
@@ -60,7 +60,7 @@ export function activate(context: vscode.ExtensionContext) {
 
     // this will trigger the prompt to install OPA if missing, rather than waiting til on save
     // the manual running of a command
-    opa.runWithStatus(context, 'opa', ['version'], '', (code: number, stderr: string, stdout: string) => { });
+    opa.runWithStatus(context, 'opa', ['version'], '', (_code: number, _stderr: string, _stdout: string) => { });
 
     context.subscriptions.push(vscode.commands.registerCommand('opa.show.commands', () => {
         const extension = vscode.extensions.getExtension("tsandall.opa");
@@ -71,7 +71,7 @@ export function activate(context: vscode.ExtensionContext) {
     }));
 
     vscode.languages.registerDocumentFormattingEditProvider({ scheme: 'file', language: 'rego' }, {
-        provideDocumentFormattingEdits(document: vscode.TextDocument): vscode.TextEdit[] | Thenable<vscode.TextEdit[]> {
+        provideDocumentFormattingEdits(_document: vscode.TextDocument): vscode.TextEdit[] | Thenable<vscode.TextEdit[]> {
             const editor = vscode.window.activeTextEditor;
             if (!editor) {
                 return [];
@@ -89,7 +89,7 @@ export function activate(context: vscode.ExtensionContext) {
         }
     });
 
-    vscode.workspace.onDidSaveTextDocument((document: vscode.TextDocument) => {
+    vscode.workspace.onDidSaveTextDocument((_document: vscode.TextDocument) => {
         const onFormat: boolean = vscode.workspace.getConfiguration('formatOnSave')['on'];
         if (onFormat !== true) {
             return;
@@ -104,7 +104,7 @@ export function activate(context: vscode.ExtensionContext) {
         return;
     });
 
-    vscode.workspace.onDidChangeConfiguration((event) => {
+    vscode.workspace.onDidChangeConfiguration((_event) => {
         // configureLanguageServers is run here to catch newly installed language servers,
         // after their paths are updated.
         configureLanguageServers(context);
@@ -172,9 +172,9 @@ function removeCoverageOnDocumentChange(e: vscode.TextDocumentChangeEvent) {
     }
 }
 
-function showCoverageForEditor(editor: vscode.TextEditor) {
-    Object.keys(fileCoverage).forEach(fileName => {
-        vscode.window.visibleTextEditors.forEach((value, index, obj) => {
+function showCoverageForEditor(_editor: vscode.TextEditor) {
+    Object.keys(fileCoverage).forEach((fileName) => {
+        vscode.window.visibleTextEditors.forEach((value) => {
             if (value.document.fileName.endsWith(fileName)) {
                 value.setDecorations(coveredHighlight, fileCoverage[fileName].covered);
                 value.setDecorations(notCoveredHighlight, fileCoverage[fileName].notCovered);
@@ -184,14 +184,14 @@ function showCoverageForEditor(editor: vscode.TextEditor) {
 }
 
 function showCoverageForWindow() {
-    vscode.window.visibleTextEditors.forEach((value, index, obj) => {
+    vscode.window.visibleTextEditors.forEach((value) => {
         showCoverageForEditor(value);
     });
 }
 
 function removeCoverage() {
-    Object.keys(fileCoverage).forEach(fileName => {
-        vscode.window.visibleTextEditors.forEach((value, index, obj) => {
+    Object.keys(fileCoverage).forEach((fileName) => {
+        vscode.window.visibleTextEditors.forEach((value) => {
             if (value.document.fileName.endsWith(fileName)) {
                 value.setDecorations(coveredHighlight, []);
                 value.setDecorations(notCoveredHighlight, []);
@@ -202,7 +202,7 @@ function removeCoverage() {
 }
 
 function setFileCoverage(result: any) {
-    Object.keys(result.files).forEach(fileName => {
+    Object.keys(result.files).forEach((fileName) => {
         const report = result.files[fileName];
         if (!report) {
             return;
@@ -280,7 +280,7 @@ function activateCheckFile(context: vscode.ExtensionContext) {
                 args.push('--strict');
             }
 
-            opa.runWithStatus(context, 'opa', args, '', (code: number, stderr: string, stdout: string) => {
+            opa.runWithStatus(context, 'opa', args, '', (_code: number, stderr: string, _stdout: string) => {
                 const output = stderr;
                 if (output.trim() !== '') {
                     opaOutputShowError(output);
@@ -351,7 +351,7 @@ function activateEvalPackage(context: vscode.ExtensionContext) {
     const provider = new JSONProvider();
     const registration = vscode.workspace.registerTextDocumentContentProvider(outputUri.scheme, provider);
 
-    const evalPackageCommand = vscode.commands.registerCommand('opa.eval.package', onActiveWorkspaceEditor(outputUri, (editor: vscode.TextEditor, inWorkspace: boolean) => {
+    const evalPackageCommand = vscode.commands.registerCommand('opa.eval.package', onActiveWorkspaceEditor(outputUri, (editor: vscode.TextEditor, _inWorkspace: boolean) => {
 
         opa.parse(context, 'opa', opa.getDataDir(editor.document.uri), (pkg: string, _: string[]) => {
 
@@ -707,7 +707,7 @@ function formatErrors(error: string): string {
             msg.push(`${location_prefix}: ${errors[i].code}: ${errors[i].message}`);
         }
         return msg.join('\n');
-    } catch (e) {
+    } catch (_) {
         return error;
     }
 }
@@ -754,7 +754,7 @@ class RegoDefinitionProvider implements vscode.DefinitionProvider {
     public provideDefinition(
         document: vscode.TextDocument,
         position: vscode.Position,
-        token: vscode.CancellationToken): Thenable<vscode.Location> {
+        _token: vscode.CancellationToken): Thenable<vscode.Location> {
 
         const args: string[] = ['oracle', 'find-definition', '--stdin-buffer'];
         ifInWorkspace(() => {

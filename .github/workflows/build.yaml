@@ -25,7 +25,7 @@ jobs:
         run: npm run compile
 
       - name: Run ESLint
-        run: npx eslint --format @microsoft/eslint-formatter-sarif --output-file eslint-results.sarif .
+        run: npx eslint --format @microsoft/eslint-formatter-sarif --output-file eslint-results.sarif src
         continue-on-error: true
 
       - name: Upload analysis results to GitHub

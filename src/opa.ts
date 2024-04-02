@@ -1,9 +1,8 @@
 'use strict';
 
 import cp = require('child_process');
-const commandExistsSync = require('command-exists').sync;
 import * as vscode from 'vscode';
-
+import {sync as commandExistsSync} from 'command-exists';
 import { promptForInstall } from './github-installer';
 import { getImports, getPackage, replaceWorkspaceFolderPathVariable } from './util';
 import { existsSync } from 'fs';
@@ -323,7 +322,7 @@ export function runWithStatus(context: vscode.ExtensionContext | undefined, path
         stderr += data;
     });
 
-    proc.on('exit', (code, signal) => {
+    proc.on('exit', (code) => {
         console.log("code:", code);
         console.log("stdout:", stdout);
         console.log("stderr:", stderr);
