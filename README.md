@@ -30,17 +30,17 @@ Search for "Open Policy Agent" in the Extensions (Shift ⌘ X) panel and then in
 | --- | --- | --- |
 | `opa.dependency_paths.opa` | `null` | Set path of OPA executable. If the path contains the string `${workspaceFolder}` it will be replaced with the current workspace root. E.g., if the path is set to `${workspaceFolder}/bin/opa` and the current workspace root is `/home/alice/project`, the OPA executable path will resolve to `/home/alice/project/bin/opa`. |
 | `opa.checkOnSave` | `false` | Enable automatic checking of .rego files on save. |
-| `opa.strictMode` | `false` | Enable [strict-mode](https://www.openpolicyagent.org/docs/latest/strict/) for the `OPA: Check File Syntax command`. |
+| `opa.strictMode` | `false` | Enable [strict-mode](https://www.openpolicyagent.org/docs/latest/policy-language/#strict-mode) for the `OPA: Check File Syntax command`. |
 | `opa.roots` | `[${workspaceFolder}]` | List of paths to load as bundles for policy and data. Defaults to a single entry which is the current workspace root. The variable `${workspaceFolder}` will be resolved as the current workspace root. The variable `${fileDirname}` will be resolved as the directory of the file currently opened in the active window. |
 | `opa.bundleMode`  | `true`  | Enable treating the workspace as a bundle to avoid loading erroneous data JSON/YAML files. It is _NOT_ recommended to disable this. |
-| `opa.schema` | `null` | Path to the [schema](https://www.openpolicyagent.org/docs/latest/schemas/) file or directory. If set to `null`, schema evaluation is disabled. As for `opa.roots`, `${workspaceFolder}` and `${fileDirname}` variables can be used in the path. |
+| `opa.schema` | `null` | Path to the [schema](https://www.openpolicyagent.org/docs/latest/policy-language/#using-schemas-to-enhance-the-rego-type-checker) file or directory. If set to `null`, schema evaluation is disabled. As for `opa.roots`, `${workspaceFolder}` and `${fileDirname}` variables can be used in the path. |
 | `editor.formatOnSave` | `false` | Enable reformatting the current document on save by using `opa fmt`. |
 | `opa.languageServers` | `null` | An array of enabled language servers (currently `["regal"]` is supported) |
 | `opa.env` | `{}` | Object of environment variables passed to the process running OPA (e.g. `{"key": "value"}`) |
 
 Note that the `${workspaceFolder}` variable will expand to a full URI of the workspace, as expected by most VS Code commands. The `${workspacePath}` variable may additionally be used where only the path component (i.e. without the `file://` schema component) of the workspace URI is required.
 
-> For bundle documentation refer to [https://www.openpolicyagent.org/docs/latest/management/#bundle-file-format](https://www.openpolicyagent.org/docs/latest/management/#bundle-file-format).
+> For bundle documentation refer to [https://www.openpolicyagent.org/docs/latest/management/#bundle-file-format](https://www.openpolicyagent.org/docs/latest/management-bundles/#bundle-file-format).
   Note that data files *MUST* be named either `data.json` or `data.yaml`.
 
 ### Using `opa.env` to set OPA command line flags
