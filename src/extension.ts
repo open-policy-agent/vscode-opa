@@ -432,11 +432,6 @@ function activateEvalCoverage(context: vscode.ExtensionContext) {
 }
 
 function activateTestWorkspace(context: vscode.ExtensionContext) {
-    const editor = vscode.window.activeTextEditor;
-    if (!editor) {
-        return;
-    }
-
     const testWorkspaceCommand = vscode.commands.registerCommand('opa.test.workspace', () => {
         opaOutputChannel.show(true);
         opaOutputChannel.clear();
@@ -451,6 +446,10 @@ function activateTestWorkspace(context: vscode.ExtensionContext) {
             }
             args.push(...opa.getRoots());
         }, () => {
+            const editor = vscode.window.activeTextEditor;
+            if (!editor) {
+                return;
+            }
             args.push(editor.document.uri.fsPath);
         });
 
