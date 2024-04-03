@@ -14,7 +14,7 @@ export function configureLanguageServers(context: vscode.ExtensionContext) {
     const configuration = vscode.workspace.getConfiguration('opa');
     const configuredLanguageServers = configuration.get<Array<string>>('languageServers') || [];
 
-    // if the user has language servers set to an empty array this is 
+    // if the user has language servers set to an empty array this is
     // taken as an indication that they don't want to be prompted to enable
     // any new ones
     if (configuration.get('languageServers') !== null && configuredLanguageServers.length === 0) {
@@ -31,7 +31,7 @@ export function configureLanguageServers(context: vscode.ExtensionContext) {
         }
 
         switch (languageServerID) {
-            case 'regal':
+            case 'regal': {
                 const isInstalled = isInstalledRegal();
                 const path = regalPath();
                 // if regal has been installed by the extension, it should be
@@ -75,6 +75,7 @@ export function configureLanguageServers(context: vscode.ExtensionContext) {
                         );
                     }
                 });
+            }
         }
     }
 }

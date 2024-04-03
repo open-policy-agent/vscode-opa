@@ -8,6 +8,7 @@ import { URL } from 'url';
 import * as vscode from 'vscode';
 
 import { opaOutputChannel } from './extension';
+// eslint-disable-next-line @typescript-eslint/no-var-requires
 const releaseDownloader = require('@fohlen/github-release-downloader');
 
 const installDeclined: { [repo: string]: boolean } = {};
