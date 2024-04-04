@@ -1,5 +1,9 @@
 # Change Log
 
+## 0.13.6
+
+- Bump @types/node from 20.12.3 to 20.12.4 #131
+
 ## 0.13.5
 
 - Add workflow for extension release automation #112
