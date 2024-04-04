@@ -113,49 +113,78 @@
 		</dict>
 		<key>string</key>
 		<dict>
-			<key>begin</key>
-			<string>"</string>
-			<key>beginCaptures</key>
-			<dict>
-				<key>0</key>
-				<dict>
-					<key>name</key>
-					<string>punctuation.definition.string.begin.rego</string>
-				</dict>
-			</dict>
-			<key>end</key>
-			<string>"</string>
-			<key>endCaptures</key>
-			<dict>
-				<key>0</key>
-				<dict>
-					<key>name</key>
-					<string>punctuation.definition.string.end.rego</string>
-				</dict>
-			</dict>
-			<key>name</key>
-			<string>string.quoted.double.rego</string>
 			<key>patterns</key>
 			<array>
 				<dict>
-					<key>match</key>
-					<string>(?x:                # turn on extended mode
-	           \\                # a literal backslash
-	           (?:               # ...followed by...
-	             ["\\/bfnrt]     # one of these characters
-	             |               # ...or...
-	             u               # a u
-	             [0-9a-fA-F]{4}  # and four hex digits
-	           )
-	         )</string>
+					<key>begin</key>
+					<string>"</string>
+					<key>beginCaptures</key>
+					<dict>
+						<key>0</key>
+						<dict>
+							<key>name</key>
+							<string>punctuation.definition.string.begin.rego</string>
+						</dict>
+					</dict>
+					<key>end</key>
+					<string>"</string>
+					<key>endCaptures</key>
+					<dict>
+						<key>0</key>
+						<dict>
+							<key>name</key>
+							<string>punctuation.definition.string.end.rego</string>
+						</dict>
+					</dict>
 					<key>name</key>
-					<string>constant.character.escape.rego</string>
+					<string>string.quoted.double.rego</string>
+					<key>patterns</key>
+					<array>
+						<dict>
+							<key>match</key>
+							<string>(?x:                # turn on extended mode
+					\\                # a literal backslash
+					(?:               # ...followed by...
+						["\\/bfnrt]     # one of these characters
+						|               # ...or...
+						u               # a u
+						[0-9a-fA-F]{4}  # and four hex digits
+					)
+					)</string>
+							<key>name</key>
+							<string>constant.character.escape.rego</string>
+						</dict>
+						<dict>
+							<key>match</key>
+							<string>\\.</string>
+							<key>name</key>
+							<string>invalid.illegal.unrecognized-string-escape.rego</string>
+						</dict>
+					</array>
 				</dict>
 				<dict>
-					<key>match</key>
-					<string>\\.</string>
+					<key>begin</key>
+					<string>`</string>
+					<key>beginCaptures</key>
+					<dict>
+						<key>0</key>
+						<dict>
+							<key>name</key>
+							<string>punctuation.definition.string.begin.rego</string>
+						</dict>
+					</dict>
+					<key>end</key>
+					<string>`</string>
+					<key>endCaptures</key>
+					<dict>
+						<key>0</key>
+						<dict>
+							<key>name</key>
+							<string>punctuation.definition.string.end.rego</string>
+						</dict>
+					</dict>
 					<key>name</key>
-					<string>invalid.illegal.unrecognized-string-escape.rego</string>
+					<string>string.other.raw.rego</string>
 				</dict>
 			</array>
 		</dict>
