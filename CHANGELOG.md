@@ -10,6 +10,7 @@
 - Fix edge case in opa.test.workspace activation #120
 - Dependabot updates #121, #122, #123, #126, #127
 - Update vscode engine #128
+- Add grammar definition for raw strings #130
 
 ## 0.13.4
 
