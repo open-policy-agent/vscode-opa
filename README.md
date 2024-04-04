@@ -1,5 +1,8 @@
 # vscode-opa
 
+This plugin provides a number of features to help you work with [Open Policy Agent](https://www.openpolicyagent.org)
+(OPA) policies in Visual Studio Code.
+
 ## Features
 
 * Check Syntax on Save
@@ -22,7 +25,15 @@
 
 ## Installation
 
-Search for "Open Policy Agent" in the Extensions (Shift ⌘ X) panel and then install and reload the extension.
+To install the extension, visit the
+[Visual Studio Code Marketplace](https://marketplace.visualstudio.com/items?itemName=tsandall.opa)
+or search for "Open Policy Agent" in the 'Extensions' panel.
+
+> [!TIP]
+> This extension has built-in support for linting and hover tooltips
+> through a native integration with [Regal](https://docs.styra.com/regal). See the
+> ['Getting Started'](https://docs.styra.com/regal#getting-started) guide for more
+> information about installing Regal.
 
 ## Configuration
 
