@@ -1,21 +1,30 @@
 name: Publish Release
 
 on:
-  workflow_dispatch:
-    inputs:
-      tag:
-        description: 'Tag to release (e.g. 0.0.0)'
-        required: true
+  push:
+    tags:
+      - '*'
 
 jobs:
   publish:
-    permissions:
-      # allow the workflow to update the repository with the new tag
-      contents: write
     runs-on: ubuntu-latest
     steps:
       - name: Checkout
         uses: actions/checkout@v4
+
+      - name: Check that package.json is up-to-date
+        run: |
+          # this version has no v prefix, e.g. 1.0.0
+          VERSION_FROM_PACKAGE_JSON=$(jq -r '.version' package.json)
+          # the GITHUB_REF_NAME is the tag name, e.g. v1.0.0
+          VERSION_FROM_GITHUB_REF_NAME=${GITHUB_REF_NAME:1} # remove the v prefix
+          
+          if [ "$VERSION_FROM_PACKAGE_JSON" = "$VERSION_FROM_GITHUB_REF_NAME" ]; then
+            echo "The versions match, proceeding to publish."
+          else
+            echo "Please update the version in package.json to match the tag."
+            exit 1
+          fi
 
       - name: Set up Node.js
         uses: actions/setup-node@v4
@@ -29,9 +38,4 @@ jobs:
         run: npm install -g vsce
 
       - name: Publish
-        run: vsce publish -p ${{ secrets.VSCODE_MARKETPLACE_TOKEN }} ${{ github.event.inputs.tag }}
-      
-      - name: Push tag
-        run: |
-          git push origin master
-          git push origin "v${{ github.event.inputs.tag }}"
+        run: vsce publish -p ${{ secrets.VSCODE_MARKETPLACE_TOKEN }} $GITHUB_REF_NAME
