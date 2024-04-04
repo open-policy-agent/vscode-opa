@@ -1,5 +1,9 @@
 # vscode-opa
 
+To install the extension, visit the
+[Visual Studio Code Marketplace](https://marketplace.visualstudio.com/items?itemName=tsandall.opa)
+or search for "Open Policy Agent" in the 'Extensions' panel.
+
 ## Features
 
 * Check Syntax on Save
