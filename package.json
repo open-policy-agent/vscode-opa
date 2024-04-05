@@ -193,7 +193,7 @@
     "@typescript-eslint/eslint-plugin": "^7.2.0",
     "@typescript-eslint/parser": "^7.2.0",
     "eslint": "^8.57.0",
-    "typescript": "^5.4.3",
+    "typescript": "^5.4.4",
     "typescript-eslint": "^7.5.0"
   },
   "dependencies": {
