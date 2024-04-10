@@ -112,7 +112,7 @@ class debuggableMessageStrategy {
         // we can log the messages to the console for debugging purposes.
         if (process.env.VSCODE_DEBUG_MODE === 'true') {
             const messageData = JSON.parse(JSON.stringify(message));
-            const method = messageData.method !== undefined ? messageData.method : 'response';
+            const method = messageData.method || 'response';
             console.log(method, JSON.stringify(messageData));
         }
 
