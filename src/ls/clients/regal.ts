@@ -136,7 +136,7 @@ export function activateRegal(_context: ExtensionContext) {
         args: ["language-server"],
     };
 
-    const outChan = window.createOutputChannel("regal-ls");
+    const outChan = window.createOutputChannel("Regal");
 
     const clientOptions: LanguageClientOptions = {
         documentSelector: [{ scheme: 'file', language: 'rego' }],
