@@ -70,7 +70,9 @@ export function activate(context: vscode.ExtensionContext) {
         }
     }));
 
-    vscode.languages.registerDocumentFormattingEditProvider({ scheme: 'file', language: 'rego' }, {
+    // 'local' formatter for OPA, this uses opa format directly and does not
+    // use any language servers
+    const opaFormatter: vscode.DocumentFormattingEditProvider = {
         provideDocumentFormattingEdits(_document: vscode.TextDocument): vscode.TextEdit[] | Thenable<vscode.TextEdit[]> {
             const editor = vscode.window.activeTextEditor;
             if (!editor) {
@@ -87,7 +89,33 @@ export function activate(context: vscode.ExtensionContext) {
                 runOPAFormatter(context, content, editor, reject, resolve, selectionRange);
             });
         }
-    });
+    };
+
+    // opaFormatterRegistration is used to track the registration of the OPA formatter.
+    // The registration is disposed when the language server 'regal' is enabled so that
+    // the language server can handle formatting instead of shelling out to 'opa fmt'.
+    let opaFormatterRegistration: vscode.Disposable | undefined;
+    function registerOPAFormatterIfRequired() {
+        const configuredLanguageServers = vscode.workspace.getConfiguration('opa').
+            get<Array<string>>('languageServers') || [];
+        if (configuredLanguageServers.includes('regal')) {
+            // if the opaFormatter is registered, dispose it to disable the OPA formatter
+            if (opaFormatterRegistration !== undefined) {
+                opaFormatterRegistration.dispose();
+                opaFormatterRegistration = undefined;
+            }
+            // here we can return as the language server will automatically pick up formatting
+            // requests for rego files
+            return;
+        }
+
+        opaFormatterRegistration = vscode.languages.registerDocumentFormattingEditProvider(
+            { scheme: 'file', language: 'rego' },
+            opaFormatter,
+        );
+    }
+    // register the OPA formatter if required at start up
+    registerOPAFormatterIfRequired();
 
     vscode.workspace.onDidSaveTextDocument((_document: vscode.TextDocument) => {
         const onFormat: boolean = vscode.workspace.getConfiguration('formatOnSave')['on'];
@@ -109,6 +137,9 @@ export function activate(context: vscode.ExtensionContext) {
         // after their paths are updated.
         configureLanguageServers(context);
         activateLanguageServers(context);
+
+        // if there is no language server configured, register the OPA formatter for rego
+        registerOPAFormatterIfRequired();
     });
 }
 
