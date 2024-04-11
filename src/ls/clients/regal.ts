@@ -12,7 +12,7 @@ import {
 import * as vscode from 'vscode';
 import * as semver from 'semver';
 import { existsSync } from 'fs';
-import {sync as commandExistsSync} from 'command-exists';
+import { sync as commandExistsSync } from 'command-exists';
 import { promptForInstall } from '../../github-installer';
 import { replaceWorkspaceFolderPathVariable } from '../../util';
 import { opaOutputChannel } from '../../extension';
@@ -106,6 +106,20 @@ export function regalPath(): string {
     return 'regal';
 }
 
+class debuggableMessageStrategy {
+    handleMessage(message: Message, next: (message: Message) => any): any {
+        // If the VSCODE_DEBUG_MODE environment variable is set to true, then
+        // we can log the messages to the console for debugging purposes.
+        if (process.env.VSCODE_DEBUG_MODE === 'true') {
+            const messageData = JSON.parse(JSON.stringify(message));
+            const method = messageData.method || 'response';
+            console.log(method, JSON.stringify(messageData));
+        }
+
+        return next(message);
+    }
+}
+
 export function activateRegal(_context: ExtensionContext) {
     // activateRegal is run when the config changes, but this happens a few times
     // at startup. We use clientLock to prevent the activation of multiple instances.
@@ -143,6 +157,9 @@ export function activateRegal(_context: ExtensionContext) {
         outputChannel: outChan,
         traceOutputChannel: outChan,
         revealOutputChannelOn: 0,
+        connectionOptions: {
+            messageStrategy: new debuggableMessageStrategy,
+        },
         errorHandler: {
             error: (error: Error, message: Message, _count: number): ErrorHandlerResult => {
                 console.error(error);
