@@ -20,6 +20,7 @@ import { execSync } from 'child_process';
 
 let client: LanguageClient;
 let clientLock = false;
+let outChan: vscode.OutputChannel;
 
 const minimumSupportedRegalVersion = '0.18.0';
 
@@ -121,6 +122,10 @@ class debuggableMessageStrategy {
 }
 
 export function activateRegal(_context: ExtensionContext) {
+    if (!outChan) {
+        outChan = window.createOutputChannel("Regal");
+    }
+
     // activateRegal is run when the config changes, but this happens a few times
     // at startup. We use clientLock to prevent the activation of multiple instances.
     if (clientLock) {
@@ -149,8 +154,6 @@ export function activateRegal(_context: ExtensionContext) {
         command: regalPath(),
         args: ["language-server"],
     };
-
-    const outChan = window.createOutputChannel("Regal");
 
     const clientOptions: LanguageClientOptions = {
         documentSelector: [{ scheme: 'file', language: 'rego' }],
