@@ -43,4 +43,4 @@ jobs:
             --no-update-package-json \
             --no-git-tag-version \
             -p ${{ secrets.VSCODE_MARKETPLACE_TOKEN }} \
-            $GITHUB_REF_NAME
+            ${GITHUB_REF_NAME:1}
