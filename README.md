@@ -13,13 +13,17 @@ This plugin provides a number of features to help you work with [Open Policy Age
 * Run Tests in Workspace
 * Toggle Coverage in Workspace
 * Toggle Coverage of Selections
-* Use the [Regal](https://docs.styra.com/regal) Language server for:
-  * Linting of Rego files and Code Action fixes
-  * Formatting on save
-  * Goto definition
-  * Inlay hints for built-in functions
-  * Hover for docs on built-in functions
-  * Code folding for Rego files
+
+Additonally, users may choose to install [Regal](https://docs.styra.com/regal), which adds the following features via the [Language Server Protocol](https://microsoft.github.io/language-server-protocol/) (LSP):
+
+* Diagnostics (linting)
+* Hover / tooltips (for inline docs on built-in functions)
+* Go to definition (ctrl/cmd + click on a reference to go to definition)
+* Folding ranges (expand/collapse blocks, imports, comments)
+* Document and workspace symbols (navigate to rules, functions, packages)
+* Inlay hints (show names of built-in function arguments next to their values)
+* Formatting
+* Code actions (quick fixes for linting issues)
 
 ![Use of the extension to lint and eval Rego code](https://raw.githubusercontent.com/open-policy-agent/vscode-opa/master/eval.gif)
 
@@ -105,6 +109,18 @@ Bind the `OPA: Evaluate Package` command to a keyboard shortcut (e.g., ⌘ Shift
 If unable to use `data.json` or `data.yaml` files with `opa.bundleMode` enabled
 you can disable the configuration option and *ALL* `*.json` and `*.yaml` files
 will be loaded from the workspace.
+
+### Disabling linting
+
+If you want to disable linting for a specific workspace while retaining the other features Regal provides — for example when working with code that you can't change — you can do so by providing a `.regal/config.yaml` file at the root of the workspace. To disable linting entirely, your config file could look like this:
+
+```yaml
+rules:
+  default:
+    level: ignore
+```
+
+Regal additionally scans for a `.regal/config.yaml` file _above_ the workspace, which can be used to disable linting for all workspaces that inherit from it, or to use a common configuration file across multiple workspaces.
 
 ## Debugging OPA command evaluation
 
