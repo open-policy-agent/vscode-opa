@@ -1,6 +1,6 @@
 # Change Log
 
-## 0.14.0
+## 0.14.0
 
 This update is focused on exposing the latest features of the Regal language server in the extension.
 
