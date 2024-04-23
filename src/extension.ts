@@ -48,7 +48,6 @@ export function activate(context: vscode.ExtensionContext) {
     activateTraceSelection(context);
     activateProfileSelection(context);
     activatePartialSelection(context);
-    activateDefinitionProvider(context);
     activateClearPromptsCommand(context);
 
     // promote available language servers to users with none installed
@@ -62,84 +61,11 @@ export function activate(context: vscode.ExtensionContext) {
     // the manual running of a command
     opa.runWithStatus(context, 'opa', ['version'], '', (_code: number, _stderr: string, _stdout: string) => { });
 
-    context.subscriptions.push(vscode.commands.registerCommand('opa.show.commands', () => {
-        const extension = vscode.extensions.getExtension("tsandall.opa");
-        if (extension !== undefined) {
-            const commands = extension.packageJSON.contributes.commands;
-            commands.push({ command: 'editor.action.goToDeclaration', title: 'Go to Definition' });
-        }
-    }));
-
-    // 'local' formatter for OPA, this uses opa format directly and does not
-    // use any language servers
-    const opaFormatter: vscode.DocumentFormattingEditProvider = {
-        provideDocumentFormattingEdits(_document: vscode.TextDocument): vscode.TextEdit[] | Thenable<vscode.TextEdit[]> {
-            const editor = vscode.window.activeTextEditor;
-            if (!editor) {
-                return [];
-            }
-
-            // opa fmt doesn't support block formatting
-            // so we must always select the entire document
-            const selectionRange = getFullDocumentSelection(editor);
-
-            const content = editor.document.getText(selectionRange);
-
-            return new Promise((resolve, reject) => {
-                runOPAFormatter(context, content, editor, reject, resolve, selectionRange);
-            });
-        }
-    };
-
-    // opaFormatterRegistration is used to track the registration of the OPA formatter.
-    // The registration is disposed when the language server 'regal' is enabled so that
-    // the language server can handle formatting instead of shelling out to 'opa fmt'.
-    let opaFormatterRegistration: vscode.Disposable | undefined;
-    function registerOPAFormatterIfRequired() {
-        const configuredLanguageServers = vscode.workspace.getConfiguration('opa').
-            get<Array<string>>('languageServers') || [];
-        if (configuredLanguageServers.includes('regal')) {
-            // if the opaFormatter is registered, dispose it to disable the OPA formatter
-            if (opaFormatterRegistration !== undefined) {
-                opaFormatterRegistration.dispose();
-                opaFormatterRegistration = undefined;
-            }
-            // here we can return as the language server will automatically pick up formatting
-            // requests for rego files
-            return;
-        }
-
-        opaFormatterRegistration = vscode.languages.registerDocumentFormattingEditProvider(
-            { scheme: 'file', language: 'rego' },
-            opaFormatter,
-        );
-    }
-    // register the OPA formatter if required at start up
-    registerOPAFormatterIfRequired();
-
-    vscode.workspace.onDidSaveTextDocument((_document: vscode.TextDocument) => {
-        const onFormat: boolean = vscode.workspace.getConfiguration('formatOnSave')['on'];
-        if (onFormat !== true) {
-            return;
-        }
-        const editor = vscode.window.activeTextEditor;
-        if (!editor) {
-            return;
-        }
-
-        vscode.commands.executeCommand('editor.action.formatDocument');
-        editor.document.save();
-        return;
-    });
-
     vscode.workspace.onDidChangeConfiguration((_event) => {
         // configureLanguageServers is run here to catch newly installed language servers,
         // after their paths are updated.
         configureLanguageServers(context);
         activateLanguageServers(context);
-
-        // if there is no language server configured, register the OPA formatter for rego
-        registerOPAFormatterIfRequired();
     });
 }
 
@@ -160,34 +86,6 @@ interface UntypedObject {
 }
 
 let fileCoverage: UntypedObject = {};
-
-function runOPAFormatter(context: vscode.ExtensionContext, content: string, editor: vscode.TextEditor | undefined,
-    reject: (reason?: any) => void,
-    resolve: (value: vscode.TextEdit[] | PromiseLike<vscode.TextEdit[]>) => void,
-    selectionRange: vscode.Selection) {
-
-    opa.runWithStatus(context, 'opa', ['fmt'], content, (code: number, stderr: string, stdout: string) => {
-        if (!editor) {
-            return [];
-        }
-
-        if (code !== 0) {
-            const err = new Error("error running opa fmt :: " + stderr);
-            opaOutputShowError(err.message);
-            reject(err);
-        } else {
-            opaOutputHide();
-        }
-
-        resolve([vscode.TextEdit.replace(selectionRange, stdout)]);
-    });
-}
-
-function getFullDocumentSelection(editor: vscode.TextEditor) {
-    const firstLine = editor.document.lineAt(0);
-    const lastLine = editor.document.lineAt(editor.document.lineCount - 1);
-    return new vscode.Selection(firstLine.range.start, lastLine.range.end);
-}
 
 function showCoverageOnEditorChange(editor: vscode.TextEditor | undefined) {
     if (!editor) {
@@ -634,10 +532,6 @@ function activateClearPromptsCommand(context: vscode.ExtensionContext) {
     context.subscriptions.push(promptsClearCommand);
 }
 
-function activateDefinitionProvider(context: vscode.ExtensionContext) {
-    context.subscriptions.push(vscode.languages.registerDefinitionProvider({ language: 'rego', scheme: 'file' }, new RegoDefinitionProvider()));
-}
-
 function onActiveWorkspaceEditor(forURI: vscode.Uri, cb: (editor: vscode.TextEditor, inWorkspace: boolean) => void): () => void {
     return () => {
 
@@ -778,39 +672,6 @@ function getInputPath(): string {
     }
 
     return path.join(rootDir, 'input.json');
-}
-
-class RegoDefinitionProvider implements vscode.DefinitionProvider {
-    public provideDefinition(
-        document: vscode.TextDocument,
-        position: vscode.Position,
-        _token: vscode.CancellationToken): Thenable<vscode.Location> {
-
-        const args: string[] = ['oracle', 'find-definition', '--stdin-buffer'];
-        ifInWorkspace(() => {
-            args.push(...opa.getRootParams());
-        });
-
-        args.push(document.fileName + ':' + document.offsetAt(position).toString());
-
-        return new Promise<vscode.Location>((resolve, reject) => {
-            // here a null context is used as it's not available at this time
-            opa.runWithStatus(undefined, 'opa', args, document.getText(), (code: number, stderr: string, stdout: string) => {
-                if (code === 0) {
-                    const result = JSON.parse(stdout);
-                    if (result.result !== undefined) {
-                        resolve(new vscode.Location(vscode.Uri.file(result.result.file), new vscode.Position(result.result.row - 1, result.result.col - 1)));
-                    } else if (result.error !== undefined) {
-                        reject(result.error);
-                    } else {
-                        reject("internal error");
-                    }
-                } else {
-                    reject(stderr);
-                }
-            });
-        });
-    }
 }
 
 function createOpaEvalArgs(editor: vscode.TextEditor, pkg: string, imports: string[] = []): { inputPath: string, args: string[] } {

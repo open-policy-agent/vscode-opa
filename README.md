@@ -5,8 +5,6 @@ This plugin provides a number of features to help you work with [Open Policy Age
 
 ## Features
 
-* Check Syntax on Save
-* Reformat File on Save
 * Evaluate Packages
 * Evaluate Selections
 * Partially Evaluate Selections
@@ -15,7 +13,13 @@ This plugin provides a number of features to help you work with [Open Policy Age
 * Run Tests in Workspace
 * Toggle Coverage in Workspace
 * Toggle Coverage of Selections
-* Start and show messages from the [Regal](https://docs.styra.com/regal) Language server
+* Use the [Regal](https://docs.styra.com/regal) Language server for:
+  * Linting of Rego files and Code Action fixes
+  * Formatting on save
+  * Goto definition
+  * Inlay hints for built-in functions
+  * Hover for docs on built-in functions
+  * Code folding for Rego files
 
 ![Use of the extension to lint and eval Rego code](https://raw.githubusercontent.com/open-policy-agent/vscode-opa/master/eval.gif)
 
@@ -45,7 +49,6 @@ or search for "Open Policy Agent" in the 'Extensions' panel.
 | `opa.roots` | `[${workspaceFolder}]` | List of paths to load as bundles for policy and data. Defaults to a single entry which is the current workspace root. The variable `${workspaceFolder}` will be resolved as the current workspace root. The variable `${fileDirname}` will be resolved as the directory of the file currently opened in the active window. |
 | `opa.bundleMode`  | `true`  | Enable treating the workspace as a bundle to avoid loading erroneous data JSON/YAML files. It is _NOT_ recommended to disable this. |
 | `opa.schema` | `null` | Path to the [schema](https://www.openpolicyagent.org/docs/latest/policy-language/#using-schemas-to-enhance-the-rego-type-checker) file or directory. If set to `null`, schema evaluation is disabled. As for `opa.roots`, `${workspaceFolder}` and `${fileDirname}` variables can be used in the path. |
-| `editor.formatOnSave` | `false` | Enable reformatting the current document on save by using `opa fmt`. |
 | `opa.languageServers` | `null` | An array of enabled language servers (currently `["regal"]` is supported) |
 | `opa.env` | `{}` | Object of environment variables passed to the process running OPA (e.g. `{"key": "value"}`) |
 
