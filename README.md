@@ -25,7 +25,7 @@ Additonally, users may choose to install [Regal](https://docs.styra.com/regal), 
 * Formatting
 * Code actions (quick fixes for linting issues)
 
-![Use of the extension to lint and eval Rego code](https://raw.githubusercontent.com/open-policy-agent/vscode-opa/master/eval.gif)
+![Use of the extension to lint and eval Rego code](https://raw.githubusercontent.com/open-policy-agent/vscode-opa/main/eval.gif)
 
 ## Requirements
 
