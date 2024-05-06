@@ -188,7 +188,7 @@
     "@stylistic/eslint-plugin": "^1.7.2",
     "@types/command-exists": "^1.2.3",
     "@types/mocha": "10.0.6",
-    "@types/node": "20.12.7",
+    "@types/node": "20.12.8",
     "@types/vscode": "1.88.0",
     "@typescript-eslint/eslint-plugin": "^7.8.0",
     "@typescript-eslint/parser": "^7.7.0",
