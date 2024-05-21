@@ -1,5 +1,18 @@
 # Change Log
 
+## 0.15.0
+
+- Add support for syntax highlighting for Rego embedded in Markdown code blocks using the `rego` language identifier.
+
+Additionally, the [latest release](https://github.com/StyraInc/regal/releases/tag/v0.22.0) of the Regal language server (v0.22.0) brings a number of features relevant to this extension:
+
+- Basic support for code completion in Rego policies
+- Warning message displayed when CRLF line endings are detected in a Rego file
+- Parser errors now displayed more prominently, making them easier to spot
+- Errors reported by OPA will now link directly to corresponding docs, making it easier to understand and resolve issues
+
+Make sure to update Regal to get the latest features!
+
 ## 0.14.0
 
 This update is focused on exposing the latest features of the Regal language server in the extension.
