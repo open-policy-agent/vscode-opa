@@ -14,7 +14,7 @@ This plugin provides a number of features to help you work with [Open Policy Age
 * Toggle Coverage in Workspace
 * Toggle Coverage of Selections
 
-Additonally, users may choose to install [Regal](https://docs.styra.com/regal), which adds the following features via the [Language Server Protocol](https://microsoft.github.io/language-server-protocol/) (LSP):
+Additionally, users may choose to install [Regal](https://docs.styra.com/regal), which adds the following features via the [Language Server Protocol](https://microsoft.github.io/language-server-protocol/) (LSP):
 
 * Diagnostics (linting)
 * Hover / tooltips (for inline docs on built-in functions)
@@ -24,6 +24,7 @@ Additonally, users may choose to install [Regal](https://docs.styra.com/regal), 
 * Inlay hints (show names of built-in function arguments next to their values)
 * Formatting
 * Code actions (quick fixes for linting issues)
+* Code completions
 
 ![Use of the extension to lint and eval Rego code](https://raw.githubusercontent.com/open-policy-agent/vscode-opa/main/eval.gif)
 
