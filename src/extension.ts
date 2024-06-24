@@ -12,6 +12,15 @@ import { advertiseLanguageServers } from './ls/advertise';
 
 export const opaOutputChannel = vscode.window.createOutputChannel('OPA');
 
+export const evalResultDecorationType = vscode.window.createTextEditorDecorationType({
+    after: {
+        textDecoration: 'none',
+        fontWeight: 'normal',
+        fontStyle: 'normal',
+    },
+    rangeBehavior: vscode.DecorationRangeBehavior.ClosedClosed,
+})
+
 export class JSONProvider implements vscode.TextDocumentContentProvider {
 
     private _onDidChange = new vscode.EventEmitter<vscode.Uri>();
@@ -37,7 +46,7 @@ export class JSONProvider implements vscode.TextDocumentContentProvider {
 export function activate(context: vscode.ExtensionContext) {
 
     vscode.window.onDidChangeActiveTextEditor(showCoverageOnEditorChange, null, context.subscriptions);
-    vscode.workspace.onDidChangeTextDocument(removeCoverageOnDocumentChange, null, context.subscriptions);
+    vscode.workspace.onDidChangeTextDocument(removeDecorationsOnDocumentChange, null, context.subscriptions);
 
     activateCheckFile(context);
     activateCoverWorkspace(context);
@@ -94,10 +103,10 @@ function showCoverageOnEditorChange(editor: vscode.TextEditor | undefined) {
     showCoverageForEditor(editor);
 }
 
-function removeCoverageOnDocumentChange(e: vscode.TextDocumentChangeEvent) {
-    // Do not remove coverage if the output document changed.
+function removeDecorationsOnDocumentChange(e: vscode.TextDocumentChangeEvent) {
+    // Do not remove decorations if the output document changed.
     if (`${e.document.uri}` !== `${outputUri}`) {
-        removeCoverage();
+        removeDecorations();
     }
 }
 
@@ -118,7 +127,7 @@ function showCoverageForWindow() {
     });
 }
 
-function removeCoverage() {
+function removeDecorations() {
     Object.keys(fileCoverage).forEach((fileName) => {
         vscode.window.visibleTextEditors.forEach((value) => {
             if (value.document.fileName.endsWith(fileName)) {
@@ -128,6 +137,10 @@ function removeCoverage() {
         });
     });
     fileCoverage = {};
+
+    vscode.window.visibleTextEditors.forEach((value) => {
+        value.setDecorations(evalResultDecorationType, [])
+    });
 }
 
 function setFileCoverage(result: any) {
@@ -245,7 +258,7 @@ function activateCoverWorkspace(context: vscode.ExtensionContext) {
 
         for (const fileName in fileCoverage) {
             if (editor.document.fileName.endsWith(fileName)) {
-                removeCoverage();
+                removeDecorations();
                 return;
             }
         }
@@ -332,7 +345,7 @@ function activateEvalCoverage(context: vscode.ExtensionContext) {
 
         for (const fileName in fileCoverage) {
             if (editor.document.fileName.endsWith(fileName)) {
-                removeCoverage();
+                removeDecorations();
                 return;
             }
         }

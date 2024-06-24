@@ -8,6 +8,7 @@ import {
     LanguageClientOptions,
     ServerOptions,
     CloseAction,
+    integer,
 } from 'vscode-languageclient/node';
 import * as vscode from 'vscode';
 import * as semver from 'semver';
@@ -15,7 +16,10 @@ import { existsSync } from 'fs';
 import { sync as commandExistsSync } from 'command-exists';
 import { promptForInstall } from '../../github-installer';
 import { replaceWorkspaceFolderPathVariable } from '../../util';
-import { opaOutputChannel } from '../../extension';
+import {
+    evalResultDecorationType,
+    opaOutputChannel
+} from '../../extension';
 import { execSync } from 'child_process';
 
 let client: LanguageClient;
@@ -199,6 +203,50 @@ export function activateRegal(_context: ExtensionContext) {
         serverOptions,
         clientOptions
     );
+
+    const activeDecorations: { [line: integer]: vscode.DecorationOptions; } = {};
+
+    client.onRequest('regal/showEvalResult', (params) => {
+        const activeEditor = vscode.window.activeTextEditor;
+        if (!activeEditor) {
+            return
+        }
+
+        const line = params.line - 1;
+
+        const endOfLine = new vscode.Range(
+            new vscode.Position(line, activeEditor.document.lineAt(line).text.length),
+            new vscode.Position(line, activeEditor.document.lineAt(line).text.length),
+        )
+
+        var value = params.result.value
+        if (params.result.isUndefined) {
+            value = 'undefined'
+        } else {
+            if (typeof params.result.value == 'object') {
+                value = JSON.stringify(params.result.value)
+            }
+
+            if (typeof params.result.value == 'string') {
+                value = String(params.result.value).replace(/ /g, '\u00a0')
+            }
+        }
+
+        const decorationOption: vscode.DecorationOptions = {
+            range: endOfLine,
+            hoverMessage: 'Evaluated to ' + value,
+            renderOptions: {
+                after: {
+                    contentText: " => " + value,
+                    color: 'rgba(255, 255, 255, 0.5)',
+                },
+            },
+        }
+
+        activeDecorations[line] = decorationOption
+
+        activeEditor.setDecorations(evalResultDecorationType, Object.values(activeDecorations))
+    })
 
     client.start();
 }
