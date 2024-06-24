@@ -205,7 +205,7 @@
     "@typescript-eslint/parser": "^7.9.0",
     "eslint": "^8.57.0",
     "typescript": "^5.5.2",
-    "typescript-eslint": "^7.13.0"
+    "typescript-eslint": "^7.13.1"
   },
   "dependencies": {
     "@fohlen/github-release-downloader": "^1.0.0",
