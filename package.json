@@ -203,7 +203,7 @@
     "@types/vscode": "1.90.0",
     "eslint": "^8.57.0",
     "typescript": "^5.5.3",
-    "typescript-eslint": "^7.14.1"
+    "typescript-eslint": "^7.16.0"
   },
   "dependencies": {
     "@fohlen/github-release-downloader": "^1.0.0",
