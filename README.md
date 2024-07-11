@@ -129,7 +129,7 @@ In case some command isn't behaving as you expect, you can see exactly what comm
 
 ## Development
 
-If you want to hack on the extension itself, you should clone this repository, install the dependencies (`npm install`) and use Visual Studio Code's Debugger (F5) to test your changes.
+If you want to hack on the extension itself, you should clone this repository, install the dependencies (`npm install --include=dev`) and use Visual Studio Code's Debugger (F5) to test your changes.
 
 ## ROADMAP
 
