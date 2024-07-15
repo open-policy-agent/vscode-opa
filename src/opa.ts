@@ -11,6 +11,9 @@ import { advertiseLanguageServers } from './ls/advertise';
 
 const regoVarPattern = new RegExp('^[a-zA-Z_][a-zA-Z0-9_]*$');
 
+// TODO: link to instructions that describe compiling OPA from source
+const windowsArm64NotSupported = "OPA binaries are not supported for windows/arm architecture. To use the features of this plugin, compile OPA from source."
+
 export function getDataDir(uri: vscode.Uri): string {
     // NOTE(tsandall): we don't have a precise version for 3be55ed6 so
     // do our best and rely on the -dev tag.
@@ -253,20 +256,29 @@ function getOpaPath(context: vscode.ExtensionContext | undefined, path: string, 
             'open-policy-agent/opa',
             'OPA is either not installed or is missing from your path, would you like to install it?',
             (release: any) => {
-                // release.assets.name contains {'darwin', 'linux', 'windows'}
+                // release.assets.name contains {'darwin', 'linux', 'windows'} and {'arm64', 'amd64'}
+                // in the format `opa_$OS_$ARCH...` so we can use that to search for the appropriate asset
                 const assets = release.assets || [];
                 const os = process.platform;
+                // node can return many values for process.arch but OPA only supports arm64 and amd64
+                const arch = process.arch.indexOf('arm') !== -1 ? 'arm64' : 'amd64';
                 let targetAsset: { browser_download_url: string };
                 switch (os) {
                     case 'darwin':
-                        targetAsset = assets.filter((asset: { name: string }) => asset.name.indexOf('darwin') !== -1)[0];
+                        targetAsset = assets.filter((asset: { name: string }) => asset.name.indexOf(`darwin_${arch}`) !== -1)[0];
                         break;
                     case 'linux':
-                        targetAsset = assets.filter((asset: { name: string }) => asset.name.indexOf('linux') !== -1)[0];
+                        targetAsset = assets.filter((asset: { name: string }) => asset.name.indexOf(`linux_${arch}`) !== -1)[0];
                         break;
                     case 'win32':
-                        targetAsset = assets.filter((asset: { name: string }) => asset.name.indexOf('windows') !== -1)[0];
-                        break;
+                        // arm is not supported officially for windows, so prompt the user
+                        // to build from source and provide an empty url from the default case
+                        if (arch === 'arm64') {
+                            throw windowsArm64NotSupported;
+                        } else {
+                            targetAsset = assets.filter((asset: { name: string }) => asset.name.indexOf(`windows`) !== -1)[0];
+                            break;
+                        }
                     default:
                         targetAsset = { browser_download_url: '' };
                 }
