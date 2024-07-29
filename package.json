@@ -202,7 +202,7 @@
     "@types/semver": "^7.5.8",
     "@types/vscode": "1.91.0",
     "eslint": "^8.57.0",
-    "typescript": "^5.5.3",
+    "typescript": "^5.5.4",
     "typescript-eslint": "^7.16.1"
   },
   "dependencies": {
