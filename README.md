@@ -22,7 +22,7 @@ Additionally, users may choose to install [Regal](https://docs.styra.com/regal),
 * Folding ranges (expand/collapse blocks, imports, comments)
 * Document and workspace symbols (navigate to rules, functions, packages)
 * Inlay hints (show names of built-in function arguments next to their values)
-* Formatting
+* Formatting (`opa fmt`, `opa fmt --rego-v1` or `regal fix`, see [Configuration](#configuration) below)
 * Code actions (quick fixes for linting issues)
 * Code completions
 
@@ -56,6 +56,7 @@ or search for "Open Policy Agent" in the 'Extensions' panel.
 | `opa.schema` | `null` | Path to the [schema](https://www.openpolicyagent.org/docs/latest/policy-language/#using-schemas-to-enhance-the-rego-type-checker) file or directory. If set to `null`, schema evaluation is disabled. As for `opa.roots`, `${workspaceFolder}` and `${fileDirname}` variables can be used in the path. |
 | `opa.languageServers` | `null` | An array of enabled language servers (currently `["regal"]` is supported) |
 | `opa.env` | `{}` | Object of environment variables passed to the process running OPA (e.g. `{"key": "value"}`) |
+| `opa.formatter` | `opa-fmt` | Name of the OPA formatter to use. Requires Regal. One of `opa-fmt`, `opa-fmt-rego-v1` and `regal-fix`. This value is sent as an initialization option to the language server, so the change won't take effect before the project (or VS Code) is reloaded. See the documentation for the [regal fix](https://docs.styra.com/regal/fixing) command for more information |
 
 Note that the `${workspaceFolder}` variable will expand to a full URI of the workspace, as expected by most VS Code commands. The `${workspacePath}` variable may additionally be used where only the path component (i.e. without the `file://` schema component) of the workspace URI is required.
 
