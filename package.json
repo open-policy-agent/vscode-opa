@@ -153,6 +153,13 @@
           },
           "default": {},
           "description": "Environment variables passed to the process running OPA."
+        },
+        "opa.formatter": {
+          "type": [
+            "string"
+          ],
+          "default": "opa-fmt",
+          "description": "The formatter to use for Rego. Supports: ['opa-fmt', 'opa-fmt-rego-v1', 'regal-fix']."
         }
       }
     },

@@ -188,6 +188,9 @@ export function activateRegal(_context: ExtensionContext) {
             onChange: true,
             onSave: true,
         },
+        initializationOptions: {
+            formatter: vscode.workspace.getConfiguration('opa').get<string>('formatter', 'opa-fmt'),
+        }
     };
 
     client = new LanguageClient(
