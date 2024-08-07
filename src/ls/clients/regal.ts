@@ -8,7 +8,6 @@ import {
     LanguageClientOptions,
     ServerOptions,
     CloseAction,
-    integer,
 } from 'vscode-languageclient/node';
 import * as vscode from 'vscode';
 import * as semver from 'semver';
@@ -18,6 +17,9 @@ import { promptForInstall } from '../../github-installer';
 import { replaceWorkspaceFolderPathVariable } from '../../util';
 import {
     evalResultDecorationType,
+    evalResultTargetSuccessDecorationType,
+    evalResultTargetUndefinedDecorationType,
+    removeDecorations,
     opaOutputChannel
 } from '../../extension';
 import { execSync } from 'child_process';
@@ -204,49 +206,7 @@ export function activateRegal(_context: ExtensionContext) {
         clientOptions
     );
 
-    const activeDecorations: { [line: integer]: vscode.DecorationOptions; } = {};
-
-    client.onRequest('regal/showEvalResult', (params) => {
-        const activeEditor = vscode.window.activeTextEditor;
-        if (!activeEditor) {
-            return
-        }
-
-        const line = params.line - 1;
-
-        const endOfLine = new vscode.Range(
-            new vscode.Position(line, activeEditor.document.lineAt(line).text.length),
-            new vscode.Position(line, activeEditor.document.lineAt(line).text.length),
-        )
-
-        var value = params.result.value
-        if (params.result.isUndefined) {
-            value = 'undefined'
-        } else {
-            if (typeof params.result.value == 'object') {
-                value = JSON.stringify(params.result.value)
-            }
-
-            if (typeof params.result.value == 'string') {
-                value = String(params.result.value).replace(/ /g, '\u00a0')
-            }
-        }
-
-        const decorationOption: vscode.DecorationOptions = {
-            range: endOfLine,
-            hoverMessage: 'Evaluated to ' + value,
-            renderOptions: {
-                after: {
-                    contentText: " => " + value,
-                    color: 'rgba(255, 255, 255, 0.5)',
-                },
-            },
-        }
-
-        activeDecorations[line] = decorationOption
-
-        activeEditor.setDecorations(evalResultDecorationType, Object.values(activeDecorations))
-    })
+    client.onRequest('regal/showEvalResult', handleRegalShowEvalResult);
 
     client.start();
 }
@@ -296,4 +256,114 @@ function downloadOptionsRegal() {
             }
         }
     };
+}
+
+function handleRegalShowEvalResult(params: any) {
+    const activeEditor = vscode.window.activeTextEditor;
+    if (!activeEditor) {
+        return
+    }
+
+    const line = params.line - 1;
+    const documentLine = activeEditor.document.lineAt(line);
+    const lineLength = documentLine.text.length;
+
+    // attachmentMessage is the message that is displayed after the rule name within the editor
+    let attachmentMessage = params.result.value
+
+    // hoverMessage is the message that is displayed when hovering over base decoration
+    let hoverMessage = params.result.value
+
+    const hoverTitle = "### Evaluation Result\n\n";
+
+    if (params.result.isUndefined) {
+        attachmentMessage = 'undefined'
+        hoverMessage = hoverTitle + makeCode("text", attachmentMessage)
+    } else {
+        // this matches both arrays and objects
+        if (typeof params.result.value == 'object') {
+            attachmentMessage = JSON.stringify(params.result.value, null, 2).
+                replace(/\n\s*/g, ' '). // must be a new line first to avoid matching inside strings
+                replace(/(\{|\[)\s/g, '$1').
+                replace(/\s(\}|\])/g, '$1');
+            let code = makeCode("json", JSON.stringify(params.result.value, null, 2));
+
+
+            // pre block formatting fails if there are over 100k chars
+            if (code.length > 100000) {
+                code = JSON.stringify(params.result.value, null, 2);
+            }
+
+            hoverMessage = hoverTitle + code;
+        }
+
+        if (typeof params.result.value == 'string') {
+            attachmentMessage = String(params.result.value).replace(/ /g, '\u00a0')
+            // for strings, which may be long, there is a preference for wrapping
+            // over horizontal scroll present in a pre block.
+            hoverMessage = hoverTitle + "`" + attachmentMessage + "`";
+        }
+    }
+
+    // to avoid horizontal scroll for large outputs, we ask users to hover
+    // for the full result
+    const truncateThreshold = 100;
+    if (lineLength + attachmentMessage.length > truncateThreshold) {
+        const suffix = "... (hover for result)";
+        attachmentMessage = attachmentMessage.substring(0, truncateThreshold - lineLength - suffix.length) + suffix;
+    }
+
+    const decorationOption: vscode.DecorationOptions = {
+        // this is not needed as these options are passed to a whole line decoration type
+        // however, the field is required.
+        range: new vscode.Range(new vscode.Position(line, 0), new vscode.Position(line, lineLength),),
+        hoverMessage: hoverMessage,
+        renderOptions: {
+            after: {
+                contentText: " => " + attachmentMessage,
+                // Using the same color as the line numbers means this matches
+                // the 'muted' appearance of the gutter for various themes
+                color: new vscode.ThemeColor('editorLineNumber.foreground'),
+            },
+        },
+    }
+
+    let ruleEnd = lineLength;
+    // find the first whitespace, or [ char, if found, update endRange to that
+    for (let i = 0; i < lineLength; i++) {
+        if (documentLine.text[i] === ' ' || documentLine.text[i] === '[') {
+            ruleEnd = i;
+            break;
+        }
+    }
+
+    // ruleNameDecorationOptions highlights only the rule name with a color.
+    // the colored highlight is displayed in addition to the whole line decoration
+    const ruleNameDecorationOptions: vscode.DecorationOptions = {
+        range: new vscode.Range(
+            new vscode.Position(line, 0),
+            new vscode.Position(line, ruleEnd),
+        ),
+    };
+
+    // before setting a new decoration, remove all previous decorations
+    removeDecorations();
+
+    // always set the base decoration, containing the result message and after text
+    activeEditor.setDecorations(evalResultDecorationType, [decorationOption]);
+
+    // evalResultDecorationTypeUndefined is a different color to indicate
+    // the difference between undefined and other results
+    if (params.result.isUndefined) {
+        activeEditor.setDecorations(evalResultTargetUndefinedDecorationType, [ruleNameDecorationOptions]);
+        return
+    }
+
+    // otherwise, show a success decoration for the rule
+    activeEditor.setDecorations(evalResultTargetSuccessDecorationType, [ruleNameDecorationOptions]);
+}
+
+// makeCode returns a markdown code block with the given language and code
+function makeCode(lang: string, code: string) {
+    return "```" + lang + "\n" + code + "\n```";
 }

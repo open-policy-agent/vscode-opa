@@ -12,17 +12,7 @@ import { advertiseLanguageServers } from './ls/advertise';
 
 export const opaOutputChannel = vscode.window.createOutputChannel('OPA');
 
-export const evalResultDecorationType = vscode.window.createTextEditorDecorationType({
-    after: {
-        textDecoration: 'none',
-        fontWeight: 'normal',
-        fontStyle: 'normal',
-    },
-    rangeBehavior: vscode.DecorationRangeBehavior.ClosedClosed,
-})
-
 export class JSONProvider implements vscode.TextDocumentContentProvider {
-
     private _onDidChange = new vscode.EventEmitter<vscode.Uri>();
     private content = "";
 
@@ -78,6 +68,48 @@ export function activate(context: vscode.ExtensionContext) {
     });
 }
 
+// this is the decoration type for the eval result covering the whole line
+export const evalResultDecorationType = vscode.window.createTextEditorDecorationType({
+    isWholeLine: true,
+    after: {
+        textDecoration: 'none',
+        fontWeight: 'normal',
+        fontStyle: 'normal',
+    },
+})
+
+// decoration type for the eval result covering only the rule name when the result is defined
+export const evalResultTargetSuccessDecorationType = vscode.window.createTextEditorDecorationType({
+    isWholeLine: false,
+    backgroundColor: new vscode.ThemeColor('diffEditor.insertedTextBackground'),
+})
+
+// decoration type for the eval result covering only the rule name when the result is undefined
+export const evalResultTargetUndefinedDecorationType = vscode.window.createTextEditorDecorationType({
+    isWholeLine: false,
+    backgroundColor: new vscode.ThemeColor('inputValidation.warningBackground'),
+})
+
+// remove all decorations from the active editor using the known types of decorations
+export function removeDecorations() {
+    Object.keys(fileCoverage).forEach((fileName) => {
+        vscode.window.visibleTextEditors.forEach((value) => {
+            if (value.document.fileName.endsWith(fileName)) {
+                value.setDecorations(coveredHighlight, []);
+                value.setDecorations(notCoveredHighlight, []);
+            }
+        });
+    });
+
+    fileCoverage = {};
+
+    vscode.window.visibleTextEditors.forEach((value) => {
+        value.setDecorations(evalResultDecorationType, [])
+        value.setDecorations(evalResultTargetSuccessDecorationType, [])
+        value.setDecorations(evalResultTargetUndefinedDecorationType, [])
+    });
+}
+
 const outputUri = vscode.Uri.parse(`json:output.jsonc`);
 
 const coveredHighlight = vscode.window.createTextEditorDecorationType({
@@ -124,22 +156,6 @@ function showCoverageForEditor(_editor: vscode.TextEditor) {
 function showCoverageForWindow() {
     vscode.window.visibleTextEditors.forEach((value) => {
         showCoverageForEditor(value);
-    });
-}
-
-function removeDecorations() {
-    Object.keys(fileCoverage).forEach((fileName) => {
-        vscode.window.visibleTextEditors.forEach((value) => {
-            if (value.document.fileName.endsWith(fileName)) {
-                value.setDecorations(coveredHighlight, []);
-                value.setDecorations(notCoveredHighlight, []);
-            }
-        });
-    });
-    fileCoverage = {};
-
-    vscode.window.visibleTextEditors.forEach((value) => {
-        value.setDecorations(evalResultDecorationType, [])
     });
 }
 
