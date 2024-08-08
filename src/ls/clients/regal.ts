@@ -298,7 +298,7 @@ function handleRegalShowEvalResult(params: any) {
         }
 
         if (typeof params.result.value == 'string') {
-            attachmentMessage = String(params.result.value).replace(/ /g, '\u00a0')
+            attachmentMessage = `"` + String(params.result.value).replace(/ /g, '\u00a0') + `"`
             // for strings, which may be long, there is a preference for wrapping
             // over horizontal scroll present in a pre block.
             hoverMessage = hoverTitle + "`" + attachmentMessage + "`";
