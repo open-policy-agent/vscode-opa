@@ -264,10 +264,6 @@ function handleRegalShowEvalResult(params: any) {
         return
     }
 
-    const line = params.line - 1;
-    const documentLine = activeEditor.document.lineAt(line);
-    const lineLength = documentLine.text.length;
-
     // attachmentMessage is the message that is displayed after the rule name within the editor
     let attachmentMessage = params.result.value
 
@@ -305,27 +301,16 @@ function handleRegalShowEvalResult(params: any) {
         }
     }
 
+    const line = params.line - 1;
+    const documentLine = activeEditor.document.lineAt(line);
+    const lineLength = documentLine.text.length;
+
     // to avoid horizontal scroll for large outputs, we ask users to hover
     // for the full result
     const truncateThreshold = 100;
     if (lineLength + attachmentMessage.length > truncateThreshold) {
         const suffix = "... (hover for result)";
         attachmentMessage = attachmentMessage.substring(0, truncateThreshold - lineLength - suffix.length) + suffix;
-    }
-
-    const decorationOption: vscode.DecorationOptions = {
-        // this is not needed as these options are passed to a whole line decoration type
-        // however, the field is required.
-        range: new vscode.Range(new vscode.Position(line, 0), new vscode.Position(line, lineLength),),
-        hoverMessage: hoverMessage,
-        renderOptions: {
-            after: {
-                contentText: " => " + attachmentMessage,
-                // Using the same color as the line numbers means this matches
-                // the 'muted' appearance of the gutter for various themes
-                color: new vscode.ThemeColor('editorLineNumber.foreground'),
-            },
-        },
     }
 
     let ruleEnd = lineLength;
@@ -337,30 +322,55 @@ function handleRegalShowEvalResult(params: any) {
         }
     }
 
-    // ruleNameDecorationOptions highlights only the rule name with a color.
-    // the colored highlight is displayed in addition to the whole line decoration
-    const ruleNameDecorationOptions: vscode.DecorationOptions = {
-        range: new vscode.Range(
-            new vscode.Position(line, 0),
-            new vscode.Position(line, ruleEnd),
-        ),
-    };
+    const ruleName = documentLine.text.substring(0, ruleEnd)
+
+    const decorationOptions: vscode.DecorationOptions[] = []
+    const ruleNameDecorationOptions: vscode.DecorationOptions[] = []
+
+    for (let line = 0; line < activeEditor.document.lineCount; line++) {
+        if (!activeEditor.document.lineAt(line).text.startsWith(ruleName)) {
+            continue
+        }
+
+        decorationOptions.push({
+            // this is not needed as these options are passed to a whole line decoration type
+            // however, the field is required.
+            range: new vscode.Range(new vscode.Position(line, 0), new vscode.Position(line, lineLength)),
+            hoverMessage: hoverMessage,
+            renderOptions: {
+                after: {
+                    contentText: " => " + attachmentMessage,
+                    // Using the same color as the line numbers means this matches
+                    // the 'muted' appearance of the gutter for various themes
+                    color: new vscode.ThemeColor('editorLineNumber.foreground'),
+                },
+            },
+        });
+
+        // ruleNameDecorationOptions highlights only the rule name with a color.
+        // the colored highlight is displayed in addition to the whole line decoration
+        ruleNameDecorationOptions.push({
+            range: new vscode.Range(
+                new vscode.Position(line, 0),
+                new vscode.Position(line, ruleEnd),
+            ),
+        });
+    }
 
     // before setting a new decoration, remove all previous decorations
     removeDecorations();
 
     // always set the base decoration, containing the result message and after text
-    activeEditor.setDecorations(evalResultDecorationType, [decorationOption]);
+    activeEditor.setDecorations(evalResultDecorationType, decorationOptions);
 
     // evalResultDecorationTypeUndefined is a different color to indicate
     // the difference between undefined and other results
     if (params.result.isUndefined) {
-        activeEditor.setDecorations(evalResultTargetUndefinedDecorationType, [ruleNameDecorationOptions]);
-        return
+        activeEditor.setDecorations(evalResultTargetUndefinedDecorationType, ruleNameDecorationOptions);
+    } else {
+        // otherwise, show a success decoration for the rule
+        activeEditor.setDecorations(evalResultTargetSuccessDecorationType, ruleNameDecorationOptions);
     }
-
-    // otherwise, show a success decoration for the rule
-    activeEditor.setDecorations(evalResultTargetSuccessDecorationType, [ruleNameDecorationOptions]);
 }
 
 // makeCode returns a markdown code block with the given language and code
