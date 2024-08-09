@@ -206,7 +206,7 @@ export function activateRegal(_context: ExtensionContext) {
         clientOptions
     );
 
-    client.onRequest('regal/showEvalResult', handleRegalShowEvalResult);
+    client.onRequest<void, ShowEvalResultParams>('regal/showEvalResult', handleRegalShowEvalResult);
 
     client.start();
 }
@@ -258,15 +258,22 @@ function downloadOptionsRegal() {
     };
 }
 
-function handleRegalShowEvalResult(params: any) {
+interface ShowEvalResultParams {
+    line: number
+    result: EvalResult
+}
+
+interface EvalResult {
+    value: any
+    isUndefined: boolean
+    printOutput: { [line: number]: [text: string] }
+}
+
+function handleRegalShowEvalResult(params: ShowEvalResultParams) {
     const activeEditor = vscode.window.activeTextEditor;
     if (!activeEditor) {
         return
     }
-
-    const line = params.line - 1;
-    const documentLine = activeEditor.document.lineAt(line);
-    const lineLength = documentLine.text.length;
 
     // attachmentMessage is the message that is displayed after the rule name within the editor
     let attachmentMessage = params.result.value
@@ -288,22 +295,25 @@ function handleRegalShowEvalResult(params: any) {
                 replace(/\s(\}|\])/g, '$1');
             let code = makeCode("json", JSON.stringify(params.result.value, null, 2));
 
-
             // pre block formatting fails if there are over 100k chars
             if (code.length > 100000) {
                 code = JSON.stringify(params.result.value, null, 2);
             }
 
             hoverMessage = hoverTitle + code;
-        }
-
-        if (typeof params.result.value == 'string') {
-            attachmentMessage = `"` + String(params.result.value).replace(/ /g, '\u00a0') + `"`
+        } else if (typeof params.result.value == 'string') {
+            attachmentMessage = `"` + params.result.value.replace(/ /g, '\u00a0') + `"`
             // for strings, which may be long, there is a preference for wrapping
             // over horizontal scroll present in a pre block.
-            hoverMessage = hoverTitle + "`" + attachmentMessage + "`";
+            hoverMessage = hoverTitle + makeCode("json", attachmentMessage);
+        } else {
+            hoverMessage = hoverTitle + makeCode("json", attachmentMessage);
         }
     }
+
+    const line = params.line - 1;
+    const documentLine = activeEditor.document.lineAt(line);
+    const lineLength = documentLine.text.length;
 
     // to avoid horizontal scroll for large outputs, we ask users to hover
     // for the full result
@@ -311,21 +321,6 @@ function handleRegalShowEvalResult(params: any) {
     if (lineLength + attachmentMessage.length > truncateThreshold) {
         const suffix = "... (hover for result)";
         attachmentMessage = attachmentMessage.substring(0, truncateThreshold - lineLength - suffix.length) + suffix;
-    }
-
-    const decorationOption: vscode.DecorationOptions = {
-        // this is not needed as these options are passed to a whole line decoration type
-        // however, the field is required.
-        range: new vscode.Range(new vscode.Position(line, 0), new vscode.Position(line, lineLength),),
-        hoverMessage: hoverMessage,
-        renderOptions: {
-            after: {
-                contentText: " => " + attachmentMessage,
-                // Using the same color as the line numbers means this matches
-                // the 'muted' appearance of the gutter for various themes
-                color: new vscode.ThemeColor('editorLineNumber.foreground'),
-            },
-        },
     }
 
     let ruleEnd = lineLength;
@@ -337,30 +332,73 @@ function handleRegalShowEvalResult(params: any) {
         }
     }
 
-    // ruleNameDecorationOptions highlights only the rule name with a color.
-    // the colored highlight is displayed in addition to the whole line decoration
-    const ruleNameDecorationOptions: vscode.DecorationOptions = {
-        range: new vscode.Range(
-            new vscode.Position(line, 0),
-            new vscode.Position(line, ruleEnd),
-        ),
-    };
+    const ruleName = documentLine.text.substring(0, ruleEnd)
+
+    const decorationOptions: vscode.DecorationOptions[] = []
+    const ruleNameDecorationOptions: vscode.DecorationOptions[] = []
+
+    for (let line = 0; line < activeEditor.document.lineCount; line++) {
+        if (!activeEditor.document.lineAt(line).text.startsWith(ruleName)) {
+            continue
+        }
+
+        decorationOptions.push({
+            // this is not needed as these options are passed to a whole line decoration type
+            // however, the field is required.
+            range: new vscode.Range(new vscode.Position(line, 0), new vscode.Position(line, lineLength)),
+            hoverMessage: hoverMessage,
+            renderOptions: {
+                after: {
+                    contentText: " => " + attachmentMessage,
+                    // Using the same color as the line numbers means this matches
+                    // the 'muted' appearance of the gutter for various themes
+                    color: new vscode.ThemeColor('editorLineNumber.foreground'),
+                },
+            },
+        });
+
+        // ruleNameDecorationOptions highlights only the rule name with a color.
+        // the colored highlight is displayed in addition to the whole line decoration
+        ruleNameDecorationOptions.push({
+            range: new vscode.Range(
+                new vscode.Position(line, 0),
+                new vscode.Position(line, ruleEnd),
+            ),
+        });
+    }
+
+    Object.keys(params.result.printOutput).map(Number).forEach((line) => {
+        const lineLength = activeEditor.document.lineAt(line).text.length
+
+        decorationOptions.push({
+            // this is not needed as these options are passed to a whole line decoration type
+            // however, the field is required.
+            range: new vscode.Range(new vscode.Position(line - 1, 0), new vscode.Position(line - 1, lineLength)),
+            renderOptions: {
+                after: {
+                    contentText: " 🖨️ => " + params.result.printOutput[line],
+                    // Using the same color as the line numbers means this matches
+                    // the 'muted' appearance of the gutter for various themes
+                    color: new vscode.ThemeColor('editorLineNumber.foreground'),
+                },
+            },
+        });
+    })
 
     // before setting a new decoration, remove all previous decorations
     removeDecorations();
 
     // always set the base decoration, containing the result message and after text
-    activeEditor.setDecorations(evalResultDecorationType, [decorationOption]);
+    activeEditor.setDecorations(evalResultDecorationType, decorationOptions);
 
     // evalResultDecorationTypeUndefined is a different color to indicate
     // the difference between undefined and other results
     if (params.result.isUndefined) {
-        activeEditor.setDecorations(evalResultTargetUndefinedDecorationType, [ruleNameDecorationOptions]);
-        return
+        activeEditor.setDecorations(evalResultTargetUndefinedDecorationType, ruleNameDecorationOptions);
+    } else {
+        // otherwise, show a success decoration for the rule
+        activeEditor.setDecorations(evalResultTargetSuccessDecorationType, ruleNameDecorationOptions);
     }
-
-    // otherwise, show a success decoration for the rule
-    activeEditor.setDecorations(evalResultTargetSuccessDecorationType, [ruleNameDecorationOptions]);
 }
 
 // makeCode returns a markdown code block with the given language and code
