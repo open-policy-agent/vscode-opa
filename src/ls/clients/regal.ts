@@ -206,7 +206,7 @@ export function activateRegal(_context: ExtensionContext) {
         clientOptions
     );
 
-    client.onRequest('regal/showEvalResult', handleRegalShowEvalResult);
+    client.onRequest<void, ShowEvalResultParams>('regal/showEvalResult', handleRegalShowEvalResult);
 
     client.start();
 }
@@ -258,7 +258,18 @@ function downloadOptionsRegal() {
     };
 }
 
-function handleRegalShowEvalResult(params: any) {
+interface ShowEvalResultParams {
+    line: number
+    result: EvalResult
+}
+
+interface EvalResult {
+    value: any
+    isUndefined: boolean
+    printOutput: { [line: number]: [text: string[]] }
+}
+
+function handleRegalShowEvalResult(params: ShowEvalResultParams) {
     const activeEditor = vscode.window.activeTextEditor;
     if (!activeEditor) {
         return
@@ -284,20 +295,19 @@ function handleRegalShowEvalResult(params: any) {
                 replace(/\s(\}|\])/g, '$1');
             let code = makeCode("json", JSON.stringify(params.result.value, null, 2));
 
-
             // pre block formatting fails if there are over 100k chars
             if (code.length > 100000) {
                 code = JSON.stringify(params.result.value, null, 2);
             }
 
             hoverMessage = hoverTitle + code;
-        }
-
-        if (typeof params.result.value == 'string') {
-            attachmentMessage = `"` + String(params.result.value).replace(/ /g, '\u00a0') + `"`
+        } else if (typeof params.result.value == 'string') {
+            attachmentMessage = `"` + params.result.value.replace(/ /g, '\u00a0') + `"`
             // for strings, which may be long, there is a preference for wrapping
             // over horizontal scroll present in a pre block.
-            hoverMessage = hoverTitle + "`" + attachmentMessage + "`";
+            hoverMessage = hoverTitle + makeCode("json", attachmentMessage);
+        } else {
+            hoverMessage = hoverTitle + makeCode("json", attachmentMessage);
         }
     }
 
@@ -356,6 +366,24 @@ function handleRegalShowEvalResult(params: any) {
             ),
         });
     }
+
+    Object.keys(params.result.printOutput).map(Number).forEach((line) => {
+        const lineLength = activeEditor.document.lineAt(line).text.length
+
+        decorationOptions.push({
+            // this is not needed as these options are passed to a whole line decoration type
+            // however, the field is required.
+            range: new vscode.Range(new vscode.Position(line - 1, 0), new vscode.Position(line - 1, lineLength)),
+            renderOptions: {
+                after: {
+                    contentText: " 🖨️ => " + params.result.printOutput[line].join(" => "),
+                    // Using the same color as the line numbers means this matches
+                    // the 'muted' appearance of the gutter for various themes
+                    color: new vscode.ThemeColor('editorLineNumber.foreground'),
+                },
+            },
+        });
+    })
 
     // before setting a new decoration, remove all previous decorations
     removeDecorations();
