@@ -370,13 +370,30 @@ function handleRegalShowEvalResult(params: ShowEvalResultParams) {
     Object.keys(params.result.printOutput).map(Number).forEach((line) => {
         const lineLength = activeEditor.document.lineAt(line).text.length
 
+        const joinedLines = params.result.printOutput[line].join("\n")
+
+        // pre block formatting fails if there are over 100k chars
+        let hoverText = joinedLines;
+        if (joinedLines.length < 100000) {
+            hoverText = makeCode("text", joinedLines)
+        }
+
+        const hoverMessage = "### Print Output\n\n" + hoverText
+
+        let attachmentMessage = " 🖨️ => " + params.result.printOutput[line].join(" => ")
+        if (lineLength + attachmentMessage.length > truncateThreshold) {
+            const suffix = "... (hover for result)";
+            attachmentMessage = attachmentMessage.substring(0, truncateThreshold - lineLength - suffix.length) + suffix;
+        }
+
         decorationOptions.push({
             // this is not needed as these options are passed to a whole line decoration type
             // however, the field is required.
             range: new vscode.Range(new vscode.Position(line - 1, 0), new vscode.Position(line - 1, lineLength)),
+            hoverMessage: hoverMessage,
             renderOptions: {
                 after: {
-                    contentText: " 🖨️ => " + params.result.printOutput[line].join(" => "),
+                    contentText: attachmentMessage,
                     // Using the same color as the line numbers means this matches
                     // the 'muted' appearance of the gutter for various themes
                     color: new vscode.ThemeColor('editorLineNumber.foreground'),
