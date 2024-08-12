@@ -136,10 +136,18 @@ function showCoverageOnEditorChange(editor: vscode.TextEditor | undefined) {
 }
 
 function removeDecorationsOnDocumentChange(e: vscode.TextDocumentChangeEvent) {
-    // Do not remove decorations if the output document changed.
-    if (`${e.document.uri}` !== `${outputUri}`) {
-        removeDecorations();
+    // output:extension-output is the output channel for the extensions
+    // and should not be used for clearing decorations
+    if (e.document.uri.toString().startsWith('output:extension-output')) {
+        return;
     }
+
+    // output URI is the URI of the JSON file used for the eval result output
+    if (`${e.document.uri}` === `${outputUri}`) {
+        return
+    }
+
+    removeDecorations();
 }
 
 function showCoverageForEditor(_editor: vscode.TextEditor) {
