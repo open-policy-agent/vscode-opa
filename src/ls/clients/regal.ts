@@ -266,7 +266,7 @@ interface ShowEvalResultParams {
     // only used when target is a package
     package: string
     // only used when target is a rule name, contains a list of rule head locations
-    rule_heads: ShowEvalResultParamsLocation[]
+    rule_head_locations: ShowEvalResultParamsLocation[]
 }
 
 interface ShowEvalResultParamsLocation {
@@ -296,7 +296,7 @@ function handleRegalShowEvalResult(params: ShowEvalResultParams) {
 
     if (params.target === "package") {
         handlePackageDecoration(params, activeEditor, decorationOptions, targetDecorationOptions, attachmentMessage, hoverMessage, truncateThreshold);
-    } else if (params.rule_heads.length > 0) {
+    } else if (params.rule_head_locations.length > 0) {
         handleRuleHeadsDecoration(params, activeEditor, decorationOptions, targetDecorationOptions, attachmentMessage, hoverMessage, truncateThreshold);
     }
 
@@ -364,8 +364,8 @@ function handlePackageDecoration(params: ShowEvalResultParams, activeEditor: vsc
 }
 
 function handleRuleHeadsDecoration(params: ShowEvalResultParams, activeEditor: vscode.TextEditor, decorationOptions: vscode.DecorationOptions[], targetDecorationOptions: vscode.DecorationOptions[], attachmentMessage: string, hoverMessage: string, truncateThreshold: number) {
-    params.rule_heads.forEach((ruleHead) => {
-        const line = ruleHead.row - 1;
+    params.rule_head_locations.forEach((location) => {
+        const line = location.row - 1;
         const documentLine = activeEditor.document.lineAt(line);
         const lineLength = documentLine.text.length;
 
@@ -377,7 +377,7 @@ function handleRuleHeadsDecoration(params: ShowEvalResultParams, activeEditor: v
 
         decorationOptions.push(createDecoration(line, lineLength, hoverMessage, attachmentMessage));
 
-        const startChar = ruleHead.col - 1;
+        const startChar = location.col - 1;
         const endChar = documentLine.text.includes(params.target)
             ? startChar + params.target.length
             : findEndChar(documentLine.text, lineLength);
