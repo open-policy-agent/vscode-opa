@@ -25,6 +25,9 @@ Additionally, users may choose to install [Regal](https://docs.styra.com/regal),
 * Formatting (`opa fmt`, `opa fmt --rego-v1` or `regal fix`, see [Configuration](#configuration) below)
 * Code actions (quick fixes for linting issues)
 * Code completions
+* Code lenses (click to evaluate any package or rule in the editor, and have the result displayed directly on the same line)
+
+To learn more about each language server feature, see the Regal [language server](https://docs.styra.com/regal/language-server) documentation.
 
 ![Use of the extension to lint and eval Rego code](https://raw.githubusercontent.com/open-policy-agent/vscode-opa/main/eval.gif)
 
@@ -81,6 +84,10 @@ From OPA v0.62.0 and onwards, it's possible to set any command line flag via env
 ### Set the `input` document by creating `input.json`
 
 The extension will look for a file called `input.json` in the current directory of the policy file being evaluated, or at the root of the workspace, and will use it as the `input` document when evaluating policies. If you modify this file and re-run evaluation you will see the affect of the changes.
+
+The [code lens evaluation](https://github.com/StyraInc/regal/blob/main/docs/language-server.md#code-lenses-evaluation) feature (with Regal installed) shows an "Evaluate" button over any package or rule declaration, which when clicked displays the result of evaluation directly on the same line as the package or rule. Providing input for this type of evaluation is done the same way, i.e. via an `input.json` file.
+
+We recommend adding `input.json` to the `.gitignore` file of your project, so that you can evaluate policy anywhere without the risk of accidentally committing the input.
 
 ### Bind keyboard shortcuts for frequently used commands
 
