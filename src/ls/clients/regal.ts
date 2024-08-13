@@ -261,6 +261,17 @@ function downloadOptionsRegal() {
 interface ShowEvalResultParams {
     line: number
     result: EvalResult
+    // package or a rule name
+    target: string
+    // only used when target is a package
+    package: string
+    // only used when target is a rule name, contains a list of rule head locations
+    rule_head_locations: ShowEvalResultParamsLocation[]
+}
+
+interface ShowEvalResultParamsLocation {
+    row: number
+    col: number
 }
 
 interface EvalResult {
@@ -271,151 +282,163 @@ interface EvalResult {
 
 function handleRegalShowEvalResult(params: ShowEvalResultParams) {
     const activeEditor = vscode.window.activeTextEditor;
-    if (!activeEditor) {
-        return
+    if (!activeEditor) return;
+
+    // Before setting a new decoration, remove all previous decorations
+    removeDecorations();
+
+    const { attachmentMessage, hoverMessage } = createMessages(params);
+
+    const decorationOptions: vscode.DecorationOptions[] = [];
+    const targetDecorationOptions: vscode.DecorationOptions[] = [];
+
+    const truncateThreshold = 100;
+
+    if (params.target === "package") {
+        handlePackageDecoration(params, activeEditor, decorationOptions, targetDecorationOptions, attachmentMessage, hoverMessage, truncateThreshold);
+    } else if (params.rule_head_locations.length > 0) {
+        handleRuleHeadsDecoration(params, activeEditor, decorationOptions, targetDecorationOptions, attachmentMessage, hoverMessage, truncateThreshold);
     }
 
-    // attachmentMessage is the message that is displayed after the rule name within the editor
-    let attachmentMessage = params.result.value
+    handlePrintOutputDecoration(params, activeEditor, decorationOptions, truncateThreshold);
 
-    // hoverMessage is the message that is displayed when hovering over base decoration
-    let hoverMessage = params.result.value
+    // Always set the base decoration, containing the result message and after text
+    activeEditor.setDecorations(evalResultDecorationType, decorationOptions);
 
+    // Set decoration type based on whether the result is undefined
+    const targetDecorationType = params.result.isUndefined
+        ? evalResultTargetUndefinedDecorationType
+        : evalResultTargetSuccessDecorationType;
+    activeEditor.setDecorations(targetDecorationType, targetDecorationOptions);
+}
+
+function createMessages(params: ShowEvalResultParams) {
+    let attachmentMessage = params.result.value;
+    let hoverMessage = params.result.value;
     const hoverTitle = "### Evaluation Result\n\n";
 
     if (params.result.isUndefined) {
-        attachmentMessage = 'undefined'
-        hoverMessage = hoverTitle + makeCode("text", attachmentMessage)
+        // Handle rule result
+        attachmentMessage = 'undefined';
+        hoverMessage = hoverTitle + makeCode("text", attachmentMessage);
+    } else if (typeof params.result.value === 'object') {
+        // Handle objects (including arrays)
+        const formattedValue = JSON.stringify(params.result.value, null, 2);
+        attachmentMessage = formattedValue.replace(/\n\s*/g, ' ')
+            .replace(/(\{|\[)\s/g, '$1')
+            .replace(/\s(\}|\])/g, '$1');
+        const code = makeCode("json", formattedValue);
+        hoverMessage = hoverTitle + (code.length > 100000 ? formattedValue : code);
     } else {
-        // this matches both arrays and objects
-        if (typeof params.result.value == 'object') {
-            attachmentMessage = JSON.stringify(params.result.value, null, 2).
-                replace(/\n\s*/g, ' '). // must be a new line first to avoid matching inside strings
-                replace(/(\{|\[)\s/g, '$1').
-                replace(/\s(\}|\])/g, '$1');
-            let code = makeCode("json", JSON.stringify(params.result.value, null, 2));
-
-            // pre block formatting fails if there are over 100k chars
-            if (code.length > 100000) {
-                code = JSON.stringify(params.result.value, null, 2);
-            }
-
-            hoverMessage = hoverTitle + code;
-        } else if (typeof params.result.value == 'string') {
-            attachmentMessage = `"` + params.result.value.replace(/ /g, '\u00a0') + `"`
-            // for strings, which may be long, there is a preference for wrapping
-            // over horizontal scroll present in a pre block.
-            hoverMessage = hoverTitle + makeCode("json", attachmentMessage);
-        } else {
-            hoverMessage = hoverTitle + makeCode("json", attachmentMessage);
+        // Handle strings and other types simple types
+        if (typeof params.result.value === 'string') {
+            attachmentMessage = `"${params.result.value.replace(/ /g, '\u00a0')}"`;
         }
+        hoverMessage = hoverTitle + makeCode("json", attachmentMessage);
     }
 
+    return { attachmentMessage, hoverMessage };
+}
+
+function handlePackageDecoration(params: ShowEvalResultParams, activeEditor: vscode.TextEditor, decorationOptions: vscode.DecorationOptions[], targetDecorationOptions: vscode.DecorationOptions[], attachmentMessage: string, hoverMessage: string, truncateThreshold: number) {
     const line = params.line - 1;
     const documentLine = activeEditor.document.lineAt(line);
     const lineLength = documentLine.text.length;
 
-    // to avoid horizontal scroll for large outputs, we ask users to hover
-    // for the full result
-    const truncateThreshold = 100;
+    // To avoid horizontal scroll for large outputs, we ask users to hover for the full result
     if (lineLength + attachmentMessage.length > truncateThreshold) {
         const suffix = "... (hover for result)";
         attachmentMessage = attachmentMessage.substring(0, truncateThreshold - lineLength - suffix.length) + suffix;
     }
 
-    let ruleEnd = lineLength;
-    // find the first whitespace, or [ char, if found, update endRange to that
-    for (let i = 0; i < lineLength; i++) {
-        if (documentLine.text[i] === ' ' || documentLine.text[i] === '[') {
-            ruleEnd = i;
-            break;
+    decorationOptions.push(createDecoration(line, lineLength, hoverMessage, attachmentMessage));
+
+    const packageIndex = documentLine.text.indexOf(params.package);
+    const startChar = packageIndex > 0 ? packageIndex : 0;
+    const endChar = packageIndex > 0 ? packageIndex + params.package.length : lineLength;
+
+    // Highlight only the target name with a color, displayed in addition to the whole line decoration
+    targetDecorationOptions.push({
+        range: new vscode.Range(new vscode.Position(line, startChar), new vscode.Position(line, endChar)),
+    });
+}
+
+function handleRuleHeadsDecoration(params: ShowEvalResultParams, activeEditor: vscode.TextEditor, decorationOptions: vscode.DecorationOptions[], targetDecorationOptions: vscode.DecorationOptions[], attachmentMessage: string, hoverMessage: string, truncateThreshold: number) {
+    params.rule_head_locations.forEach((location) => {
+        const line = location.row - 1;
+        const documentLine = activeEditor.document.lineAt(line);
+        const lineLength = documentLine.text.length;
+
+        // To avoid horizontal scroll for large outputs, we ask users to hover for the full result
+        if (lineLength + attachmentMessage.length > truncateThreshold) {
+            const suffix = "... (hover for result)";
+            attachmentMessage = attachmentMessage.substring(0, truncateThreshold - lineLength - suffix.length) + suffix;
         }
-    }
 
-    const ruleName = documentLine.text.substring(0, ruleEnd)
+        decorationOptions.push(createDecoration(line, lineLength, hoverMessage, attachmentMessage));
 
-    const decorationOptions: vscode.DecorationOptions[] = []
-    const ruleNameDecorationOptions: vscode.DecorationOptions[] = []
+        const startChar = location.col - 1;
+        const endChar = documentLine.text.includes(params.target)
+            ? startChar + params.target.length
+            : findEndChar(documentLine.text, lineLength);
 
-    for (let line = 0; line < activeEditor.document.lineCount; line++) {
-        if (!activeEditor.document.lineAt(line).text.startsWith(ruleName)) {
-            continue
-        }
-
-        decorationOptions.push({
-            // this is not needed as these options are passed to a whole line decoration type
-            // however, the field is required.
-            range: new vscode.Range(new vscode.Position(line, 0), new vscode.Position(line, lineLength)),
-            hoverMessage: hoverMessage,
-            renderOptions: {
-                after: {
-                    contentText: " => " + attachmentMessage,
-                    // Using the same color as the line numbers means this matches
-                    // the 'muted' appearance of the gutter for various themes
-                    color: new vscode.ThemeColor('editorLineNumber.foreground'),
-                },
-            },
+        // Highlight only the target name with a color, displayed in addition to the whole line decoration
+        targetDecorationOptions.push({
+            range: new vscode.Range(new vscode.Position(line, startChar), new vscode.Position(line, endChar)),
         });
+    });
+}
 
-        // ruleNameDecorationOptions highlights only the rule name with a color.
-        // the colored highlight is displayed in addition to the whole line decoration
-        ruleNameDecorationOptions.push({
-            range: new vscode.Range(
-                new vscode.Position(line, 0),
-                new vscode.Position(line, ruleEnd),
-            ),
-        });
-    }
-
+function handlePrintOutputDecoration(params: ShowEvalResultParams, activeEditor: vscode.TextEditor, decorationOptions: vscode.DecorationOptions[], truncateThreshold: number) {
     Object.keys(params.result.printOutput).map(Number).forEach((line) => {
-        const lineLength = activeEditor.document.lineAt(line).text.length
+        const lineLength = activeEditor.document.lineAt(line).text.length;
+        const joinedLines = params.result.printOutput[line].join("\n");
 
-        const joinedLines = params.result.printOutput[line].join("\n")
+        // Pre-block formatting fails if there are over 100k chars
+        const hoverText = joinedLines.length < 100000 ? makeCode("text", joinedLines) : joinedLines;
+        const hoverMessage = "### Print Output\n\n" + hoverText;
 
-        // pre block formatting fails if there are over 100k chars
-        let hoverText = joinedLines;
-        if (joinedLines.length < 100000) {
-            hoverText = makeCode("text", joinedLines)
-        }
-
-        const hoverMessage = "### Print Output\n\n" + hoverText
-
-        let attachmentMessage = " 🖨️ => " + params.result.printOutput[line].join(" => ")
+        let attachmentMessage = ` 🖨️ => ${params.result.printOutput[line].join(" => ")}`;
         if (lineLength + attachmentMessage.length > truncateThreshold) {
             const suffix = "... (hover for result)";
             attachmentMessage = attachmentMessage.substring(0, truncateThreshold - lineLength - suffix.length) + suffix;
         }
 
         decorationOptions.push({
-            // this is not needed as these options are passed to a whole line decoration type
-            // however, the field is required.
             range: new vscode.Range(new vscode.Position(line - 1, 0), new vscode.Position(line - 1, lineLength)),
             hoverMessage: hoverMessage,
             renderOptions: {
                 after: {
                     contentText: attachmentMessage,
-                    // Using the same color as the line numbers means this matches
-                    // the 'muted' appearance of the gutter for various themes
                     color: new vscode.ThemeColor('editorLineNumber.foreground'),
                 },
             },
         });
-    })
+    });
+}
 
-    // before setting a new decoration, remove all previous decorations
-    removeDecorations();
+function createDecoration(line: number, lineLength: number, hoverMessage: string, attachmentMessage: string): vscode.DecorationOptions {
+    // Create base decoration options for a line
+    return {
+        range: new vscode.Range(new vscode.Position(line, 0), new vscode.Position(line, lineLength)),
+        hoverMessage: hoverMessage,
+        renderOptions: {
+            after: {
+                contentText: ` => ${attachmentMessage}`,
+                color: new vscode.ThemeColor('editorLineNumber.foreground'),
+            },
+        },
+    };
+}
 
-    // always set the base decoration, containing the result message and after text
-    activeEditor.setDecorations(evalResultDecorationType, decorationOptions);
-
-    // evalResultDecorationTypeUndefined is a different color to indicate
-    // the difference between undefined and other results
-    if (params.result.isUndefined) {
-        activeEditor.setDecorations(evalResultTargetUndefinedDecorationType, ruleNameDecorationOptions);
-    } else {
-        // otherwise, show a success decoration for the rule
-        activeEditor.setDecorations(evalResultTargetSuccessDecorationType, ruleNameDecorationOptions);
+function findEndChar(text: string, lineLength: number): number {
+    // Find the end character position, stopping at the first [ or . character as a fallback
+    for (let i = 0; i < lineLength; i++) {
+        if (text[i] === '[' || text[i] === '.') {
+            return i;
+        }
     }
+    return lineLength;
 }
 
 // makeCode returns a markdown code block with the given language and code
