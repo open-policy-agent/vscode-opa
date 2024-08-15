@@ -7,10 +7,10 @@
     "url": "https://github.com/open-policy-agent/vscode-opa.git"
   },
   "description": "Develop, test, debug, and analyze policies for the Open Policy Agent project.",
-  "version": "0.15.0",
+  "version": "0.16.0",
   "publisher": "tsandall",
   "engines": {
-    "vscode": "^1.89.0"
+    "vscode": "^1.92.0"
   },
   "activationEvents": [
     "onLanguage:rego"
