@@ -160,6 +160,17 @@
           ],
           "default": "opa-fmt",
           "description": "The formatter to use for Rego. Supports: ['opa-fmt', 'opa-fmt-rego-v1', 'regal-fix']."
+        },
+        "regal.trace.server": {
+          "scope": "window",
+          "type": "string",
+          "enum": [
+            "off",
+            "messages",
+            "verbose"
+          ],
+          "default": "off",
+          "description": "Traces the communication between VS Code and the Regal language server."
         }
       }
     },
