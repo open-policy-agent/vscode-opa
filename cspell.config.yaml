@@ -1,0 +1,19 @@
+---
+language: en
+
+ignorePaths:
+
+languageSettings:
+  - languageId: "markdown"
+    ignoreRegExpList:
+      # ignore inside code blocks
+      - "/^\\s*```[\\s\\S]*?^\\s*```/gm"
+      # ignore in code spans
+      - "/`(.*)`/g"
+
+words:
+  - rego # OPA language
+  - sarif # test output format
+
+ignoreWords:
+  - tjons # OPA contributor GH handle

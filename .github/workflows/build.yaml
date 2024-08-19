@@ -2,18 +2,14 @@ name: Build
 
 on:
   push:
-    branches: [ "main" ]
+    branches: ["main"]
   pull_request:
-    branches: [ "main" ]
+    branches: ["main"]
   workflow_dispatch:
 
 jobs:
   build:
-    name: Build and lint
     runs-on: ubuntu-latest
-    permissions:
-      contents: read
-      security-events: write
     steps:
       - name: Checkout code
         uses: actions/checkout@v4
@@ -25,6 +21,23 @@ jobs:
       - name: Compile TypeScript
         run: npm run compile
 
+  eslint:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      security-events: write
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Set up Node.js
+        uses: actions/setup-node@1e60f620b9541d16bece96c5465dc8ee9832be0b # v4.0.3
+        with:
+          node-version: "22.6.0"
+
+      - name: Install dependencies
+        run: npm install
+
       - name: Run ESLint
         run: npx eslint --format @microsoft/eslint-formatter-sarif --output-file eslint-results.sarif src
         continue-on-error: true
@@ -33,3 +46,42 @@ jobs:
         uses: github/codeql-action/upload-sarif@v3
         with:
           sarif_file: eslint-results.sarif
+
+  spelling:
+    runs-on: ubuntu-latest
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Set up Node.js
+        uses: actions/setup-node@1e60f620b9541d16bece96c5465dc8ee9832be0b # v4.0.3
+        with:
+          node-version: "22.6.0"
+
+      - run: npx cspell lint -c cspell.config.yaml '**/*.md'
+
+  markdownlint:
+    runs-on: ubuntu-latest
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Set up Node.js
+        uses: actions/setup-node@1e60f620b9541d16bece96c5465dc8ee9832be0b # v4.0.3
+        with:
+          node-version: "22.6.0"
+
+      - run: npx markdownlint-cli2 'README.md' 'CHANGELOG.md' '#node_modules' --config=.markdownlint.yaml
+
+  formatting:
+    runs-on: ubuntu-latest
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Set up Node.js
+        uses: actions/setup-node@1e60f620b9541d16bece96c5465dc8ee9832be0b # v4.0.3
+        with:
+          node-version: "22.6.0"
+
+      - run: npx dprint check
