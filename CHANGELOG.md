@@ -57,7 +57,7 @@ Rego symbols — such as packages, rules and functions, are now provided by the 
 Similar to Document Symbols, the language server is able to provide symbols for top-level packages, rule or function definitions in the workspace.
 
 
-#### Formatting and Goto Defintion
+#### Formatting and Goto Definition
 
 We are standardizing the functions of the Rego developer environment on the [Regal Language Server](https://docs.styra.com/regal/editor-support) implementation. This allows us to offer a standardized experience to all Rego developers, regardless of their preferred editor. [OPA format](https://github.com/StyraInc/regal/pull/630) and [Goto Definition](https://github.com/StyraInc/regal/pull/664) are now available as part of the language server and so users are encouraged to use the language server to access the currently supported option for these editor functions. See PRs [#156](https://github.com/open-policy-agent/vscode-opa/pull/156)& [#148](https://github.com/open-policy-agent/vscode-opa/pull/148) where the VS Code OPA extension is updated to use this language server.
 
@@ -126,7 +126,7 @@ Code folding ranges are also now supported in the Regal language server and can 
 
 ## 0.12.0
 
-- Keyword highligting for `if` and `contains`
+- Keyword highlighting for `if` and `contains`
 
 
 ## 0.11.0
