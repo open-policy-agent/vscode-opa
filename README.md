@@ -1,39 +1,42 @@
-# vscode-opa
+# vscode-OPA
 
 This plugin provides a number of features to help you work with [Open Policy Agent](https://www.openpolicyagent.org)
 (OPA) policies in Visual Studio Code.
 
+
 ## Features
 
-* Evaluate Packages
-* Evaluate Selections
-* Partially Evaluate Selections
-* Trace Selections
-* Profile Selections
-* Run Tests in Workspace
-* Toggle Coverage in Workspace
-* Toggle Coverage of Selections
+- Evaluate Packages
+- Evaluate Selections
+- Partially Evaluate Selections
+- Trace Selections
+- Profile Selections
+- Run Tests in Workspace
+- Toggle Coverage in Workspace
+- Toggle Coverage of Selections
 
 Additionally, users may choose to install [Regal](https://docs.styra.com/regal), which adds the following features via the [Language Server Protocol](https://microsoft.github.io/language-server-protocol/) (LSP):
 
-* Diagnostics (linting)
-* Hover / tooltips (for inline docs on built-in functions)
-* Go to definition (ctrl/cmd + click on a reference to go to definition)
-* Folding ranges (expand/collapse blocks, imports, comments)
-* Document and workspace symbols (navigate to rules, functions, packages)
-* Inlay hints (show names of built-in function arguments next to their values)
-* Formatting (`opa fmt`, `opa fmt --rego-v1` or `regal fix`, see [Configuration](#configuration) below)
-* Code actions (quick fixes for linting issues)
-* Code completions
-* Code lenses (click to evaluate any package or rule in the editor, and have the result displayed directly on the same line)
+- Diagnostics (linting)
+- Hover / tooltips (for inline docs on built-in functions)
+- Go to definition (ctrl/cmd + click on a reference to go to definition)
+- Folding ranges (expand/collapse blocks, imports, comments)
+- Document and workspace symbols (navigate to rules, functions, packages)
+- Inlay hints (show names of built-in function arguments next to their values)
+- Formatting (`opa fmt`, `opa fmt --rego-v1` or `regal fix`, see [Configuration](#configuration) below)
+- Code actions (quick fixes for linting issues)
+- Code completions
+- Code lenses (click to evaluate any package or rule in the editor, and have the result displayed directly on the same line)
 
 To learn more about each language server feature, see the Regal [language server](https://docs.styra.com/regal/language-server) documentation.
 
 ![Use of the extension to lint and eval Rego code](https://raw.githubusercontent.com/open-policy-agent/vscode-opa/main/eval.gif)
 
+
 ## Requirements
 
-* This plugin requires the [Open Policy Agent](https://github.com/open-policy-agent/opa) executable (`opa`) to be installed in your $PATH. Alternatively, you can configure the `opa.dependency_paths.opa` setting to point to the executable. If you do not have OPA installed, the plugin will prompt you to install the executable the first time you evaluate a policy, run tests, etc.
+- This plugin requires the [Open Policy Agent](https://github.com/open-policy-agent/opa) executable (`opa`) to be installed in your $PATH. Alternatively, you can configure the `opa.dependency_paths.opa` setting to point to the executable. If you do not have OPA installed, the plugin will prompt you to install the executable the first time you evaluate a policy, run tests, etc.
+
 
 ## Installation
 
@@ -46,6 +49,7 @@ or search for "Open Policy Agent" in the 'Extensions' panel.
 > through a native integration with [Regal](https://docs.styra.com/regal). See the
 > ['Getting Started'](https://docs.styra.com/regal#getting-started) guide for more
 > information about installing Regal.
+
 
 ## Configuration
 
@@ -64,7 +68,8 @@ or search for "Open Policy Agent" in the 'Extensions' panel.
 Note that the `${workspaceFolder}` variable will expand to a full URI of the workspace, as expected by most VS Code commands. The `${workspacePath}` variable may additionally be used where only the path component (i.e. without the `file://` schema component) of the workspace URI is required.
 
 > For bundle documentation refer to [https://www.openpolicyagent.org/docs/latest/management/#bundle-file-format](https://www.openpolicyagent.org/docs/latest/management-bundles/#bundle-file-format).
-  Note that data files *MUST* be named either `data.json` or `data.yaml`.
+  Note that data files _MUST_ be named either `data.json` or `data.yaml`.
+
 
 ### Using `opa.env` to set OPA command line flags
 
@@ -79,7 +84,9 @@ From OPA v0.62.0 and onwards, it's possible to set any command line flag via env
 }
 ```
 
+
 ## Tips
+
 
 ### Set the `input` document by creating `input.json`
 
@@ -88,6 +95,7 @@ The extension will look for a file called `input.json` in the current directory 
 The [code lens evaluation](https://github.com/StyraInc/regal/blob/main/docs/language-server.md#code-lenses-evaluation) feature (with Regal installed) shows an "Evaluate" button over any package or rule declaration, which when clicked displays the result of evaluation directly on the same line as the package or rule. Providing input for this type of evaluation is done the same way, i.e. via an `input.json` file.
 
 We recommend adding `input.json` to the `.gitignore` file of your project, so that you can evaluate policy anywhere without the risk of accidentally committing the input.
+
 
 ### Bind keyboard shortcuts for frequently used commands
 
@@ -113,11 +121,13 @@ Bind the `OPA: Evaluate Package` command to a keyboard shortcut (e.g., ⌘ Shift
 }
 ```
 
+
 ### Loading arbitrary JSON/YAML as data
 
 If unable to use `data.json` or `data.yaml` files with `opa.bundleMode` enabled
-you can disable the configuration option and *ALL* `*.json` and `*.yaml` files
+you can disable the configuration option and _ALL_ `*.json` and `*.yaml` files
 will be loaded from the workspace.
+
 
 ### Disabling linting
 
@@ -131,15 +141,18 @@ rules:
 
 Regal additionally scans for a `.regal/config.yaml` file _above_ the workspace, which can be used to disable linting for all workspaces that inherit from it, or to use a common configuration file across multiple workspaces.
 
+
 ## Debugging OPA command evaluation
 
 In case some command isn't behaving as you expect, you can see exactly what command was executed by opening the developer tools from the **Help** menu and check the **Console** tab.
+
 
 ## Development
 
 If you want to hack on the extension itself, you should clone this repository, install the dependencies (`npm install --include=dev`) and use Visual Studio Code's Debugger (F5) to test your changes.
 
+
 ## ROADMAP
 
-* [x] highlight syntax errors in file (available when using Regal language server)
-* [ ] run `opa test` on package instead of entire workspace
+- [x] highlight syntax errors in file (available when using Regal language server)
+- [ ] run `opa test` on package instead of entire workspace
