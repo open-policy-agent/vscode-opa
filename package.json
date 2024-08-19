@@ -205,7 +205,7 @@
     "@stylistic/eslint-plugin": "^2.6.2",
     "@types/command-exists": "^1.2.3",
     "@types/mocha": "10.0.7",
-    "@types/node": "22.2.0",
+    "@types/node": "22.4.1",
     "@types/semver": "^7.5.8",
     "@types/vscode": "1.92.0",
     "eslint": "^8.57.0",
