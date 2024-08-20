@@ -245,6 +245,7 @@ MD044:
     "URL",
     "vCPU",
     "VPC",
+    "vscode-opa",
     "YAML",
   ]
   # Ignore code blocks
