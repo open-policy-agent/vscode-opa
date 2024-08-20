@@ -1,4 +1,4 @@
-# vscode-OPA
+# vscode-opa
 
 This plugin provides a number of features to help you work with [Open Policy Agent](https://www.openpolicyagent.org)
 (OPA) policies in Visual Studio Code.
