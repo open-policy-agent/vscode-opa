@@ -7,10 +7,10 @@
     "url": "https://github.com/open-policy-agent/vscode-opa.git"
   },
   "description": "Develop, test, debug, and analyze policies for the Open Policy Agent project.",
-  "version": "0.15.0",
+  "version": "0.16.0",
   "publisher": "tsandall",
   "engines": {
-    "vscode": "^1.89.0"
+    "vscode": "^1.92.0"
   },
   "activationEvents": [
     "onLanguage:rego",
@@ -177,6 +177,13 @@
           },
           "default": {},
           "description": "Environment variables passed to the process running OPA."
+        },
+        "opa.formatter": {
+          "type": [
+            "string"
+          ],
+          "default": "opa-fmt",
+          "description": "The formatter to use for Rego. Supports: ['opa-fmt', 'opa-fmt-rego-v1', 'regal-fix']."
         }
       }
     },
@@ -301,20 +308,22 @@
   },
   "devDependencies": {
     "@microsoft/eslint-formatter-sarif": "^3.1.0",
-    "@stylistic/eslint-plugin": "^2.3.0",
+    "@stylistic/eslint-plugin": "^2.6.4",
     "@types/command-exists": "^1.2.3",
     "@types/mocha": "10.0.7",
-    "@types/node": "20.14.10",
+    "@types/node": "22.4.1",
     "@types/semver": "^7.5.8",
-    "@types/vscode": "1.91.0",
-    "eslint": "^8.57.0",
-    "typescript": "^5.5.3",
-    "typescript-eslint": "^7.16.0"
+    "@types/vscode": "1.92.0",
+    "cspell": "^8.14.2",
+    "dprint": "^0.47.2",
+    "eslint": "^9.9.0",
+    "typescript": "^5.5.4",
+    "typescript-eslint": "^8.1.0"
   },
   "dependencies": {
     "@fohlen/github-release-downloader": "^1.0.0",
-    "command-exists": "^1.2.6",
-    "semver": "^7.6.2",
+    "command-exists": "^1.2.9",
+    "semver": "^7.6.3",
     "vscode-languageclient": "^9.0.1"
   },
   "__metadata": {
