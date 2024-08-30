@@ -218,14 +218,14 @@
       }
     ],
     "breakpoints": [
-	  {
-	    "language": "rego"
-	  }
+      {
+        "language": "rego"
+      }
     ],
     "debuggers": [
-	  {
-      "type": "opa-debug",
-	    "label": "OPA Debug",
+      {
+        "type": "opa-debug",
+        "label": "OPA Debug",
         "languages": [
           "rego"
         ],
@@ -244,13 +244,13 @@
               "dataPaths": {
                 "type": "array",
                 "items": {
-                "type": "string"
+                  "type": "string"
                 }
               },
               "bundlePaths": {
                 "type": "array",
                 "items": {
-                "type": "string"
+                  "type": "string"
                 },
                 "default": ["${workspaceFolder}"]
               },
