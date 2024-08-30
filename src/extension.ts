@@ -4,10 +4,10 @@ import * as fs from "fs";
 import * as path from "path";
 import * as vscode from "vscode";
 
+import { activateDebugger } from "./da/activate";
 import { activateLanguageServers } from "./ls/activate";
 import { advertiseLanguageServers } from "./ls/advertise";
 import { configureLanguageServers } from "./ls/configure";
-import { activateDebugger } from "./da/activate";
 import * as opa from "./opa";
 import { getPrettyTime } from "./util";
 
