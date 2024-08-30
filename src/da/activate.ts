@@ -1,6 +1,9 @@
 import * as vscode from "vscode";
 
 import { regalPath } from "./../ls/clients/regal";
+import { promptForUpdateRegal } from "./../ls/clients/regal";
+
+const minimumSupportedRegalVersion = "0.26.0";
 
 export function activateDebugger(context: vscode.ExtensionContext) {
     context.subscriptions.push(
@@ -111,6 +114,7 @@ export function activateDebugger(context: vscode.ExtensionContext) {
       executable: vscode.DebugAdapterExecutable | undefined,
     ): vscode.ProviderResult<vscode.DebugAdapterDescriptor> {
       if (!executable) {
+        promptForUpdateRegal(minimumSupportedRegalVersion);
         executable = new vscode.DebugAdapterExecutable(regalPath(), ["debug"]);
       }
       return executable;
