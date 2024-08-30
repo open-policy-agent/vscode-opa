@@ -571,7 +571,6 @@ function activateDebugger(context: vscode.ExtensionContext) {
                     command: "eval",
                     query: "data",
                     bundlePaths: ["${workspaceFolder}"],
-					inputPath: "${workspaceFolder}/input.json",
                     enablePrint: true,
 				},
 			];
