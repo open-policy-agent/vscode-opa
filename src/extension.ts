@@ -548,11 +548,8 @@ function activateDebugger(context: vscode.ExtensionContext) {
 					name: 'Debug Workspace',
 					request: 'launch',
 					command: "eval",
-					stopOnEntry: true,
-					stopOnResult: true,
 					query: "data",
 					bundlePaths: ["${workspaceFolder}"],
-					inputPath: "${workspaceFolder}/input.json",
                     enablePrint: true,
 				});
 			}
