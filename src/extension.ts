@@ -3,7 +3,6 @@
 import * as fs from "fs";
 import * as path from "path";
 import * as vscode from "vscode";
-import { CancellationToken, DebugConfiguration, ProviderResult, WorkspaceFolder } from "vscode";
 
 import { activateLanguageServers } from "./ls/activate";
 import { advertiseLanguageServers } from "./ls/advertise";
@@ -603,7 +602,7 @@ function activateDebugger(context: vscode.ExtensionContext) {
   );
 
   context.subscriptions.push(vscode.debug.registerDebugConfigurationProvider("opa-debug", {
-    provideDebugConfigurations(_folder: WorkspaceFolder | undefined): ProviderResult<DebugConfiguration[]> {
+    provideDebugConfigurations(_folder: vscode.WorkspaceFolder | undefined): vscode.ProviderResult<vscode.DebugConfiguration[]> {
       return [
         {
           name: "Launch Rego Workspace",
@@ -619,7 +618,7 @@ function activateDebugger(context: vscode.ExtensionContext) {
   }, vscode.DebugConfigurationProviderTriggerKind.Dynamic));
 
   context.subscriptions.push(vscode.debug.registerDebugConfigurationProvider("opa-debug", {
-    provideDebugConfigurations(_folder: WorkspaceFolder | undefined): ProviderResult<DebugConfiguration[]> {
+    provideDebugConfigurations(_folder: vscode.WorkspaceFolder | undefined): vscode.ProviderResult<vscode.DebugConfiguration[]> {
       return [
         {
           name: "Launch Rego Workspace",
@@ -642,10 +641,10 @@ class OpaDebugConfigurationProvider implements vscode.DebugConfigurationProvider
    * e.g. add all missing attributes to the debug configuration.
    */
   resolveDebugConfiguration(
-    _folder: WorkspaceFolder | undefined,
-    config: DebugConfiguration,
-    _token?: CancellationToken,
-  ): ProviderResult<DebugConfiguration> {
+    _folder: vscode.WorkspaceFolder | undefined,
+    config: vscode.DebugConfiguration,
+    _token?: vscode.CancellationToken,
+  ): vscode.ProviderResult<vscode.DebugConfiguration> {
     // if launch.json is missing or empty
     if (!config.type && !config.request && !config.name) {
       const editor = vscode.window.activeTextEditor;
@@ -681,7 +680,7 @@ class OpaDebugAdapterExecutableFactory implements vscode.DebugAdapterDescriptorF
   createDebugAdapterDescriptor(
     _session: vscode.DebugSession,
     executable: vscode.DebugAdapterExecutable | undefined,
-  ): ProviderResult<vscode.DebugAdapterDescriptor> {
+  ): vscode.ProviderResult<vscode.DebugAdapterDescriptor> {
     if (!executable) {
       executable = new vscode.DebugAdapterExecutable(regalPath(), ["debug"]);
     }
