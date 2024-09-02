@@ -235,7 +235,7 @@
               "command": {
                 "type": "string",
                 "description": "The OPA command to run. E.g. 'eval', 'test'.",
-                "default": "run"
+                "default": "eval"
               },
               "query": {
                 "type": "string",
@@ -252,6 +252,7 @@
                 "items": {
                   "type": "string"
                 },
+                "description": "List of paths to load as bundles for policy and data. If not set, defaults to the value configured in 'opa.roots'. Can be set to the empty array [] to disable loading of bundles.",
                 "default": ["${workspaceFolder}"]
               },
               "input": {
@@ -287,7 +288,7 @@
               },
               "logLevel": {
                 "type": "string",
-                "description": "Set the log level. One of: 'debug', 'info', 'warn', 'error'."
+                "description": "Set the log level for log messages printed to the debug console. One of: 'debug', 'info', 'warn', 'error'. If not set, no log messages are printed."
               },
               "ruleIndexing": {
                 "type": "boolean",

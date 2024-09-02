@@ -2,6 +2,7 @@ import * as vscode from "vscode";
 
 import { regalPath } from "./../ls/clients/regal";
 import { promptForUpdateRegal } from "./../ls/clients/regal";
+import * as opa from "./../opa";
 
 const minimumSupportedRegalVersion = "0.26.0";
 
@@ -19,7 +20,6 @@ export function activateDebugger(context: vscode.ExtensionContext) {
           request: "launch",
           command: "eval",
           query: "data",
-          bundlePaths: ["${workspaceFolder}"],
           enablePrint: true,
         });
       }
@@ -44,7 +44,6 @@ export function activateDebugger(context: vscode.ExtensionContext) {
           type: "opa-debug",
           command: "eval",
           query: "data",
-          bundlePaths: ["${workspaceFolder}"],
           enablePrint: true,
         },
       ];
@@ -62,7 +61,6 @@ export function activateDebugger(context: vscode.ExtensionContext) {
           type: "opa-debug",
           command: "eval",
           query: "data",
-          bundlePaths: ["${workspaceFolder}"],
           inputPath: "${workspaceFolder}/input.json",
           enablePrint: true,
         },
@@ -90,10 +88,14 @@ class OpaDebugConfigurationProvider implements vscode.DebugConfigurationProvider
         config.request = "launch";
         config.command = "eval";
         config.query = "data";
-        config.bundlePaths = ["${workspaceFolder}"];
         config.stopOnEntry = true;
         config.enablePrint = true;
       }
+    }
+
+    if (!config.bundlePaths) {
+      // if bundlePaths isn't set, default to opa.roots
+      config.bundlePaths = opa.getRoots();
     }
 
     if (config.request === "attach" && !config.program) {
