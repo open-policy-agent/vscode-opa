@@ -685,7 +685,7 @@ function checkOnSaveEnabled() {
   return vscode.workspace.getConfiguration("opa").get<boolean>("checkOnSave");
 }
 
-function existsSync(path: string): boolean {
+export function existsSync(path: string): boolean {
   const parsed = vscode.Uri.parse(path);
 
   if (parsed.scheme === "file") {
@@ -695,7 +695,7 @@ function existsSync(path: string): boolean {
   return fs.existsSync(path);
 }
 
-function getInputPath(): string {
+export function getInputPath(): string {
   // look for input.json at the active editor's directory, or the workspace directory
 
   const activeDir = path.dirname(vscode.window.activeTextEditor!.document.uri.fsPath);
