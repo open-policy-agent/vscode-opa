@@ -49,7 +49,7 @@ export function isInstalledRegal(): boolean {
   return false;
 }
 
-function promptForUpdateRegal() {
+export function promptForUpdateRegal(minVer: string = minimumSupportedRegalVersion) {
   const version = regalVersion();
 
   if (version === "missing") {
@@ -62,7 +62,7 @@ function promptForUpdateRegal() {
     return;
   }
 
-  if (semver.gte(version, minimumSupportedRegalVersion)) {
+  if (semver.gte(version, minVer)) {
     return;
   }
 
@@ -73,7 +73,7 @@ function promptForUpdateRegal() {
   // then we show another message
   if (path === "regal") {
     message = "Installed Regal version " + version + " is out of date and is not supported. Please update Regal to "
-      + minimumSupportedRegalVersion
+      + minVer
       + " using your preferred method. Or click \"Install\" to use a version managed by the OPA extension.";
   }
 

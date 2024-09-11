@@ -4,6 +4,7 @@ import * as fs from "fs";
 import * as path from "path";
 import * as vscode from "vscode";
 
+import { activateDebugger } from "./da/activate";
 import { activateLanguageServers } from "./ls/activate";
 import { advertiseLanguageServers } from "./ls/advertise";
 import { configureLanguageServers } from "./ls/configure";
@@ -54,6 +55,8 @@ export function activate(context: vscode.ExtensionContext) {
   configureLanguageServers(context);
   // start configured language servers
   activateLanguageServers(context);
+  // activate the debugger
+  activateDebugger(context);
 
   // this will trigger the prompt to install OPA if missing, rather than waiting til on save
   // the manual running of a command
@@ -64,6 +67,7 @@ export function activate(context: vscode.ExtensionContext) {
     // after their paths are updated.
     configureLanguageServers(context);
     activateLanguageServers(context);
+    activateDebugger(context);
   });
 }
 

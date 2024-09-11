@@ -13,7 +13,9 @@
     "vscode": "^1.92.0"
   },
   "activationEvents": [
-    "onLanguage:rego"
+    "onLanguage:rego",
+    "onDebugResolve:opa-debug",
+    "onDebugDynamicConfigurations:opa-debug"
   ],
   "categories": [
     "Programming Languages",
@@ -30,6 +32,21 @@
   ],
   "main": "./out/extension",
   "contributes": {
+    "menus": {
+      "editor/title/run": [
+        {
+          "command": "opa.debug.debugWorkspace",
+          "when": "resourceLangId == rego",
+          "group": "navigation@1"
+        }
+      ],
+      "commandPalette": [
+        {
+          "command": "opa.debug.debugWorkspace",
+          "when": "resourceLangId == rego"
+        }
+      ]
+    },
     "commands": [
       {
         "command": "opa.check.file",
@@ -70,6 +87,13 @@
       {
         "command": "opa.prompts.clear",
         "title": "OPA: Clear Dismissed Prompts"
+      },
+      {
+        "command": "opa.debug.debugWorkspace",
+        "title": "Debug Workspace",
+        "category": "OPA Debug",
+        "enablement": "!inDebugMode",
+        "icon": "$(debug-alt)"
       }
     ],
     "configuration": {
@@ -190,6 +214,89 @@
         ],
         "embeddedLanguages": {
           "meta.embedded.block.rego": "rego"
+        }
+      }
+    ],
+    "breakpoints": [
+      {
+        "language": "rego"
+      }
+    ],
+    "debuggers": [
+      {
+        "type": "opa-debug",
+        "label": "OPA Debug",
+        "languages": [
+          "rego"
+        ],
+        "configurationAttributes": {
+          "launch": {
+            "properties": {
+              "command": {
+                "type": "string",
+                "description": "The OPA command to run. E.g. 'eval', 'test'.",
+                "default": "eval"
+              },
+              "query": {
+                "type": "string",
+                "default": "data"
+              },
+              "dataPaths": {
+                "type": "array",
+                "items": {
+                  "type": "string"
+                }
+              },
+              "bundlePaths": {
+                "type": "array",
+                "items": {
+                  "type": "string"
+                },
+                "description": "List of paths to load as bundles for policy and data. If not set, defaults to the value configured in 'opa.roots'. Can be set to the empty array [] to disable loading of bundles.",
+                "default": ["${workspaceFolder}"]
+              },
+              "input": {
+                "type": "string"
+              },
+              "inputPath": {
+                "type": "string"
+              },
+              "stopOnEntry": {
+                "type": "boolean",
+                "description": "Automatically stop after launch.",
+                "default": true
+              },
+              "stopOnFail": {
+                "type": "boolean",
+                "description": "Automatically stop on 'Fail' operations.",
+                "default": false
+              },
+              "stopOnResult": {
+                "type": "boolean",
+                "description": "Automatically stop when done.",
+                "default": true
+              },
+              "trace": {
+                "type": "boolean",
+                "description": "Enable logging of the Debug Adapter Protocol.",
+                "default": true
+              },
+              "enablePrint": {
+                "type": "boolean",
+                "description": "Enable print statements.",
+                "default": true
+              },
+              "logLevel": {
+                "type": "string",
+                "description": "Set the log level for log messages printed to the debug console. One of: 'debug', 'info', 'warn', 'error'. If not set, no log messages are printed."
+              },
+              "ruleIndexing": {
+                "type": "boolean",
+                "description": "Enable rule indexing.",
+                "default": false
+              }
+            }
+          }
         }
       }
     ]

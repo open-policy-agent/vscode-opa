@@ -32,6 +32,15 @@ To learn more about each language server feature, see the Regal [language server
 
 ![Use of the extension to lint and eval Rego code](https://raw.githubusercontent.com/open-policy-agent/vscode-opa/main/eval.gif)
 
+Regal also adds the ability to debug Rego modules via the [Debug Adapter Protocol](https://microsoft.github.io/debug-adapter-protocol/) (DAP):
+
+- Launching `eval` debug sessions
+- Setting and halting on breakpoints
+- Stepping over, into, and out of rules, functions, every-statements, and comprehensions
+- Inspecting the `data` and `input` documents
+- Inspecting local variable values
+- Inspecting values in the Virtual Cache (global results of rule and function evaluations)
+
 
 ## Requirements
 
