@@ -1,5 +1,6 @@
 import * as vscode from "vscode";
 
+import { existsSync, getInputPath } from "../extension";
 import { regalPath } from "./../ls/clients/regal";
 import { promptForUpdateRegal } from "./../ls/clients/regal";
 import * as opa from "./../opa";
@@ -13,6 +14,13 @@ export function activateDebugger(context: vscode.ExtensionContext) {
       if (!targetResource && vscode.window.activeTextEditor) {
         targetResource = vscode.window.activeTextEditor.document.uri;
       }
+
+      // Only add the inputPath if the file exists
+      let inputPath: string | undefined = getInputPath();
+      if (!existsSync(inputPath)) {
+        inputPath = undefined;
+      }
+
       if (targetResource) {
         vscode.debug.startDebugging(undefined, {
           type: "opa-debug",
@@ -20,6 +28,8 @@ export function activateDebugger(context: vscode.ExtensionContext) {
           request: "launch",
           command: "eval",
           query: "data",
+          inputPath: inputPath,
+          stopOnEntry: true,
           enablePrint: true,
         });
       }
