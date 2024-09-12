@@ -210,6 +210,7 @@ export function activateRegal(_context: ExtensionContext) {
   );
 
   client.onRequest<void, ShowEvalResultParams>("regal/showEvalResult", handleRegalShowEvalResult);
+  client.onRequest<void, vscode.DebugConfiguration>("regal/startDebugging", handleDebug);
 
   client.start();
 }
@@ -281,6 +282,15 @@ interface EvalResult {
   value: any;
   isUndefined: boolean;
   printOutput: { [line: number]: [text: string[]] };
+}
+
+function handleDebug(params: vscode.DebugConfiguration) {
+  const activeEditor = vscode.window.activeTextEditor;
+  if (!activeEditor) {
+    return;
+  }
+
+  vscode.debug.startDebugging(undefined, params);
 }
 
 function handleRegalShowEvalResult(params: ShowEvalResultParams) {
