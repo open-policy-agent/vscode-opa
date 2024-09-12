@@ -16,9 +16,9 @@ export function activateDebugger(context: vscode.ExtensionContext) {
       }
 
       // Only add the inputPath if the file exists
-      var inputPath = getInputPath();
+      let inputPath: string | undefined = getInputPath();
       if (!existsSync(inputPath)) {
-        inputPath = "";
+        inputPath = undefined;
       }
 
       if (targetResource) {
