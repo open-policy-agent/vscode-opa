@@ -27,6 +27,7 @@ import { replaceWorkspaceFolderPathVariable } from "../../util";
 let client: LanguageClient;
 let clientLock = false;
 let outChan: vscode.OutputChannel;
+let activeDebugSessions: Map<string, void> = new Map();
 
 const minimumSupportedRegalVersion = "0.18.0";
 
@@ -212,6 +213,10 @@ export function activateRegal(_context: ExtensionContext) {
   client.onRequest<void, ShowEvalResultParams>("regal/showEvalResult", handleRegalShowEvalResult);
   client.onRequest<void, vscode.DebugConfiguration>("regal/startDebugging", handleDebug);
 
+  vscode.debug.onDidTerminateDebugSession((session) => {
+      activeDebugSessions.delete(session.name);
+  });
+
   client.start();
 }
 
@@ -290,7 +295,16 @@ function handleDebug(params: vscode.DebugConfiguration) {
     return;
   }
 
-  vscode.debug.startDebugging(undefined, params);
+  if (activeDebugSessions.has(params.name)) {
+    vscode.window.showErrorMessage("Debug session for '" + params.name + "' already active");
+    return;
+  }
+
+  vscode.debug.startDebugging(undefined, params).then((success) => {
+    if (success) {
+      activeDebugSessions.set(params.name, undefined);
+    }
+  })
 }
 
 function handleRegalShowEvalResult(params: ShowEvalResultParams) {
