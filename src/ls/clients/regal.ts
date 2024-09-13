@@ -214,7 +214,7 @@ export function activateRegal(_context: ExtensionContext) {
   client.onRequest<void, vscode.DebugConfiguration>("regal/startDebugging", handleDebug);
 
   vscode.debug.onDidTerminateDebugSession((session) => {
-      activeDebugSessions.delete(session.name);
+    activeDebugSessions.delete(session.name);
   });
 
   client.start();
@@ -304,7 +304,7 @@ function handleDebug(params: vscode.DebugConfiguration) {
     if (success) {
       activeDebugSessions.set(params.name, undefined);
     }
-  })
+  });
 }
 
 function handleRegalShowEvalResult(params: ShowEvalResultParams) {
