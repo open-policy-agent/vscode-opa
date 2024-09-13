@@ -1,6 +1,7 @@
 import { execSync } from "child_process";
 import { sync as commandExistsSync } from "command-exists";
 import { existsSync } from "fs";
+import { relative } from "path";
 import * as semver from "semver";
 import { ExtensionContext, window, workspace } from "vscode";
 import * as vscode from "vscode";
@@ -286,7 +287,11 @@ interface ShowEvalResultParamsLocation {
 interface EvalResult {
   value: any;
   isUndefined: boolean;
-  printOutput: { [line: number]: [text: string[]] };
+  printOutput: {
+    [file: string]: {
+      [line: number]: [text: string[]];
+    };
+  };
 }
 
 function handleDebug(params: vscode.DebugConfiguration) {
@@ -344,6 +349,21 @@ function handleRegalShowEvalResult(params: ShowEvalResultParams) {
   }
 
   handlePrintOutputDecoration(params, activeEditor, decorationOptions, truncateThreshold);
+
+  const wf = vscode.workspace.getWorkspaceFolder(activeEditor.document.uri);
+
+  for (const [uri, items] of Object.entries(params.result.printOutput)) {
+    let path;
+    if (wf) {
+      path = relative(wf.uri.fsPath, vscode.Uri.parse(uri).fsPath);
+    } else {
+      path = vscode.Uri.parse(uri).fsPath;
+    }
+
+    Object.keys(items).map(Number).forEach((line) => {
+      outChan.appendLine(`🖨️ ${path}:${line} => ${items[line].join(" => ")}`);
+    });
+  }
 
   // Always set the base decoration, containing the result message and after text
   activeEditor.setDecorations(evalResultDecorationType, decorationOptions);
@@ -454,15 +474,22 @@ function handlePrintOutputDecoration(
   decorationOptions: vscode.DecorationOptions[],
   truncateThreshold: number,
 ) {
-  Object.keys(params.result.printOutput).map(Number).forEach((line) => {
+  // TODO: display print output in any file from the params map!
+  // Currently only print output in the current editor is shown
+  const printOutput = params.result.printOutput[activeEditor.document.uri.toString()];
+  if (!printOutput) {
+    return;
+  }
+
+  Object.keys(printOutput).map(Number).forEach((line) => {
     const lineLength = activeEditor.document.lineAt(line).text.length;
-    const joinedLines = params.result.printOutput[line].join("\n");
+    const joinedLines = printOutput[line].join("\n");
 
     // Pre-block formatting fails if there are over 100k chars
     const hoverText = joinedLines.length < 100000 ? makeCode("text", joinedLines) : joinedLines;
     const hoverMessage = "### Print Output\n\n" + hoverText;
 
-    let attachmentMessage = ` 🖨️ => ${params.result.printOutput[line].join(" => ")}`;
+    let attachmentMessage = ` 🖨️ => ${printOutput[line].join(" => ")}`;
     if (lineLength + attachmentMessage.length > truncateThreshold) {
       const suffix = "... (hover for result)";
       attachmentMessage = attachmentMessage.substring(0, truncateThreshold - lineLength - suffix.length) + suffix;
