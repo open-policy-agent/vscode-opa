@@ -319,7 +319,7 @@
     "@types/vscode": "1.92.0",
     "cspell": "^8.14.2",
     "dprint": "^0.47.2",
-    "eslint": "^9.9.0",
+    "eslint": "^9.10.0",
     "typescript": "^5.5.4",
     "typescript-eslint": "^8.5.0",
     "vsce": "^2.15.0"
