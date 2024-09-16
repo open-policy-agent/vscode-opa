@@ -18,8 +18,8 @@ jobs:
         run: |
           npm install --include=dev
 
-      - name: Compile TypeScript
-        run: npm run compile
+      - name: Test build package
+        run: npx vsce package -o build.vsix
 
   eslint:
     runs-on: ubuntu-latest
