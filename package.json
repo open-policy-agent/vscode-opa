@@ -313,7 +313,7 @@
     "@microsoft/eslint-formatter-sarif": "^3.1.0",
     "@stylistic/eslint-plugin": "^2.6.4",
     "@types/command-exists": "^1.2.3",
-    "@types/mocha": "10.0.7",
+    "@types/mocha": "10.0.8",
     "@types/node": "22.5.5",
     "@types/semver": "^7.5.8",
     "@types/vscode": "1.92.0",
