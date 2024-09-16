@@ -253,7 +253,9 @@
                   "type": "string"
                 },
                 "description": "List of paths to load as bundles for policy and data. If not set, defaults to the value configured in 'opa.roots'. Can be set to the empty array [] to disable loading of bundles.",
-                "default": ["${workspaceFolder}"]
+                "default": [
+                  "${workspaceFolder}"
+                ]
               },
               "input": {
                 "type": "string"
@@ -319,7 +321,8 @@
     "dprint": "^0.47.2",
     "eslint": "^9.9.0",
     "typescript": "^5.5.4",
-    "typescript-eslint": "^8.5.0"
+    "typescript-eslint": "^8.5.0",
+    "vsce": "^2.15.0"
   },
   "dependencies": {
     "@fohlen/github-release-downloader": "^1.0.0",
