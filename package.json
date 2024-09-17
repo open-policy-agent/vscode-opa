@@ -10,7 +10,7 @@
   "version": "0.16.0",
   "publisher": "tsandall",
   "engines": {
-    "vscode": "^1.92.0"
+    "vscode": "^1.93.0"
   },
   "activationEvents": [
     "onLanguage:rego",
@@ -316,7 +316,7 @@
     "@types/mocha": "10.0.8",
     "@types/node": "22.5.5",
     "@types/semver": "^7.5.8",
-    "@types/vscode": "1.92.0",
+    "@types/vscode": "1.93.0",
     "cspell": "^8.14.2",
     "dprint": "^0.47.2",
     "eslint": "^9.10.0",
