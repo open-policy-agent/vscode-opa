@@ -14,6 +14,8 @@ languageSettings:
 words:
   - rego # OPA language
   - sarif # test output format
+  - Styra
 
 ignoreWords:
   - tjons # OPA contributor GH handle
+  - dprint

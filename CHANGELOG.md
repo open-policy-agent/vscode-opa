@@ -1,6 +1,19 @@
 # Change Log
 
 
+## 0.17.0
+
+- Debugger Adapter Protocol Support, see [documentation here](https://docs.styra.com/regal/debug-adapter) - [\#218](https://github.com/open-policy-agent/vscode-opa/pull/218), [\#263](https://github.com/open-policy-agent/vscode-opa/pull/263), [\#262](https://github.com/open-policy-agent/vscode-opa/pull/262)
+- Added PR checks (eslint, dprint, markdownlint, cspell, vsce package) \- [\#246](https://github.com/open-policy-agent/vscode-opa/pull/246), [\#268](https://github.com/open-policy-agent/vscode-opa/pull/268)
+- Dependency updates
+  - typescript-eslint: From 8.1.0 to 8.5.0
+  - stylelint/eslint-plugin: From 2.6.2 to 2.8.0
+  - cspell: From 8.14.1 to 8.14.2
+  - types/node: From 22.0.0 to 22.5.5
+  - types/mocha: From 10.0.7 to 10.0.8
+  - types/vscode: From 1.92.0 to 1.93.0
+
+
 ## 0.16.0
 
 - Improvements to support code lens evaluation of Rego -
