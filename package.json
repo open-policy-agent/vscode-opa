@@ -10,7 +10,7 @@
   "version": "0.16.0",
   "publisher": "tsandall",
   "engines": {
-    "vscode": "^1.92.0"
+    "vscode": "^1.93.0"
   },
   "activationEvents": [
     "onLanguage:rego",
