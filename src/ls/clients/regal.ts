@@ -201,6 +201,12 @@ export function activateRegal(_context: ExtensionContext) {
     },
     initializationOptions: {
       formatter: vscode.workspace.getConfiguration("opa").get<string>("formatter", "opa-fmt"),
+      // These options are passed to the Regal language server to signal the
+      // capabilities of the client. Since VSCode and vscode-opa supports both
+      // inline evaluation results and live debugging, both are enabled and are
+      // not configurable.
+      evalCodelensDisplayInline: true,
+      enableDebugCodelens: true,
     },
   };
 
