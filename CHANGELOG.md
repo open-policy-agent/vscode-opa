@@ -1,9 +1,10 @@
 # Change Log
 
+
 ## 0.18.0
 
 - lsp: Explicitly enable custom LSP features [#282](https://github.com/open-policy-agent/vscode-opa/pull/282)
-- Depenenecy updates:
+- Dependency updates:
   - @types/vscode 1.93.0 to 1.94.0 [#281](https://github.com/open-policy-agent/vscode-opa/pull/281)
   - vscode 1.93.0 to 1.94.0 [#281](https://github.com/open-policy-agent/vscode-opa/pull/281)
   - vsce 2.15.0 to 3.1.1 [#281](https://github.com/open-policy-agent/vscode-opa/pull/281)
@@ -13,6 +14,7 @@
   - typescript 5.5.4 to 5.6.2 [#272](https://github.com/open-policy-agent/vscode-opa/pull/272)
   - @types/node 22.5.5 to 22.7.4 [#275](https://github.com/open-policy-agent/vscode-opa/pull/275)
   - @stylistic/eslint-plugin 2.8.0 to 2.9.0 [#279](https://github.com/open-policy-agent/vscode-opa/pull/279)
+
 
 ## 0.17.0
 
