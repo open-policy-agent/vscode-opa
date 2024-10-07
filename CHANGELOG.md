@@ -1,5 +1,18 @@
 # Change Log
 
+## 0.18.0
+
+- lsp: Explicitly enable custom LSP features [#282](https://github.com/open-policy-agent/vscode-opa/pull/282)
+- Depenenecy updates:
+  - @types/vscode 1.93.0 to 1.94.0 [#281](https://github.com/open-policy-agent/vscode-opa/pull/281)
+  - vscode 1.93.0 to 1.94.0 [#281](https://github.com/open-policy-agent/vscode-opa/pull/281)
+  - vsce 2.15.0 to 3.1.1 [#281](https://github.com/open-policy-agent/vscode-opa/pull/281)
+  - cspell 8.14.2 to 8.14.4 [#271](https://github.com/open-policy-agent/vscode-opa/pull/271)
+  - eslint 9.10.0 to 9.12.0 [#273](https://github.com/open-policy-agent/vscode-opa/pull/273), [#274](https://github.com/open-policy-agent/vscode-opa/pull/274), [#280](https://github.com/open-policy-agent/vscode-opa/pull/280)
+  - typescript-eslint 8.5.0 to 8.8.0 [#270](https://github.com/open-policy-agent/vscode-opa/pull/270), [#276](https://github.com/open-policy-agent/vscode-opa/pull/276), [#277](https://github.com/open-policy-agent/vscode-opa/pull/277)
+  - typescript 5.5.4 to 5.6.2 [#272](https://github.com/open-policy-agent/vscode-opa/pull/272)
+  - @types/node 22.5.5 to 22.7.4 [#275](https://github.com/open-policy-agent/vscode-opa/pull/275)
+  - @stylistic/eslint-plugin 2.8.0 to 2.9.0 [#279](https://github.com/open-policy-agent/vscode-opa/pull/279)
 
 ## 0.17.0
 
