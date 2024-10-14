@@ -57,7 +57,7 @@ export function replaceWorkspaceFolderPathVariable(path: string): string {
     path = path.replace("${workspacePath}", workspaceFolderPath);
   } else if (path.indexOf("${workspaceFolder}") >= 0) {
     vscode.window.showWarningMessage(
-      "${workspaceFolder} variable configured in settings, but no workspace is active"
+      "${workspaceFolder} variable configured in settings, but no workspace is active",
     );
   }
 
