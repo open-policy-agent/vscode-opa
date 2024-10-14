@@ -320,7 +320,7 @@
     "cspell": "^8.15.2",
     "dprint": "^0.47.2",
     "eslint": "^9.12.0",
-    "typescript": "^5.6.2",
+    "typescript": "^5.6.3",
     "typescript-eslint": "^8.8.1",
     "@vscode/vsce": "^3.1.1"
   },
