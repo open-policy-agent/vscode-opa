@@ -1,6 +1,22 @@
 # Change Log
 
 
+## 0.19.0
+
+- util: fix bug in replaceWorkspaceFolderPathVariable [#288](https://github.com/open-policy-agent/vscode-opa/pull/288)
+- Dependency updates:
+  - `@stylistic/eslint-plugin`: `^2.9.0` -> `^2.12.1`
+  - `@types/mocha`: `10.0.8` -> `10.0.10`
+  - `@types/node`: `22.7.4` -> `22.10.2`
+  - `@types/vscode`: `1.94.0` -> `1.96.0`
+  - `cspell`: `^8.14.4` -> `^8.17.0`
+  - `dprint`: `^0.47.2` -> `^0.47.6`
+  - `eslint`: `^9.12.0` -> `^9.17.0`
+  - `typescript`: `^5.6.2` -> `^5.7.2`
+  - `typescript-eslint`: `^8.8.0` -> `^8.18.0`
+  - `@vscode/vsce`: `^3.1.1` -> `^3.2.1`
+
+
 ## 0.18.0
 
 - lsp: Explicitly enable custom LSP features [#282](https://github.com/open-policy-agent/vscode-opa/pull/282)
