@@ -317,11 +317,11 @@
     "@types/node": "22.10.2",
     "@types/semver": "^7.5.8",
     "@types/vscode": "1.96.0",
-    "cspell": "^8.17.0",
-    "dprint": "^0.47.6",
+    "cspell": "^8.17.1",
+    "dprint": "^0.48.0",
     "eslint": "^9.17.0",
     "typescript": "^5.7.2",
-    "typescript-eslint": "^8.18.0",
+    "typescript-eslint": "^8.18.2",
     "@vscode/vsce": "^3.2.1"
   },
   "dependencies": {
