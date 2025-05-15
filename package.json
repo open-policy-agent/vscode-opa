@@ -314,20 +314,20 @@
     "@stylistic/eslint-plugin": "^4.2.0",
     "@types/command-exists": "^1.2.3",
     "@types/mocha": "10.0.10",
-    "@types/node": "22.15.3",
+    "@types/node": "22.15.18",
     "@types/semver": "^7.7.0",
-    "@types/vscode": "1.99.1",
-    "cspell": "^8.19.4",
+    "@types/vscode": "1.100.0",
+    "cspell": "^9.0.1",
     "dprint": "^0.49.1",
     "eslint": "^9.26.0",
     "typescript": "^5.8.3",
-    "typescript-eslint": "^8.31.1",
-    "@vscode/vsce": "^3.3.2"
+    "typescript-eslint": "^8.32.1",
+    "@vscode/vsce": "^3.4.0"
   },
   "dependencies": {
     "@fohlen/github-release-downloader": "^1.0.0",
     "command-exists": "^1.2.9",
-    "semver": "^7.7.1",
+    "semver": "^7.7.2",
     "vscode-languageclient": "^9.0.1"
   },
   "__metadata": {
