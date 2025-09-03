@@ -238,7 +238,7 @@ export function deactivateRegal(): Thenable<void> | undefined {
 
 function downloadOptionsRegal() {
   return {
-    repo: "StyraInc/regal",
+    repo: "open-polict-agent/regal",
     determineBinaryURLFromRelease: (release: any) => {
       // release.assets.name contains {'darwin', 'linux', 'windows'}
       const assets = release.assets || [];

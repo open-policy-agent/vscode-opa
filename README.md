@@ -1,6 +1,7 @@
 # vscode-opa
 
-This plugin provides a number of features to help you work with [Open Policy Agent](https://www.openpolicyagent.org)
+This plugin provides a number of features to help you work with
+[Open Policy Agent](https://www.openpolicyagent.org)
 (OPA) policies in Visual Studio Code.
 
 
@@ -15,7 +16,10 @@ This plugin provides a number of features to help you work with [Open Policy Age
 - Toggle Coverage in Workspace
 - Toggle Coverage of Selections
 
-Additionally, users may choose to install [Regal](https://docs.styra.com/regal), which adds the following features via the [Language Server Protocol](https://microsoft.github.io/language-server-protocol/) (LSP):
+Additionally, users may choose to install
+[Regal](https://www.openpolicyagent.org/projects/regal),
+which adds the following features via the
+[Language Server Protocol](https://microsoft.github.io/language-server-protocol/) (LSP):
 
 - Diagnostics (linting)
 - Hover / tooltips (for inline docs on built-in functions)
@@ -101,7 +105,7 @@ From OPA v0.62.0 and onwards, it's possible to set any command line flag via env
 
 The extension will look for a file called `input.json` in the current directory of the policy file being evaluated, or at the root of the workspace, and will use it as the `input` document when evaluating policies. If you modify this file and re-run evaluation you will see the affect of the changes.
 
-The [code lens evaluation](https://github.com/StyraInc/regal/blob/main/docs/language-server.md#code-lenses-evaluation) feature (with Regal installed) shows an "Evaluate" button over any package or rule declaration, which when clicked displays the result of evaluation directly on the same line as the package or rule. Providing input for this type of evaluation is done the same way, i.e. via an `input.json` file.
+The [code lens evaluation](https://github.com/open-policy-agent/regal/blob/main/docs/language-server.md#code-lenses-evaluation) feature (with Regal installed) shows an "Evaluate" button over any package or rule declaration, which when clicked displays the result of evaluation directly on the same line as the package or rule. Providing input for this type of evaluation is done the same way, i.e. via an `input.json` file.
 
 We recommend adding `input.json` to the `.gitignore` file of your project, so that you can evaluate policy anywhere without the risk of accidentally committing the input.
 
