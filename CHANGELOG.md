@@ -1,6 +1,29 @@
 # Change Log
 
 
+## 0.20.0
+
+- docs: Update references to new Regal location #356
+- Dependency Updates:
+  - GitHub Actions:
+    - `actions/checkout`: `v4` → `v5`
+    - `actions/setup-node`: `v4.0.3` → `v6.0.0`
+    - `github/codeql-action/upload-sarif`: `v3` → `v4`
+  - NPM:
+    - `semver`: `^7.6.3` → `^7.7.3`
+    - `@stylistic/eslint-plugin`: `^2.12.1` → `^5.5.0`
+    - `@types/node`: `22.10.2` → `24.9.1`
+    - `@types/vscode`: `1.96.0` → `1.105.0`
+    - `cspell`: `^8.17.0` → `^9.2.2`
+    - `dprint`: `^0.47.6` → `^0.50.2`
+    - `eslint`: `^9.17.0` → `^9.38.0`
+    - `typescript`: `^5.7.2` → `^5.9.3`
+    - `typescript-eslint`: `^8.18.0` → `^8.46.2`
+    - `@vscode/vsce`: `^3.2.1` → `^3.6.2`
+  - VSCode Engine Requirement:
+    - `vscode`: `^1.96.0` → `^1.105.0`
+
+
 ## 0.19.0
 
 - util: fix bug in replaceWorkspaceFolderPathVariable [#288](https://github.com/open-policy-agent/vscode-opa/pull/288)
