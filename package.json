@@ -314,15 +314,15 @@
     "@stylistic/eslint-plugin": "^5.5.0",
     "@types/command-exists": "^1.2.3",
     "@types/mocha": "10.0.10",
-    "@types/node": "24.9.1",
+    "@types/node": "24.10.0",
     "@types/semver": "^7.7.1",
     "@types/vscode": "1.105.0",
-    "cspell": "^9.2.2",
+    "cspell": "^9.3.0",
     "dprint": "^0.50.2",
-    "eslint": "^9.38.0",
+    "eslint": "^9.39.1",
     "typescript": "^5.9.3",
-    "typescript-eslint": "^8.46.2",
-    "@vscode/vsce": "^3.6.2"
+    "typescript-eslint": "^8.46.3",
+    "@vscode/vsce": "^3.7.0"
   },
   "dependencies": {
     "@fohlen/github-release-downloader": "^1.0.0",
