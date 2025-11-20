@@ -19,7 +19,6 @@ export async function installBinary(
   const response = await fetch(`https://api.github.com/repos/${config.repo}/releases/latest`, {
     headers: {
       "User-Agent": getUserAgent(),
-      "Authorization": `token ${getToken()}`,
     },
   });
 
@@ -90,53 +89,4 @@ function getUserAgent(): string {
   const vscodeVersion = vscode.version;
 
   return `vscode-opa (${platform} ${arch}; Node.js ${nodeVersion}) vscode/${vscodeVersion}`;
-}
-
-function getToken(): string {
-  // Need an OAuth token to access Github because
-  // this gets around the ridiculously low
-  // anonymous access rate limits (60 requests/sec/IP)
-  // This token only gives access to "public_repo" and "repo:status" scopes
-  return [
-    "0",
-    "0",
-    "b",
-    "6",
-    "2",
-    "d",
-    "1",
-    "0",
-    "4",
-    "d",
-    "8",
-    "5",
-    "4",
-    "9",
-    "4",
-    "b",
-    "d",
-    "6",
-    "e",
-    "e",
-    "9",
-    "5",
-    "f",
-    "1",
-    "7",
-    "1",
-    "b",
-    "d",
-    "0",
-    "2",
-    "3",
-    "c",
-    "e",
-    "4",
-    "a",
-    "3",
-    "9",
-    "a",
-    "0",
-    "6",
-  ].join("");
 }
