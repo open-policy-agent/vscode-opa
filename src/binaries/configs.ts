@@ -38,26 +38,26 @@ export const OPA_CONFIG: BinaryConfig = {
   repo: "open-policy-agent/opa",
   assetFilter: (assets, os, arch) => {
     const nodeArch = arch.indexOf("arm") !== -1 ? "arm64" : "amd64";
-    let targetAsset: { browser_download_url: string };
 
+    let binaryName: string;
     switch (os) {
       case "darwin":
-        targetAsset = assets.filter((asset: { name: string }) => asset.name.indexOf(`darwin_${nodeArch}`) !== -1)[0];
+        binaryName = `darwin_${nodeArch}`;
         break;
       case "linux":
-        targetAsset = assets.filter((asset: { name: string }) => asset.name.indexOf(`linux_${nodeArch}`) !== -1)[0];
+        binaryName = `linux_${nodeArch}`;
         break;
       case "win32":
         if (nodeArch === "arm64") {
           throw "OPA binaries are not supported for windows/arm architecture. To use the features of this plugin, compile OPA from source.";
         }
-        targetAsset = assets.filter((asset: { name: string }) => asset.name.indexOf(`windows`) !== -1)[0];
+        binaryName = "windows";
         break;
       default:
-        targetAsset = { browser_download_url: "" };
+        return { browser_download_url: "" };
     }
 
-    return targetAsset;
+    return assets.find((asset: { name: string }) => asset.name.includes(binaryName));
   },
   versionParser: (executablePath: string) => {
     try {
