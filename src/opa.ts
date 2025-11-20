@@ -1,19 +1,9 @@
 "use strict";
 
-import cp = require("child_process");
-import { sync as commandExistsSync } from "command-exists";
-import { existsSync } from "fs";
-import { dirname } from "path";
+import * as cp from "child_process";
 import * as vscode from "vscode";
-import { promptForInstall } from "./github-installer";
-import { advertiseLanguageServers } from "./ls/advertise";
+import { OPA_CONFIG, resolveBinary } from "./binaries";
 import { getImports, getPackage, replaceWorkspaceFolderPathVariable } from "./util";
-
-const regoVarPattern = new RegExp("^[a-zA-Z_][a-zA-Z0-9_]*$");
-
-// TODO: link to instructions that describe compiling OPA from source
-const windowsArm64NotSupported =
-  "OPA binaries are not supported for windows/arm architecture. To use the features of this plugin, compile OPA from source.";
 
 export function getDataDir(uri: vscode.Uri): string {
   // NOTE(tsandall): we don't have a precise version for 3be55ed6 so
@@ -46,14 +36,17 @@ function dataFlag(): string {
 
 // returns true if installed OPA is same or newer than OPA version x.
 function installedOPASameOrNewerThan(x: string): boolean {
-  const s = getOPAVersionString(undefined);
+  const s = getOPAVersionString();
   return opaVersionSameOrNewerThan(s, x);
 }
 
 function replacePathVariables(path: string): string {
   let result = replaceWorkspaceFolderPathVariable(path);
   if (vscode.window.activeTextEditor !== undefined) {
-    result = result.replace("${fileDirname}", dirname(vscode.window.activeTextEditor!.document.fileName));
+    result = result.replace(
+      "${fileDirname}",
+      require("path").dirname(vscode.window.activeTextEditor!.document.fileName),
+    );
   } else if (path.indexOf("${fileDirname}") >= 0) {
     // Report on the original path
     vscode.window.showWarningMessage("${fileDirname} variable configured in settings, but no document is active");
@@ -132,20 +125,23 @@ function parseOPAVersion(s: string): any[] {
 
   const major = Number(parts[0]);
   const minor = Number(parts[1]);
-  const pointParts = parts[2].split("-", 2);
+  const pointParts = parts[2]?.split("-", 2);
+  if (!pointParts || pointParts.length === 0) {
+    return [];
+  }
   const point = Number(pointParts[0]);
   let patch = "";
 
   if (pointParts.length >= 2) {
-    patch = pointParts[1];
+    patch = pointParts[1] || "";
   }
 
   return [major, minor, point, patch];
 }
 
 // returns the installed OPA version as a string.
-function getOPAVersionString(context?: vscode.ExtensionContext): string {
-  const opaPath = getOpaPath(context, "opa", false);
+function getOPAVersionString(): string {
+  const opaPath = resolveBinary(OPA_CONFIG, "opa").path;
   if (opaPath === undefined) {
     return "";
   }
@@ -158,12 +154,14 @@ function getOPAVersionString(context?: vscode.ExtensionContext): string {
   const lines = result.stdout.toString().split("\n");
 
   for (let i = 0; i < lines.length; i++) {
-    const parts = lines[i].trim().split(": ", 2);
+    const line = lines[i];
+    if (!line) continue;
+    const parts = line.trim().split(": ", 2);
     if (parts.length < 2) {
       continue;
     }
     if (parts[0] === "Version") {
-      return parts[1];
+      return parts[1] || "";
     }
   }
   return "";
@@ -174,6 +172,7 @@ function getOPAVersionString(context?: vscode.ExtensionContext): string {
 // picklists based on dependencies. As such it doesn't handle all term types
 // properly.
 export function refToString(ref: any[]): string {
+  const regoVarPattern = new RegExp("^[a-zA-Z_][a-zA-Z0-9_]*$");
   let result = ref[0].value;
   for (let i = 1; i < ref.length; i++) {
     if (ref[i].type === "string") {
@@ -192,13 +191,12 @@ export function refToString(ref: any[]): string {
  */
 
 export function parse(
-  context: vscode.ExtensionContext,
   opaPath: string,
   path: string,
   cb: (pkg: string, imports: string[]) => void,
   onerror: (output: string) => void,
 ) {
-  run(context, opaPath, ["parse", path, "--format", "json"], "", (_, result) => {
+  run(opaPath, ["parse", path, "--format", "json"], "", (_, result) => {
     const pkg = getPackage(result);
     const imports = getImports(result);
     cb(pkg, imports);
@@ -206,14 +204,13 @@ export function parse(
 }
 
 export function run(
-  context: vscode.ExtensionContext,
   path: string,
   args: string[],
   stdin: string,
   onSuccess: (stderr: string, result: any) => void,
   onFailure: (msg: string) => void,
 ) {
-  runWithStatus(context, path, args, stdin, (code: number, stderr: string, stdout: string) => {
+  runWithStatus(path, args, stdin, (code: number, stderr: string, stdout: string) => {
     if (code === 0) {
       onSuccess(stderr, JSON.parse(stdout));
     } else if (stdout !== "") {
@@ -222,101 +219,6 @@ export function run(
       onFailure(stderr);
     }
   });
-}
-
-export function opaIsInstalled(context: vscode.ExtensionContext): boolean {
-  return getOpaPath(context, "opa", false) !== undefined;
-}
-
-function getOpaPath(
-  context: vscode.ExtensionContext | undefined,
-  path: string,
-  shouldPromptForInstall: boolean,
-): string | undefined {
-  let opaPath = vscode.workspace.getConfiguration("opa.dependency_paths").get<string>("opa");
-  // if not set, check the deprecated setting location
-  if (opaPath === undefined || opaPath === null) {
-    opaPath = vscode.workspace.getConfiguration("opa").get<string>("path");
-  }
-
-  if (opaPath !== undefined && opaPath !== null) {
-    opaPath = replaceWorkspaceFolderPathVariable(opaPath);
-  }
-
-  if (opaPath !== undefined && opaPath !== null && opaPath.length > 0) {
-    if (opaPath.startsWith("file://")) {
-      opaPath = opaPath.substring(7);
-    }
-
-    if (existsSync(opaPath)) {
-      return opaPath;
-    }
-
-    console.warn("'opa.path' setting configured with invalid path:", opaPath);
-  }
-
-  if (commandExistsSync(path)) {
-    return path;
-  }
-
-  if (shouldPromptForInstall) {
-    // this is used to track if the user has been offered to install OPA,
-    // this can later be used to allow other prompts to be shown
-    if (context) {
-      const globalStateKey = "opa.prompts.install.opa";
-      context.globalState.update(globalStateKey, true);
-    }
-
-    promptForInstall(
-      "opa",
-      "open-policy-agent/opa",
-      "OPA is either not installed or is missing from your path, would you like to install it?",
-      (release: any) => {
-        // release.assets.name contains {'darwin', 'linux', 'windows'} and {'arm64', 'amd64'}
-        // in the format `opa_$OS_$ARCH...` so we can use that to search for the appropriate asset
-        const assets = release.assets || [];
-        const os = process.platform;
-        // node can return many values for process.arch but OPA only supports arm64 and amd64
-        const arch = process.arch.indexOf("arm") !== -1 ? "arm64" : "amd64";
-        let targetAsset: { browser_download_url: string };
-        switch (os) {
-          case "darwin":
-            targetAsset = assets.filter((asset: { name: string }) => asset.name.indexOf(`darwin_${arch}`) !== -1)[0];
-            break;
-          case "linux":
-            targetAsset = assets.filter((asset: { name: string }) => asset.name.indexOf(`linux_${arch}`) !== -1)[0];
-            break;
-          case "win32":
-            // arm is not supported officially for windows, so prompt the user
-            // to build from source and provide an empty url from the default case
-            if (arch === "arm64") {
-              throw windowsArm64NotSupported;
-            } else {
-              targetAsset = assets.filter((asset: { name: string }) => asset.name.indexOf(`windows`) !== -1)[0];
-              break;
-            }
-          default:
-            targetAsset = { browser_download_url: "" };
-        }
-        return targetAsset.browser_download_url;
-      },
-      () => {
-        const os = process.platform;
-        switch (os) {
-          case "darwin":
-          case "linux":
-            return "opa";
-          case "win32":
-            return "opa.exe";
-          default:
-            return "opa";
-        }
-      },
-      () => {
-        context && advertiseLanguageServers(context);
-      },
-    );
-  }
 }
 
 function getOpaEnv(): NodeJS.ProcessEnv {
@@ -328,20 +230,20 @@ function getOpaEnv(): NodeJS.ProcessEnv {
 // runWithStatus executes the OPA binary at path with args and stdin. The
 // callback is invoked with the exit status, stderr, and stdout buffers.
 export function runWithStatus(
-  context: vscode.ExtensionContext | undefined,
   path: string,
   args: string[],
   stdin: string,
   cb: (code: number, stderr: string, stdout: string) => void,
 ) {
-  const opaPath = getOpaPath(context, path, true);
-  if (opaPath === undefined) {
+  const binaryInfo = resolveBinary(OPA_CONFIG, path);
+
+  if (!binaryInfo.path) {
     return;
   }
 
-  console.log("spawn:", opaPath, "args:", args.toString());
+  console.log("spawn:", binaryInfo.path, "args:", args.toString());
 
-  const proc = cp.spawn(opaPath, args, { env: { ...process.env, ...getOpaEnv() } });
+  const proc = cp.spawn(binaryInfo.path, args, { env: { ...process.env, ...getOpaEnv() } });
 
   proc.stdin.write(stdin);
   proc.stdin.end();

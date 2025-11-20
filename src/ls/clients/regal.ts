@@ -1,9 +1,6 @@
-import { execSync } from "child_process";
-import { sync as commandExistsSync } from "command-exists";
-import { existsSync } from "fs";
 import { relative } from "path";
 import * as semver from "semver";
-import { ExtensionContext, window, workspace } from "vscode";
+import { workspace } from "vscode";
 import * as vscode from "vscode";
 import {
   CloseAction,
@@ -14,7 +11,9 @@ import {
   LanguageClientOptions,
   Message,
   ServerOptions,
+  State,
 } from "vscode-languageclient/node";
+import { REGAL_CONFIG, resolveBinary } from "../../binaries";
 import {
   evalResultDecorationType,
   evalResultTargetSuccessDecorationType,
@@ -22,98 +21,18 @@ import {
   opaOutputChannel,
   removeDecorations,
 } from "../../extension";
-import { promptForInstall } from "../../github-installer";
-import { replaceWorkspaceFolderPathVariable } from "../../util";
 
 let client: LanguageClient;
 let clientLock = false;
-let outChan: vscode.OutputChannel;
-let activeDebugSessions: Map<string, void> = new Map();
+const activeDebugSessions: Map<string, void> = new Map();
 
-const minimumSupportedRegalVersion = "0.18.0";
-
-export function promptForInstallRegal(message: string) {
-  const dlOpts = downloadOptionsRegal();
-  promptForInstall(
-    "regal",
-    dlOpts.repo,
-    message,
-    dlOpts.determineBinaryURLFromRelease,
-    dlOpts.determineExecutableName,
-  );
-}
-
-export function isInstalledRegal(): boolean {
-  if (commandExistsSync(regalPath())) {
-    return true;
-  }
-
-  return false;
-}
-
-export function promptForUpdateRegal(minVer: string = minimumSupportedRegalVersion) {
-  const version = regalVersion();
-
-  if (version === "missing") {
-    promptForInstallRegal("Regal is needed but not installed. Would you like to install it?");
-    return;
-  }
-
-  // assumption here that it's a dev version or something, and ignore
-  if (!semver.valid(version)) {
-    return;
-  }
-
-  if (semver.gte(version, minVer)) {
-    return;
-  }
-
-  const path = regalPath();
-  let message =
-    "The version of Regal that the OPA extension is using is out of date. Click \"Install\" to update it to a new one.";
-  // if the path is not the path where VS Code manages Regal,
-  // then we show another message
-  if (path === "regal") {
-    message = "Installed Regal version " + version + " is out of date and is not supported. Please update Regal to "
-      + minVer
-      + " using your preferred method. Or click \"Install\" to use a version managed by the OPA extension.";
-  }
-
-  promptForInstallRegal(message);
-
-  return;
-}
-
-function regalVersion(): string {
-  let version = "missing";
-
-  if (isInstalledRegal()) {
-    const versionJSON = execSync(regalPath() + " version --format=json").toString().trim();
-    const versionObj = JSON.parse(versionJSON);
-    version = versionObj.version || "unknown";
-  }
-
-  return version;
+export function resolveRegalPath() {
+  return resolveBinary(REGAL_CONFIG, "regal");
 }
 
 export function regalPath(): string {
-  let path = vscode.workspace.getConfiguration("opa.dependency_paths").get<string>("regal");
-  if (path !== undefined && path !== null) {
-    path = replaceWorkspaceFolderPathVariable(path);
-  }
-
-  if (path !== undefined && path !== null && path.length > 0) {
-    if (path.startsWith("file://")) {
-      path = path.substring(7);
-    }
-
-    if (existsSync(path)) {
-      return path;
-    }
-  }
-
-  // default case, attempt to find in path
-  return "regal";
+  const binaryInfo = resolveRegalPath();
+  return binaryInfo.path || "regal";
 }
 
 class debuggableMessageStrategy {
@@ -130,46 +49,54 @@ class debuggableMessageStrategy {
   }
 }
 
-export function activateRegal(_context: ExtensionContext) {
-  if (!outChan) {
-    outChan = window.createOutputChannel("Regal");
-  }
-
-  // activateRegal is run when the config changes, but this happens a few times
-  // at startup. We use clientLock to prevent the activation of multiple instances.
+export function activateRegal() {
   if (clientLock) {
     return;
   }
   clientLock = true;
 
-  promptForUpdateRegal();
+  const binaryInfo = resolveBinary(REGAL_CONFIG, "regal");
 
-  const version = regalVersion();
-  if (version === "missing") {
-    opaOutputChannel.appendLine("Regal LS could not be started because the \"regal\" executable is not available.");
+  // Validate binary availability
+  if (!binaryInfo.path) {
+    clientLock = false;
     return;
   }
 
-  // assumption here that it's a dev version or something, and ignore.
-  // if the version is invalid, then continue as assuming a dev build or similar
-  if (semver.valid(version)) {
-    if (semver.lt(version, minimumSupportedRegalVersion)) {
+  if (binaryInfo.version === "missing") {
+    return;
+  }
+
+  // Validate minimum version if specified
+  if (REGAL_CONFIG.minimumVersion && semver.valid(binaryInfo.version)) {
+    if (semver.lt(binaryInfo.version, REGAL_CONFIG.minimumVersion)) {
       opaOutputChannel.appendLine(
-        "Regal LS could not be started because the version of \"regal\" is less than the minimum supported version.",
+        `${REGAL_CONFIG.name}: service could not be started - version ${binaryInfo.version} is below minimum ${REGAL_CONFIG.minimumVersion}`,
       );
       return;
     }
   }
 
+  // Log startup information
+  if (binaryInfo.source === "configured" && binaryInfo.originalPath) {
+    opaOutputChannel.appendLine(
+      `${REGAL_CONFIG.name}: starting service with ${binaryInfo.originalPath} (${binaryInfo.path}) version ${binaryInfo.version}`,
+    );
+  } else {
+    opaOutputChannel.appendLine(
+      `${REGAL_CONFIG.name}: starting service with system ${REGAL_CONFIG.configKey} version ${binaryInfo.version}`,
+    );
+  }
+
   const serverOptions: ServerOptions = {
-    command: regalPath(),
+    command: binaryInfo.path!,
     args: ["language-server"],
   };
 
   const clientOptions: LanguageClientOptions = {
     documentSelector: [{ scheme: "file", language: "rego" }],
-    outputChannel: outChan,
-    traceOutputChannel: outChan,
+    outputChannel: opaOutputChannel,
+    traceOutputChannel: opaOutputChannel,
     revealOutputChannelOn: 0,
     connectionOptions: {
       messageStrategy: new debuggableMessageStrategy(),
@@ -236,42 +163,40 @@ export function deactivateRegal(): Thenable<void> | undefined {
   return client.stop();
 }
 
-function downloadOptionsRegal() {
-  return {
-    repo: "open-polict-agent/regal",
-    determineBinaryURLFromRelease: (release: any) => {
-      // release.assets.name contains {'darwin', 'linux', 'windows'}
-      const assets = release.assets || [];
-      const os = process.platform;
-      let targetAsset: { browser_download_url: string };
-      switch (os) {
-        case "darwin":
-          targetAsset = assets.filter((asset: { name: string }) => asset.name.indexOf("Darwin") !== -1)[0];
-          break;
-        case "linux":
-          targetAsset = assets.filter((asset: { name: string }) => asset.name.indexOf("Linux") !== -1)[0];
-          break;
-        case "win32":
-          targetAsset = assets.filter((asset: { name: string }) => asset.name.indexOf("Windows") !== -1)[0];
-          break;
-        default:
-          targetAsset = { browser_download_url: "" };
-      }
-      return targetAsset.browser_download_url;
-    },
-    determineExecutableName: () => {
-      const os = process.platform;
-      switch (os) {
-        case "darwin":
-        case "linux":
-          return "regal";
-        case "win32":
-          return "regal.exe";
-        default:
-          return "regal";
-      }
-    },
-  };
+export function isRegalRunning(): boolean {
+  return client && client.state === State.Running;
+}
+
+export function restartRegal() {
+  // Check if Regal binary is available before attempting restart
+  const binaryInfo = resolveBinary(REGAL_CONFIG, "regal");
+  if (!binaryInfo.path || binaryInfo.version === "missing") {
+    opaOutputChannel.appendLine("Error: Cannot restart Regal language server - Regal binary is not available");
+    return;
+  }
+
+  // Only restart if Regal is currently running or if we have a client instance
+  if (!client) {
+    opaOutputChannel.appendLine("Starting Regal language server...");
+    activateRegal();
+    return;
+  }
+
+  opaOutputChannel.appendLine("Restarting Regal language server...");
+
+  const stopPromise = deactivateRegal();
+
+  if (stopPromise) {
+    stopPromise.then(() => {
+      setTimeout(() => {
+        activateRegal();
+      }, 100);
+    });
+  } else {
+    setTimeout(() => {
+      activateRegal();
+    }, 100);
+  }
 }
 
 interface ShowEvalResultParams {
@@ -367,7 +292,10 @@ function handleRegalShowEvalResult(params: ShowEvalResultParams) {
     }
 
     Object.keys(items).map(Number).forEach((line) => {
-      outChan.appendLine(`🖨️ ${path}:${line} => ${items[line].join(" => ")}`);
+      const lineItems = items[line];
+      if (lineItems) {
+        opaOutputChannel.appendLine(`🖨️ ${path}:${line} => ${lineItems.join(" => ")}`);
+      }
     });
   }
 
@@ -488,14 +416,17 @@ function handlePrintOutputDecoration(
   }
 
   Object.keys(printOutput).map(Number).forEach((line) => {
+    const lineOutput = printOutput[line];
+    if (!lineOutput) return;
+
     const lineLength = activeEditor.document.lineAt(line).text.length;
-    const joinedLines = printOutput[line].join("\n");
+    const joinedLines = lineOutput.join("\n");
 
     // Pre-block formatting fails if there are over 100k chars
     const hoverText = joinedLines.length < 100000 ? makeCode("text", joinedLines) : joinedLines;
     const hoverMessage = "### Print Output\n\n" + hoverText;
 
-    let attachmentMessage = ` 🖨️ => ${printOutput[line].join(" => ")}`;
+    let attachmentMessage = ` 🖨️ => ${lineOutput.join(" => ")}`;
     if (lineLength + attachmentMessage.length > truncateThreshold) {
       const suffix = "... (hover for result)";
       attachmentMessage = attachmentMessage.substring(0, truncateThreshold - lineLength - suffix.length) + suffix;

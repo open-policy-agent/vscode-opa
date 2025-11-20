@@ -47,7 +47,7 @@ jobs:
         with:
           sarif_file: eslint-results.sarif
 
-  spelling:
+  lint:
     runs-on: ubuntu-latest
 
     steps:
@@ -58,30 +58,8 @@ jobs:
         with:
           node-version: "22.6.0"
 
-      - run: npx cspell lint -c cspell.config.yaml '**/*.md'
+      - name: Install dependencies
+        run: npm install
 
-  markdownlint:
-    runs-on: ubuntu-latest
-
-    steps:
-      - uses: actions/checkout@v5
-
-      - name: Set up Node.js
-        uses: actions/setup-node@2028fbc5c25fe9cf00d9f06a71cc4710d4507903 # v6.0.0
-        with:
-          node-version: "22.6.0"
-
-      - run: npx markdownlint-cli2 'README.md' 'CHANGELOG.md' '#node_modules' --config=.markdownlint.yaml
-
-  formatting:
-    runs-on: ubuntu-latest
-
-    steps:
-      - uses: actions/checkout@v5
-
-      - name: Set up Node.js
-        uses: actions/setup-node@2028fbc5c25fe9cf00d9f06a71cc4710d4507903 # v6.0.0
-        with:
-          node-version: "22.6.0"
-
-      - run: npx dprint check
+      - name: Run lint (dprint + eslint + typecheck + cspell + markdownlint)
+        run: make lint
