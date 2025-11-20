@@ -1,8 +1,7 @@
 import * as vscode from "vscode";
 
-import { existsSync, getInputPath } from "../extension";
-import { regalPath } from "./../ls/clients/regal";
-import { promptForUpdateRegal } from "./../ls/clients/regal";
+import { REGAL_CONFIG, resolveBinary } from "../binaries";
+import { existsSync, getInputPath, opaOutputChannel } from "../extension";
 import * as opa from "./../opa";
 
 const minimumSupportedRegalVersion = "0.26.0";
@@ -130,8 +129,17 @@ class OpaDebugAdapterExecutableFactory implements vscode.DebugAdapterDescriptorF
     executable: vscode.DebugAdapterExecutable | undefined,
   ): vscode.ProviderResult<vscode.DebugAdapterDescriptor> {
     if (!executable) {
-      promptForUpdateRegal(minimumSupportedRegalVersion);
-      executable = new vscode.DebugAdapterExecutable(regalPath(), ["debug"]);
+      opaOutputChannel.appendLine(`Regal: creating debug adapter (minimum version: ${minimumSupportedRegalVersion})`);
+
+      const regalBinaryInfo = resolveBinary(REGAL_CONFIG, "regal");
+      if (!regalBinaryInfo.path) {
+        vscode.window.showWarningMessage("Regal binary not found. Please install Regal for debugging support.");
+        return;
+      }
+
+      const regalExecutable = regalBinaryInfo.path;
+
+      executable = new vscode.DebugAdapterExecutable(regalExecutable, ["debug"]);
     }
     return executable;
   }

@@ -50,11 +50,14 @@ export function getPrettyTime(ns: number): string {
 }
 
 export function replaceWorkspaceFolderPathVariable(path: string): string {
-  if (vscode.workspace.workspaceFolders !== undefined) {
+  if (vscode.workspace.workspaceFolders !== undefined && vscode.workspace.workspaceFolders.length > 0) {
     // here, uri.fsPath is used as this returns a usable path on both Windows and Unix
-    const workspaceFolderPath = vscode.workspace.workspaceFolders![0].uri.fsPath;
-    path = path.replace("${workspaceFolder}", workspaceFolderPath);
-    path = path.replace("${workspacePath}", workspaceFolderPath);
+    const firstWorkspaceFolder = vscode.workspace.workspaceFolders[0];
+    if (firstWorkspaceFolder) {
+      const workspaceFolderPath = firstWorkspaceFolder.uri.fsPath;
+      path = path.replace("${workspaceFolder}", workspaceFolderPath);
+      path = path.replace("${workspacePath}", workspaceFolderPath);
+    }
   } else if (path.indexOf("${workspaceFolder}") >= 0) {
     vscode.window.showWarningMessage(
       "${workspaceFolder} variable configured in settings, but no workspace is active",
