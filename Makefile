@@ -6,7 +6,7 @@ fmt:
 .PHONY: lint
 lint:
 	npx dprint check
-	npx eslint .
+	npx eslint --format @microsoft/eslint-formatter-sarif --output-file eslint-results.sarif .
 	npx tsc --noEmit
 	npx cspell lint -c cspell.config.yaml '**/*.md'
 	npx markdownlint-cli2 'README.md' 'CHANGELOG.md' '#node_modules' --config=.markdownlint.yaml

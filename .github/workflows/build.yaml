@@ -21,7 +21,7 @@ jobs:
       - name: Test build package
         run: npx vsce package -o build.vsix
 
-  eslint:
+  lint:
     runs-on: ubuntu-latest
     permissions:
       contents: read
@@ -38,28 +38,11 @@ jobs:
       - name: Install dependencies
         run: npm install
 
-      - name: Run ESLint
-        run: npx eslint --format @microsoft/eslint-formatter-sarif --output-file eslint-results.sarif
+      - name: Run lint (dprint + eslint + typecheck + cspell + markdownlint)
+        run: make lint
         continue-on-error: true
 
       - name: Upload analysis results to GitHub
         uses: github/codeql-action/upload-sarif@v4
         with:
           sarif_file: eslint-results.sarif
-
-  lint:
-    runs-on: ubuntu-latest
-
-    steps:
-      - uses: actions/checkout@v6
-
-      - name: Set up Node.js
-        uses: actions/setup-node@2028fbc5c25fe9cf00d9f06a71cc4710d4507903 # v6.0.0
-        with:
-          node-version: "22.6.0"
-
-      - name: Install dependencies
-        run: npm install
-
-      - name: Run lint (dprint + eslint + typecheck + cspell + markdownlint)
-        run: make lint
