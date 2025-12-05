@@ -20,7 +20,11 @@
 		</dict>
 		<dict>
 			<key>include</key>
-			<string>#operator</string>
+			<string>#comparison-operators</string>
+		</dict>
+		<dict>
+			<key>include</key>
+			<string>#assignment-operators</string>
 		</dict>
 		<dict>
 			<key>include</key>
@@ -76,7 +80,7 @@
 		<key>number</key>
 		<dict>
 			<key>match</key>
-			<string>(?x:         # turn on extended mode
+			<string>(?x:                # turn on extended mode
                              -?         # an optional minus
                              (?:
                                0        # a zero
@@ -99,22 +103,213 @@
 			<key>name</key>
 			<string>constant.numeric.rego</string>
 		</dict>
-		<key>operator</key>
+		<key>comparison-operators</key>
+		<dict>
+			<key>match</key>
+			<string>\=\=|\!\=|&gt;|&lt;|&lt;\=|&gt;\=|\+|-|\*|%|/|\||&amp;</string>
+			<key>name</key>
+			<string>keyword.operator.comparison.rego</string>
+		</dict>
+		<key>assignment-operators</key>
+		<dict>
+			<key>match</key>
+			<string>:\=|\=</string>
+			<key>name</key>
+			<string>keyword.operator.assignment.rego</string>
+		</dict>
+		<key>interpolated-string-double</key>
+		<dict>
+			<key>begin</key>
+			<string>(\$)(")</string>
+			<key>beginCaptures</key>
+			<dict>
+				<key>1</key>
+				<dict>
+					<key>name</key>
+					<string>punctuation.definition.template-expression.begin.rego</string>
+				</dict>
+				<key>2</key>
+				<dict>
+					<key>name</key>
+					<string>punctuation.definition.string.begin.rego</string>
+				</dict>
+			</dict>
+			<key>end</key>
+			<string>"</string>
+			<key>endCaptures</key>
+			<dict>
+				<key>0</key>
+				<dict>
+					<key>name</key>
+					<string>punctuation.definition.string.end.rego</string>
+				</dict>
+			</dict>
+			<key>name</key>
+			<string>string.template.rego</string>
+			<key>patterns</key>
+			<array>
+				<dict>
+					<key>include</key>
+					<string>#interpolation-expression</string>
+				</dict>
+				<dict>
+					<key>include</key>
+					<string>#string-escape</string>
+				</dict>
+				<dict>
+					<key>include</key>
+					<string>#interpolation-escape</string>
+				</dict>
+				<dict>
+					<key>include</key>
+					<string>#string-escape-invalid</string>
+				</dict>
+			</array>
+		</dict>
+		<key>interpolated-string-raw</key>
+		<dict>
+			<key>begin</key>
+			<string>(\$)(`)</string>
+			<key>beginCaptures</key>
+			<dict>
+				<key>1</key>
+				<dict>
+					<key>name</key>
+					<string>punctuation.definition.template-expression.begin.rego</string>
+				</dict>
+				<key>2</key>
+				<dict>
+					<key>name</key>
+					<string>punctuation.definition.string.begin.rego</string>
+				</dict>
+			</dict>
+			<key>end</key>
+			<string>`</string>
+			<key>endCaptures</key>
+			<dict>
+				<key>0</key>
+				<dict>
+					<key>name</key>
+					<string>punctuation.definition.string.end.rego</string>
+				</dict>
+			</dict>
+			<key>name</key>
+			<string>string.template.rego</string>
+			<key>patterns</key>
+			<array>
+				<dict>
+					<key>include</key>
+					<string>#interpolation-expression</string>
+				</dict>
+			</array>
+		</dict>
+		<key>interpolation-expression</key>
+		<dict>
+			<key>begin</key>
+			<string>(?<!\\)\{</string>
+			<key>beginCaptures</key>
+			<dict>
+				<key>0</key>
+				<dict>
+					<key>name</key>
+					<string>punctuation.section.embedded.rego</string>
+				</dict>
+			</dict>
+			<key>end</key>
+			<string>\}</string>
+			<key>endCaptures</key>
+			<dict>
+				<key>0</key>
+				<dict>
+					<key>name</key>
+					<string>punctuation.section.embedded.rego</string>
+				</dict>
+			</dict>
+			<key>name</key>
+			<string>meta.embedded.expression.rego</string>
+			<key>patterns</key>
+			<array>
+				<dict>
+					<key>include</key>
+					<string>#interpolation-expression-contents</string>
+				</dict>
+			</array>
+		</dict>
+		<key>interpolation-expression-contents</key>
 		<dict>
 			<key>patterns</key>
 			<array>
 				<dict>
-					<key>match</key>
-					<string>\=|\!\=|&gt;|&lt;|&lt;\=|&gt;\=|\+|-|\*|%|/|\||&amp;|:\=</string>
-					<key>name</key>
-					<string>keyword.operator.comparison.rego</string>
+					<key>include</key>
+					<string>#comment</string>
+				</dict>
+				<dict>
+					<key>include</key>
+					<string>#constant</string>
+				</dict>
+				<dict>
+					<key>include</key>
+					<string>#string</string>
+				</dict>
+				<dict>
+					<key>include</key>
+					<string>#number</string>
+				</dict>
+				<dict>
+					<key>include</key>
+					<string>#call</string>
+				</dict>
+				<dict>
+					<key>include</key>
+					<string>#variable</string>
+				</dict>
+				<dict>
+					<key>include</key>
+					<string>#comparison-operators</string>
 				</dict>
 			</array>
+		</dict>
+		<key>string-escape</key>
+		<dict>
+			<key>match</key>
+			<string>(?x:       # turn on extended mode
+			\\                 # a literal backslash
+			(?:                # ...followed by...
+				["\\/bfnrt]    # one of these characters
+				|              # ...or...
+				u              # a u
+				[0-9a-fA-F]{4} # and four hex digits
+			)
+			)</string>
+			<key>name</key>
+			<string>constant.character.escape.rego</string>
+		</dict>
+		<key>interpolation-escape</key>
+		<dict>
+			<key>match</key>
+			<string>\\[{}]</string>
+			<key>name</key>
+			<string>constant.character.escape.rego</string>
+		</dict>
+		<key>string-escape-invalid</key>
+		<dict>
+			<key>match</key>
+			<string>\\.</string>
+			<key>name</key>
+			<string>invalid.illegal.unrecognized-string-escape.rego</string>
 		</dict>
 		<key>string</key>
 		<dict>
 			<key>patterns</key>
 			<array>
+				<dict>
+					<key>include</key>
+					<string>#interpolated-string-double</string>
+				</dict>
+				<dict>
+					<key>include</key>
+					<string>#interpolated-string-raw</string>
+				</dict>
 				<dict>
 					<key>begin</key>
 					<string>"</string>
@@ -141,24 +336,12 @@
 					<key>patterns</key>
 					<array>
 						<dict>
-							<key>match</key>
-							<string>(?x:                # turn on extended mode
-					\\                # a literal backslash
-					(?:               # ...followed by...
-						["\\/bfnrt]     # one of these characters
-						|               # ...or...
-						u               # a u
-						[0-9a-fA-F]{4}  # and four hex digits
-					)
-					)</string>
-							<key>name</key>
-							<string>constant.character.escape.rego</string>
+							<key>include</key>
+							<string>#string-escape</string>
 						</dict>
 						<dict>
-							<key>match</key>
-							<string>\\.</string>
-							<key>name</key>
-							<string>invalid.illegal.unrecognized-string-escape.rego</string>
+							<key>include</key>
+							<string>#string-escape-invalid</string>
 						</dict>
 					</array>
 				</dict>
