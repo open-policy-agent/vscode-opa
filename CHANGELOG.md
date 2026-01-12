@@ -1,6 +1,13 @@
 # Change Log
 
 
+## 0.21.0
+
+- Update tmLanguage to support Rego string interpolation [#375](https://github.com/open-policy-agent/vscode-opa/pull/375)
+- Refactor extension installers and use modern JS [#370](https://github.com/open-policy-agent/vscode-opa/pull/370)
+- For dependency updates, please see [full change log](https://github.com/open-policy-agent/vscode-opa/compare/v0.20.0...v0.21.0)
+
+
 ## 0.20.0
 
 - docs: Update references to new Regal location #356
