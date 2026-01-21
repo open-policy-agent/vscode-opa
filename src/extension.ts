@@ -200,7 +200,14 @@ function formatQuery(query: string): string {
   return `${lines[0]} ... (+${moreLines} more line${moreLines === 1 ? "" : "s"})`;
 }
 
-function setEvalOutput(provider: JSONProvider, uri: vscode.Uri, stderr: string, result: any, inputPath: string, query: string) {
+function setEvalOutput(
+  provider: JSONProvider,
+  uri: vscode.Uri,
+  stderr: string,
+  result: any,
+  inputPath: string,
+  query: string,
+) {
   if (stderr !== "") {
     opaOutputShow(stderr);
   }
