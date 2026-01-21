@@ -42,7 +42,9 @@ jobs:
         run: make lint
         continue-on-error: true
 
+      # make lint can fail before eslint runs (e.g. dprint formatting check)
       - name: Upload analysis results to GitHub
+        if: always() && hashFiles('eslint-results.sarif') != ''
         uses: github/codeql-action/upload-sarif@v4
         with:
           sarif_file: eslint-results.sarif
