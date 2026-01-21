@@ -80,10 +80,6 @@
         "title": "OPA: Partial Evaluation: Selection"
       },
       {
-        "command": "opa.prompts.clear",
-        "title": "OPA: Clear Dismissed Prompts"
-      },
-      {
         "command": "opa.debug.debugWorkspace",
         "title": "Debug Workspace",
         "category": "OPA Debug",
