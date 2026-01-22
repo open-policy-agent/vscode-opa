@@ -89,6 +89,10 @@
       {
         "command": "opa.regal.restart",
         "title": "OPA: Restart Regal Language Server"
+      },
+      {
+        "command": "opa.regal.toggleDiagnostics",
+        "title": "OPA: Toggle Regal Linting"
       }
     ],
     "configuration": {
