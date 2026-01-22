@@ -6,6 +6,8 @@ import { URL } from "url";
 import * as vscode from "vscode";
 import { BinaryConfig, Logger } from "./types";
 
+const FETCH_TIMEOUT_MS = 30000;
+
 export async function installBinary(
   config: BinaryConfig,
   logger: Logger = { appendLine: () => {}, show: () => {} },
@@ -16,14 +18,16 @@ export async function installBinary(
 
   logger.appendLine(`Downloading ${config.repo} executable...`);
 
-  const response = await fetch(`https://api.github.com/repos/${config.repo}/releases/latest`, {
+  const releaseUrl = `https://api.github.com/repos/${config.repo}/releases/latest`;
+  const response = await fetch(releaseUrl, {
     headers: {
       "User-Agent": getUserAgent(),
     },
+    signal: AbortSignal.timeout(FETCH_TIMEOUT_MS),
   });
 
   if (!response.ok) {
-    throw new Error(`Failed to fetch release info: ${response.status} ${response.statusText}`);
+    throw new Error(`Failed to fetch release info from ${releaseUrl}: ${response.status} ${response.statusText}`);
   }
 
   const release = await response.json() as any;
@@ -33,8 +37,11 @@ export async function installBinary(
   const targetAsset = config.assetFilter(assets, platform, arch);
 
   if (!targetAsset || !targetAsset.browser_download_url) {
-    logger.appendLine(`${config.name}: no release found for platform ${platform}`);
-    throw new Error(`No release found for platform ${platform}`);
+    logger.appendLine(`${config.name}: no release found for platform ${platform}/${arch}`);
+    logger.appendLine(`Fetched: ${releaseUrl}`);
+    const assetNames = assets.map((a: { name: string }) => a.name).join(", ");
+    logger.appendLine(`Assets available: ${assets.length > 0 ? assetNames : "none"}`);
+    throw new Error(`No release found for platform ${platform}/${arch}`);
   }
 
   const downloadUrl = new URL(targetAsset.browser_download_url);
@@ -45,6 +52,7 @@ export async function installBinary(
     headers: {
       "User-Agent": getUserAgent(),
     },
+    signal: AbortSignal.timeout(FETCH_TIMEOUT_MS),
   });
 
   if (!downloadResponse.ok) {

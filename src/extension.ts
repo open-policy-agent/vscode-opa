@@ -4,7 +4,7 @@ import * as fs from "fs";
 import * as path from "path";
 import * as vscode from "vscode";
 
-import { installBinary, OPA_CONFIG, REGAL_CONFIG, resolveBinary } from "./binaries";
+import { BinaryConfig, installBinary, OPA_CONFIG, REGAL_CONFIG, resolveBinary } from "./binaries";
 import { activateDebugger } from "./da/activate";
 import { activateRegal, isRegalRunning, restartRegal, toggleRegalDiagnostics } from "./ls/clients/regal";
 import * as opa from "./opa";
@@ -790,16 +790,19 @@ function checkMissingBinaries() {
     vscode.window.showInformationMessage(message, "Install")
       .then(async (selection) => {
         if (selection === "Install") {
+          const installedConfigs: BinaryConfig[] = [];
           for (const binary of missingBinaries) {
             try {
               await installBinary(binary.config, opaOutputChannel);
+              installedConfigs.push(binary.config);
             } catch (error) {
-              console.error(`Failed to install ${binary.name}:`, error);
+              opaOutputChannel.appendLine(`Failed to install ${binary.name}: ${error}`);
+              opaOutputChannel.show(true);
             }
           }
 
           // if any Regal binary was installed and if we need to start/restart it server
-          const hasRegalBinary = missingBinaries.some(b => b.config === REGAL_CONFIG);
+          const hasRegalBinary = installedConfigs.includes(REGAL_CONFIG);
           if (hasRegalBinary) {
             if (isRegalRunning()) {
               opaOutputChannel.appendLine("Regal is running, restarting with new binary...");
