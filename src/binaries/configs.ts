@@ -40,24 +40,36 @@ export const OPA_CONFIG: BinaryConfig = {
     const nodeArch = arch.indexOf("arm") !== -1 ? "arm64" : "amd64";
 
     let binaryName: string;
+    let staticBinaryName: string | undefined;
+
     switch (os) {
       case "darwin":
-        binaryName = `darwin_${nodeArch}`;
+        binaryName = `opa_darwin_${nodeArch}`;
+        staticBinaryName = `opa_darwin_${nodeArch}_static`;
         break;
       case "linux":
-        binaryName = `linux_${nodeArch}`;
+        binaryName = `opa_linux_${nodeArch}`;
+        staticBinaryName = `opa_linux_${nodeArch}_static`;
         break;
       case "win32":
         if (nodeArch === "arm64") {
           throw "OPA binaries are not supported for windows/arm architecture. To use the features of this plugin, compile OPA from source.";
         }
-        binaryName = "windows";
+        binaryName = "opa_windows_amd64.exe";
         break;
       default:
         return { browser_download_url: "" };
     }
 
-    return assets.find((asset: { name: string }) => asset.name.includes(binaryName));
+    // Prefer static binary if available (smaller, no CGO dependencies)
+    if (staticBinaryName) {
+      const staticAsset = assets.find((asset: { name: string }) => asset.name === staticBinaryName);
+      if (staticAsset) {
+        return staticAsset;
+      }
+    }
+
+    return assets.find((asset: { name: string }) => asset.name === binaryName);
   },
   versionParser: (executablePath: string) => {
     try {
