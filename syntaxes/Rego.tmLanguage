@@ -70,10 +70,17 @@
 			<key>name</key>
 			<string>constant.language.rego</string>
 		</dict>
+		<key>root-document</key>
+		<dict>
+			<key>match</key>
+			<string>(?&lt;!\.)\b(?:input|data)\b</string>
+			<key>name</key>
+			<string>variable.other.constant.rego support.constant.rego variable.language.rego</string>
+		</dict>
 		<key>keyword</key>
 		<dict>
 			<key>match</key>
-			<string>(^|\s+)(?:(default|not|package|import|as|with|else|some|in|every|if|contains))\s+</string>
+			<string>(^|\s+)(?:(default|not|package|import|as|with|else|some|in|every|if|contains))(?=\s|$)</string>
 			<key>name</key>
 			<string>keyword.other.rego</string>
 		</dict>
@@ -261,6 +268,10 @@
 				</dict>
 				<dict>
 					<key>include</key>
+					<string>#root-document</string>
+				</dict>
+				<dict>
+					<key>include</key>
 					<string>#variable</string>
 				</dict>
 				<dict>
@@ -390,6 +401,10 @@
 				<dict>
 					<key>include</key>
 					<string>#call</string>
+				</dict>
+				<dict>
+					<key>include</key>
+					<string>#root-document</string>
 				</dict>
 				<dict>
 					<key>include</key>
