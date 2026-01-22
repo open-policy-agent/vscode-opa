@@ -24,7 +24,25 @@ import {
 
 let client: LanguageClient;
 let clientLock = false;
+let regalShowDiagnostics = true;
 const activeDebugSessions: Map<string, void> = new Map();
+
+export function toggleRegalDiagnostics(): boolean {
+  regalShowDiagnostics = !regalShowDiagnostics;
+
+  // Trigger a diagnostic refresh for all rego files.
+  // The middleware will handle returning empty diagnostics when disabled.
+  for (const doc of vscode.workspace.textDocuments) {
+    if (doc.languageId === "rego") {
+      client?.sendNotification("textDocument/didChange", {
+        textDocument: { uri: doc.uri.toString(), version: doc.version + 1 },
+        contentChanges: [{ text: doc.getText() }],
+      });
+    }
+  }
+
+  return regalShowDiagnostics;
+}
 
 export function resolveRegalPath() {
   return resolveBinary(REGAL_CONFIG, "regal");
@@ -134,6 +152,17 @@ export function activateRegal() {
       // not configurable.
       evalCodelensDisplayInline: true,
       enableDebugCodelens: true,
+    },
+    middleware: {
+      // Users can toggle linting on/off using the "OPA: Toggle Regal Linting" command.
+      // When disabled, diagnostics are suppressed by returning an empty array.
+      handleDiagnostics: (uri: vscode.Uri, diagnostics: vscode.Diagnostic[], next: (uri: vscode.Uri, diagnostics: vscode.Diagnostic[]) => void) => {
+        if (regalShowDiagnostics) {
+          next(uri, diagnostics);
+        } else {
+          next(uri, []);
+        }
+      },
     },
   };
 

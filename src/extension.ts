@@ -6,7 +6,7 @@ import * as vscode from "vscode";
 
 import { installBinary, OPA_CONFIG, REGAL_CONFIG, resolveBinary } from "./binaries";
 import { activateDebugger } from "./da/activate";
-import { activateRegal, isRegalRunning, restartRegal } from "./ls/clients/regal";
+import { activateRegal, isRegalRunning, restartRegal, toggleRegalDiagnostics } from "./ls/clients/regal";
 import * as opa from "./opa";
 import { getPrettyTime } from "./util";
 
@@ -47,6 +47,7 @@ export function activate(context: vscode.ExtensionContext) {
   activateProfileSelection(context);
   activatePartialSelection(context);
   activateRestartRegalCommand(context);
+  activateToggleDiagnosticsCommand(context);
 
   // check for missing binaries and prompt to install them
   checkMissingBinaries();
@@ -578,6 +579,16 @@ function activateRestartRegalCommand(context: vscode.ExtensionContext) {
   });
 
   context.subscriptions.push(restartRegalCommand);
+}
+
+function activateToggleDiagnosticsCommand(context: vscode.ExtensionContext) {
+  const toggleDiagnosticsCommand = vscode.commands.registerCommand("opa.regal.toggleDiagnostics", () => {
+    const enabled = toggleRegalDiagnostics();
+    const status = enabled ? "enabled" : "paused";
+    vscode.window.setStatusBarMessage(`Regal linting ${status}`, 3000);
+  });
+
+  context.subscriptions.push(toggleDiagnosticsCommand);
 }
 
 function onActiveWorkspaceEditor(
