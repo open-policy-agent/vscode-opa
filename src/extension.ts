@@ -344,6 +344,8 @@ function activateEvalPackage(context: vscode.ExtensionContext) {
         const { inputPath, args } = createOpaEvalArgs(editor, pkg);
         args.push("--metrics");
 
+        provider.set(outputUri, "// Evaluating...", undefined);
+
         opa.run("opa", args, "data." + pkg, (stderr, result) => {
           setEvalOutput(provider, outputUri, stderr, result, inputPath, "data." + pkg);
         }, opaOutputShowError);
@@ -368,6 +370,8 @@ function activateEvalSelection(context: vscode.ExtensionContext) {
         args.push("--metrics");
 
         const text = editor.document.getText(editor.selection);
+
+        provider.set(outputUri, "// Evaluating...", undefined);
 
         opa.run("opa", args, text, (stderr, result) => {
           setEvalOutput(provider, outputUri, stderr, result, inputPath, text);
@@ -403,6 +407,8 @@ function activateEvalCoverage(context: vscode.ExtensionContext) {
         args.push("--coverage");
 
         const text = editor.document.getText(editor.selection);
+
+        provider.set(outputUri, "// Evaluating...", undefined);
 
         opa.run("opa", args, text, (stderr, result) => {
           setEvalOutput(provider, outputUri, stderr, result, inputPath, text);
