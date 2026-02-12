@@ -90,22 +90,28 @@ export async function activate(context: vscode.ExtensionContext) {
   // Register the tree data provider with Regal so it can receive explorer notifications
   setTreeDataProvider(opaTreeDataProvider);
 
+  // lint + eval + test
   activateCheckFile(context);
   activateCoverWorkspace(context);
+  activateEvalCoverage(context);
   activateEvalPackage(context);
   activateEvalSelection(context);
-  activateEvalCoverage(context);
+  activatePartialSelection(context);
+  activateProfileSelection(context);
   activateTestWorkspace(context);
   activateTraceSelection(context);
-  activateProfileSelection(context);
-  activatePartialSelection(context);
-  activateRestartRegalCommand(context, opaTreeDataProvider);
-  activateToggleDiagnosticsCommand(context);
+
+
+  // Compiler stages side panel
   activateRefreshTreeCommand(context, opaTreeDataProvider);
   activateExplorerCommand(context, opaTreeDataProvider);
   activateStageDiffCommand(context);
   activateShowPlanCommand(context);
   activateShowStageErrorCommand(context);
+
+  // regal binary related
+  activateRestartRegalCommand(context, opaTreeDataProvider);
+  activateToggleDiagnosticsCommand(context);
 
   // check for missing binaries and prompt to install them
   checkMissingBinaries();
