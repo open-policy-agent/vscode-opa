@@ -10,7 +10,7 @@
   "version": "0.21.0",
   "publisher": "tsandall",
   "engines": {
-    "vscode": "^1.108.0"
+    "vscode": "^1.109.0"
   },
   "categories": [
     "Programming Languages",
@@ -311,15 +311,15 @@
   },
   "devDependencies": {
     "@microsoft/eslint-formatter-sarif": "^3.1.0",
-    "@stylistic/eslint-plugin": "^5.7.1",
+    "@stylistic/eslint-plugin": "^5.8.0",
     "@types/command-exists": "^1.2.3",
     "@types/mocha": "10.0.10",
-    "@types/node": "25.2.0",
+    "@types/node": "25.2.2",
     "@types/semver": "^7.7.1",
-    "@types/vscode": "1.108.1",
-    "cspell": "^9.6.2",
+    "@types/vscode": "1.109.0",
+    "cspell": "^9.6.4",
     "dprint": "^0.51.1",
-    "eslint": "^9.39.2",
+    "eslint": "9.39.2",
     "markdownlint-cli2": "^0.20.0",
     "typescript": "^5.9.3",
     "typescript-eslint": "^8.54.0",
@@ -327,7 +327,7 @@
   },
   "dependencies": {
     "command-exists": "^1.2.9",
-    "semver": "^7.7.3",
+    "semver": "^7.7.4",
     "vscode-languageclient": "^9.0.1"
   },
   "__metadata": {
