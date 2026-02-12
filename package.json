@@ -32,7 +32,7 @@
         {
           "id": "opa-explorer",
           "title": "OPA",
-          "icon": "logo.png"
+          "icon": "opa-icon-color.png"
         }
       ]
     },
@@ -41,7 +41,7 @@
         {
           "id": "opaView",
           "name": "Explorer",
-          "icon": "logo.png"
+          "icon": "opa-icon-color.png"
         }
       ]
     },
