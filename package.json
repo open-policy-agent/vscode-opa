@@ -49,7 +49,7 @@
       "view/title": [
         {
           "command": "opa.view.refresh",
-          "when": "view == opaView",
+          "when": "view == opaView && opa.isRegoFile",
           "group": "navigation"
         }
       ],
@@ -121,8 +121,8 @@
       },
       {
         "command": "opa.view.refresh",
-        "title": "Refresh",
-        "icon": "$(refresh)"
+        "title": "Recompile",
+        "icon": "$(list-tree)"
       }
     ],
     "configuration": {

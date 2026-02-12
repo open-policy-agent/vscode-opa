@@ -50,8 +50,18 @@ export class CompilerStagesContentProvider implements vscode.TextDocumentContent
   }
 }
 
+function updateRegoFileContext(editor: vscode.TextEditor | undefined) {
+  const isRego = editor?.document.languageId === "rego";
+  vscode.commands.executeCommand("setContext", "opa.isRegoFile", isRego);
+}
+
 export async function activate(context: vscode.ExtensionContext) {
-  vscode.window.onDidChangeActiveTextEditor(showCoverageOnEditorChange, null, context.subscriptions);
+  updateRegoFileContext(vscode.window.activeTextEditor);
+  vscode.window.onDidChangeActiveTextEditor((editor) => {
+    updateRegoFileContext(editor);
+    showCoverageOnEditorChange(editor);
+  }, null, context.subscriptions);
+
   vscode.workspace.onDidChangeTextDocument(removeDecorationsOnDocumentChange, null, context.subscriptions);
 
   // Register the stage content provider for diff views
