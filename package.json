@@ -40,7 +40,7 @@
       "opa-explorer": [
         {
           "id": "opaView",
-          "name": "Explorer",
+          "name": "Compiler Explorer",
           "icon": "opa-icon-color.png"
         }
       ]
