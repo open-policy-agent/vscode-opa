@@ -6,8 +6,9 @@ import * as vscode from "vscode";
 
 import { BinaryConfig, installBinary, OPA_CONFIG, REGAL_CONFIG, resolveBinary } from "./binaries";
 import { activateDebugger } from "./da/activate";
-import { activateRegal, isRegalRunning, restartRegal, toggleRegalDiagnostics } from "./ls/clients/regal";
+import { activateRegal, isRegalRunning, restartRegal, setTreeDataProvider, toggleRegalDiagnostics } from "./ls/clients/regal";
 import * as opa from "./opa";
+import { OPATreeDataProvider } from "./tree/opaTreeProvider";
 import { getPrettyTime } from "./util";
 
 export const opaOutputChannel = vscode.window.createOutputChannel("OPA & Regal");
@@ -33,26 +34,95 @@ export class JSONProvider implements vscode.TextDocumentContentProvider {
   }
 }
 
-export function activate(context: vscode.ExtensionContext) {
-  vscode.window.onDidChangeActiveTextEditor(showCoverageOnEditorChange, null, context.subscriptions);
+export class CompilerStagesContentProvider implements vscode.TextDocumentContentProvider {
+  provideTextDocumentContent(uri: vscode.Uri): string {
+    try {
+      const query = uri.query;
+      if (!query) {
+        return "";
+      }
+      const data = JSON.parse(decodeURIComponent(query));
+      return data.content || "";
+    } catch (error) {
+      console.error("Failed to parse stage content:", error);
+      return "";
+    }
+  }
+}
+
+function updateRegoFileContext(editor: vscode.TextEditor | undefined) {
+  const isRego = editor?.document.languageId === "rego";
+  vscode.commands.executeCommand("setContext", "opa.isRegoFile", isRego);
+}
+
+export async function activate(context: vscode.ExtensionContext) {
+  updateRegoFileContext(vscode.window.activeTextEditor);
+  vscode.window.onDidChangeActiveTextEditor((editor) => {
+    updateRegoFileContext(editor);
+    showCoverageOnEditorChange(editor);
+  }, null, context.subscriptions);
+
   vscode.workspace.onDidChangeTextDocument(removeDecorationsOnDocumentChange, null, context.subscriptions);
 
+  // Register the stage content provider for diff views
+  const stageContentProvider = new CompilerStagesContentProvider();
+  context.subscriptions.push(
+    vscode.workspace.registerTextDocumentContentProvider("opa-stage", stageContentProvider),
+  );
+
+  const opaTreeDataProvider = new OPATreeDataProvider();
+  const treeView = vscode.window.createTreeView("opaView", {
+    treeDataProvider: opaTreeDataProvider,
+  });
+
+  // Pass tree view reference to the provider so it can reveal itself
+  opaTreeDataProvider.setTreeView(treeView);
+
+  // Handle checkbox state changes
+  treeView.onDidChangeCheckboxState(async (e) => {
+    for (const [item, state] of e.items) {
+      await opaTreeDataProvider.handleCheckboxChange(item, state);
+    }
+  });
+
+  context.subscriptions.push(treeView);
+
+  // Register the tree data provider with Regal so it can receive explorer notifications
+  setTreeDataProvider(opaTreeDataProvider);
+
+  // lint + eval + test
   activateCheckFile(context);
   activateCoverWorkspace(context);
+  activateEvalCoverage(context);
   activateEvalPackage(context);
   activateEvalSelection(context);
-  activateEvalCoverage(context);
+  activatePartialSelection(context);
+  activateProfileSelection(context);
   activateTestWorkspace(context);
   activateTraceSelection(context);
-  activateProfileSelection(context);
-  activatePartialSelection(context);
-  activateRestartRegalCommand(context);
+
+
+  // Compiler stages side panel
+  activateRefreshTreeCommand(context, opaTreeDataProvider);
+  activateExplorerCommand(context, opaTreeDataProvider);
+  activateStageDiffCommand(context);
+  activateShowPlanCommand(context);
+  activateShowStageErrorCommand(context);
+
+  // regal binary related
+  activateRestartRegalCommand(context, opaTreeDataProvider);
   activateToggleDiagnosticsCommand(context);
 
   // check for missing binaries and prompt to install them
   checkMissingBinaries();
-  // start Regal language server
-  activateRegal();
+  
+  // start Regal language server and wire up the client
+  const client = await activateRegal();
+  if (client) {
+    opaTreeDataProvider.setLanguageClient(client);
+    opaTreeDataProvider.refresh();
+  }
+
   // activate the debugger
   activateDebugger(context);
 
@@ -60,10 +130,14 @@ export function activate(context: vscode.ExtensionContext) {
   // the manual running of a command
   opa.runWithStatus("opa", ["version"], "", (_code: number, _stderr: string, _stdout: string) => {});
 
-  vscode.workspace.onDidChangeConfiguration((_event) => {
+  vscode.workspace.onDidChangeConfiguration(async (_event) => {
     // activateRegal is run here to catch newly installed language servers,
     // after their paths are updated.
-    activateRegal();
+    const client = await activateRegal();
+    if (client) {
+      opaTreeDataProvider.setLanguageClient(client);
+      opaTreeDataProvider.refresh();
+    }
     activateDebugger(context);
   });
 }
@@ -573,9 +647,13 @@ function activatePartialSelection(context: vscode.ExtensionContext) {
   context.subscriptions.push(partialSelectionCommand);
 }
 
-function activateRestartRegalCommand(context: vscode.ExtensionContext) {
-  const restartRegalCommand = vscode.commands.registerCommand("opa.regal.restart", () => {
-    restartRegal();
+function activateRestartRegalCommand(context: vscode.ExtensionContext, treeDataProvider: OPATreeDataProvider) {
+  const restartRegalCommand = vscode.commands.registerCommand("opa.regal.restart", async () => {
+    const client = await restartRegal();
+    if (client) {
+      treeDataProvider.setLanguageClient(client);
+      treeDataProvider.refresh();
+    }
   });
 
   context.subscriptions.push(restartRegalCommand);
@@ -589,6 +667,148 @@ function activateToggleDiagnosticsCommand(context: vscode.ExtensionContext) {
   });
 
   context.subscriptions.push(toggleDiagnosticsCommand);
+}
+
+function activateRefreshTreeCommand(context: vscode.ExtensionContext, treeDataProvider: OPATreeDataProvider) {
+  const refreshTreeCommand = vscode.commands.registerCommand("opa.view.refresh", async () => {
+    const editor = vscode.window.activeTextEditor;
+    if (editor && editor.document.languageId === "rego") {
+      await treeDataProvider.triggerExplorer(editor.document.uri.toString());
+    } else {
+      treeDataProvider.refresh();
+    }
+  });
+
+  context.subscriptions.push(refreshTreeCommand);
+}
+
+function activateExplorerCommand(context: vscode.ExtensionContext, treeDataProvider: OPATreeDataProvider) {
+  const explorerCommand = vscode.commands.registerCommand("opa.explorer", async () => {
+    const editor = vscode.window.activeTextEditor;
+    if (!editor) {
+      vscode.window.showErrorMessage("No active editor");
+      return;
+    }
+
+    if (editor.document.languageId !== "rego") {
+      vscode.window.showErrorMessage("Active editor is not a Rego file");
+      return;
+    }
+
+    await treeDataProvider.triggerExplorer(editor.document.uri.toString());
+  });
+
+  context.subscriptions.push(explorerCommand);
+}
+
+function activateStageDiffCommand(context: vscode.ExtensionContext) {
+  const stageDiffCommand = vscode.commands.registerCommand(
+    "opa.showStageDiff",
+    async (stageIndex: number, explorerResult: any) => {
+      if (!explorerResult || !explorerResult.stages) {
+        vscode.window.showErrorMessage("No explorer results available");
+        return;
+      }
+
+      const stages = explorerResult.stages;
+      const currentStage = stages[stageIndex];
+
+      if (!currentStage) {
+        vscode.window.showErrorMessage(`Stage ${stageIndex} not found`);
+        return;
+      }
+
+      // Get the previous stage output (or original source for the first stage)
+      let previousContent: string;
+      let previousLabel: string;
+
+      if (stageIndex === 0) {
+        // For the first stage, show the original source vs the first transformation
+        const editor = vscode.window.activeTextEditor;
+        if (editor && editor.document.languageId === "rego") {
+          previousContent = editor.document.getText();
+          previousLabel = "Original";
+        } else {
+          previousContent = "";
+          previousLabel = "Input";
+        }
+      } else {
+        previousContent = stages[stageIndex - 1].output;
+        previousLabel = stages[stageIndex - 1].name;
+      }
+
+      const currentContent = currentStage.output;
+      const currentLabel = currentStage.name;
+
+      // Create URIs for the diff view
+      const previousUri = vscode.Uri.parse(
+        `opa-stage:previous-${stageIndex}.rego?${encodeURIComponent(JSON.stringify({ content: previousContent }))}`,
+      );
+      const currentUri = vscode.Uri.parse(
+        `opa-stage:current-${stageIndex}.rego?${encodeURIComponent(JSON.stringify({ content: currentContent }))}`,
+      );
+
+      // Open diff editor
+      await vscode.commands.executeCommand(
+        "vscode.diff",
+        previousUri,
+        currentUri,
+        `${previousLabel} ↔ ${currentLabel}`,
+      );
+    },
+  );
+
+  context.subscriptions.push(stageDiffCommand);
+}
+
+function activateShowPlanCommand(context: vscode.ExtensionContext) {
+  const showPlanCommand = vscode.commands.registerCommand(
+    "opa.showPlan",
+    async (planContent: string) => {
+      if (!planContent) {
+        vscode.window.showErrorMessage("No plan content available");
+        return;
+      }
+
+      const uri = vscode.Uri.parse(
+        `opa-stage:ir-plan.txt?${encodeURIComponent(JSON.stringify({ content: planContent }))}`,
+      );
+
+      const doc = await vscode.workspace.openTextDocument(uri);
+
+      await vscode.window.showTextDocument(doc, {
+        viewColumn: vscode.ViewColumn.Beside,
+        preview: true,
+      });
+    },
+  );
+
+  context.subscriptions.push(showPlanCommand);
+}
+
+function activateShowStageErrorCommand(context: vscode.ExtensionContext) {
+  const showStageErrorCommand = vscode.commands.registerCommand(
+    "opa.showStageError",
+    async (stageName: string, errorContent: string) => {
+      if (!errorContent) {
+        vscode.window.showErrorMessage("No error content available");
+        return;
+      }
+
+      const uri = vscode.Uri.parse(
+        `opa-stage:${stageName}-error.txt?${encodeURIComponent(JSON.stringify({ content: errorContent }))}`,
+      );
+
+      const doc = await vscode.workspace.openTextDocument(uri);
+
+      await vscode.window.showTextDocument(doc, {
+        viewColumn: vscode.ViewColumn.Beside,
+        preview: true,
+      });
+    },
+  );
+
+  context.subscriptions.push(showStageErrorCommand);
 }
 
 function onActiveWorkspaceEditor(
@@ -806,10 +1026,10 @@ function checkMissingBinaries() {
           if (hasRegalBinary) {
             if (isRegalRunning()) {
               opaOutputChannel.appendLine("Regal is running, restarting with new binary...");
-              restartRegal();
+              await restartRegal();
             } else {
               opaOutputChannel.appendLine("Starting Regal with newly installed binary...");
-              activateRegal();
+              await activateRegal();
             }
           }
         }

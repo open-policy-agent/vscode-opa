@@ -27,7 +27,32 @@
   ],
   "main": "./out/extension",
   "contributes": {
+    "viewsContainers": {
+      "activitybar": [
+        {
+          "id": "opa-explorer",
+          "title": "OPA",
+          "icon": "opa-icon-color.png"
+        }
+      ]
+    },
+    "views": {
+      "opa-explorer": [
+        {
+          "id": "opaView",
+          "name": "Compiler Explorer",
+          "icon": "opa-icon-color.png"
+        }
+      ]
+    },
     "menus": {
+      "view/title": [
+        {
+          "command": "opa.view.refresh",
+          "when": "view == opaView && opa.isRegoFile",
+          "group": "navigation"
+        }
+      ],
       "editor/title/run": [
         {
           "command": "opa.debug.debugWorkspace",
@@ -93,6 +118,11 @@
       {
         "command": "opa.regal.toggleDiagnostics",
         "title": "OPA: Toggle Regal Linting"
+      },
+      {
+        "command": "opa.view.refresh",
+        "title": "Recompile",
+        "icon": "$(list-tree)"
       }
     ],
     "configuration": {

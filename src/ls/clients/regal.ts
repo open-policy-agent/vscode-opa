@@ -21,11 +21,14 @@ import {
   opaOutputChannel,
   removeDecorations,
 } from "../../extension";
+import type { ExplorerResult } from "../../tree/opaTreeProvider";
+import type { OPATreeDataProvider } from "../../tree/opaTreeProvider";
 
 let client: LanguageClient;
 let clientLock = false;
 let regalShowDiagnostics = true;
 const activeDebugSessions: Map<string, void> = new Map();
+let treeDataProvider: OPATreeDataProvider | undefined;
 
 export function toggleRegalDiagnostics(): boolean {
   regalShowDiagnostics = !regalShowDiagnostics;
@@ -67,9 +70,9 @@ class debuggableMessageStrategy {
   }
 }
 
-export function activateRegal() {
+export async function activateRegal(): Promise<LanguageClient | undefined> {
   if (clientLock) {
-    return;
+    return undefined;
   }
   clientLock = true;
 
@@ -78,11 +81,12 @@ export function activateRegal() {
   // Validate binary availability
   if (!binaryInfo.path) {
     clientLock = false;
-    return;
+    return undefined;
   }
 
   if (binaryInfo.version === "missing") {
-    return;
+    clientLock = false;
+    return undefined;
   }
 
   // Validate minimum version if specified
@@ -91,7 +95,8 @@ export function activateRegal() {
       opaOutputChannel.appendLine(
         `${REGAL_CONFIG.name}: service could not be started - version ${binaryInfo.version} is below minimum ${REGAL_CONFIG.minimumVersion}`,
       );
-      return;
+      clientLock = false;
+      return undefined;
     }
   }
 
@@ -175,12 +180,25 @@ export function activateRegal() {
 
   client.onRequest<void, ShowEvalResultParams>("regal/showEvalResult", handleRegalShowEvalResult);
   client.onRequest<void, vscode.DebugConfiguration>("regal/startDebugging", handleDebug);
+  client.onNotification("regal/showExplorerResult", handleRegalShowExplorerResult);
 
   vscode.debug.onDidTerminateDebugSession((session) => {
     activeDebugSessions.delete(session.name);
   });
 
-  client.start();
+  await client.start();
+
+  return client;
+}
+
+export function setTreeDataProvider(provider: OPATreeDataProvider): void {
+  treeDataProvider = provider;
+}
+
+function handleRegalShowExplorerResult(result: ExplorerResult) {
+  if (treeDataProvider) {
+    treeDataProvider.setExplorerResult(result);
+  }
 }
 
 export function deactivateRegal(): Thenable<void> | undefined {
@@ -196,36 +214,29 @@ export function isRegalRunning(): boolean {
   return client && client.state === State.Running;
 }
 
-export function restartRegal() {
+
+export async function restartRegal(): Promise<LanguageClient | undefined> {
   // Check if Regal binary is available before attempting restart
   const binaryInfo = resolveBinary(REGAL_CONFIG, "regal");
   if (!binaryInfo.path || binaryInfo.version === "missing") {
     opaOutputChannel.appendLine("Error: Cannot restart Regal language server - Regal binary is not available");
-    return;
+    return undefined;
   }
 
   // Only restart if Regal is currently running or if we have a client instance
   if (!client) {
     opaOutputChannel.appendLine("Starting Regal language server...");
-    activateRegal();
-    return;
+    return await activateRegal();
   }
 
   opaOutputChannel.appendLine("Restarting Regal language server...");
 
   const stopPromise = deactivateRegal();
-
   if (stopPromise) {
-    stopPromise.then(() => {
-      setTimeout(() => {
-        activateRegal();
-      }, 100);
-    });
-  } else {
-    setTimeout(() => {
-      activateRegal();
-    }, 100);
+    await stopPromise;
   }
+
+  return await activateRegal();
 }
 
 interface ShowEvalResultParams {
