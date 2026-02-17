@@ -1,5 +1,6 @@
 import * as vscode from "vscode";
 import type { LanguageClient } from "vscode-languageclient/node";
+import type { RegalServerCustomCapabilities } from "../ls/clients/regal";
 
 export interface ExplorerParams {
   target: string;
@@ -71,6 +72,7 @@ export class OPATreeDataProvider implements vscode.TreeDataProvider<OPATreeItem>
   private explorerResult?: ExplorerResult;
   private lastDocumentUri?: string;
   private treeView?: vscode.TreeView<OPATreeItem>;
+  private customCapabilities?: RegalServerCustomCapabilities;
   private explorerConfig = {
     strict: false,
     annotations: true,
@@ -86,6 +88,10 @@ export class OPATreeDataProvider implements vscode.TreeDataProvider<OPATreeItem>
 
   setTreeView(treeView: vscode.TreeView<OPATreeItem>): void {
     this.treeView = treeView;
+  }
+
+  setServerCustomCapabilities(capabilities: RegalServerCustomCapabilities): void {
+    this.customCapabilities = capabilities;
   }
 
   setExplorerResult(result: ExplorerResult): void {
@@ -231,56 +237,74 @@ export class OPATreeDataProvider implements vscode.TreeDataProvider<OPATreeItem>
   private async getRootElements(): Promise<OPATreeItem[]> {
     const items: OPATreeItem[] = [];
 
-    if (vscode.workspace.workspaceFolders && vscode.workspace.workspaceFolders.length > 0) {
-      const workspaceFolder = vscode.workspace.workspaceFolders[0];
-      if (!workspaceFolder) {
-        return items;
-      }
+    if (!vscode.workspace.workspaceFolders || vscode.workspace.workspaceFolders.length === 0) {
+      return items;
+    }
 
-      // Add configuration options
+    if (!this.customCapabilities?.explorerProvider) {
       items.push(
         new OPATreeItem(
-          "Configuration",
-          vscode.TreeItemCollapsibleState.Collapsed,
+          "Explorer Not Available",
+          vscode.TreeItemCollapsibleState.None,
           {
-            itemType: "config-group",
-            iconPath: new vscode.ThemeIcon("settings-gear"),
+            description: "Requires Regal v0.39.0 or newer",
+            iconPath: new vscode.ThemeIcon("warning"),
+          },
+        ),
+      );
+      return items;
+    }
+
+    const workspaceFolder = vscode.workspace.workspaceFolders[0];
+    if (!workspaceFolder) {
+      return items;
+    }
+
+    // Add configuration options section
+    items.push(
+      new OPATreeItem(
+        "Configuration",
+        vscode.TreeItemCollapsibleState.Collapsed,
+        {
+          itemType: "config-group",
+          iconPath: new vscode.ThemeIcon("settings-gear"),
+        },
+      ),
+    );
+
+    // Add explorer results section, if available
+    if (this.explorerResult && this.explorerResult.stages && this.explorerResult.stages.length > 0) {
+      items.push(
+        new OPATreeItem(
+          "Compilation Stages",
+          vscode.TreeItemCollapsibleState.Expanded,
+          {
+            itemType: "stages",
+            description: `${this.explorerResult.stages.length} stage${
+              this.explorerResult.stages.length === 1 ? "" : "s"
+            }`,
+            iconPath: new vscode.ThemeIcon("layers"),
           },
         ),
       );
 
-      // Add explorer results if available
-      if (this.explorerResult && this.explorerResult.stages && this.explorerResult.stages.length > 0) {
+      if (this.explorerResult.plan) {
         items.push(
           new OPATreeItem(
-            "Compilation Stages",
-            vscode.TreeItemCollapsibleState.Expanded,
+            "IR Plan",
+            vscode.TreeItemCollapsibleState.None,
             {
-              itemType: "stages",
-              description: `${this.explorerResult.stages.length} stage${this.explorerResult.stages.length === 1 ? "" : "s"}`,
-              iconPath: new vscode.ThemeIcon("layers"),
+              itemType: "plan",
+              description: "Intermediate Representation",
+              iconPath: new vscode.ThemeIcon("symbol-namespace"),
+              command: {
+                command: "opa.showPlan",
+                title: "Show IR Plan",
+                arguments: [this.explorerResult.plan],
+              },
             },
           ),
         );
-
-        if (this.explorerResult.plan) {
-          items.push(
-            new OPATreeItem(
-              "IR Plan",
-              vscode.TreeItemCollapsibleState.None,
-              {
-                itemType: "plan",
-                description: "Intermediate Representation",
-                iconPath: new vscode.ThemeIcon("symbol-namespace"),
-                command: {
-                  command: "opa.showPlan",
-                  title: "Show IR Plan",
-                  arguments: [this.explorerResult.plan],
-                },
-              },
-            ),
-          );
-        }
       }
     }
 
@@ -288,6 +312,11 @@ export class OPATreeDataProvider implements vscode.TreeDataProvider<OPATreeItem>
   }
 
   async triggerExplorer(documentUri: string): Promise<void> {
+    if (!this.customCapabilities?.explorerProvider) {
+      vscode.window.showErrorMessage("Explorer feature requires Regal v0.39.0 or newer");
+      return;
+    }
+
     if (!this.client) {
       vscode.window.showErrorMessage("Regal language server is not available");
       return;

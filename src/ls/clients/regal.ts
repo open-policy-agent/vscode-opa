@@ -24,6 +24,39 @@ import {
 import type { ExplorerResult } from "../../tree/opaTreeProvider";
 import type { OPATreeDataProvider } from "../../tree/opaTreeProvider";
 
+export interface RegalServerCustomCapabilities {
+  explorerProvider: boolean;
+  inlineEvalProvider: boolean;
+  debugProvider: boolean;
+}
+
+// RegalClientActivationOptions is intended to be represent how the client
+// should be set up to interact with the server.
+export interface RegalClientActivationOptions {
+  // featureFlags can be used to control the client-side implementation of
+  // custom Regal LSP features. This is separate from the server side
+  // capabilities.
+  featureFlags: {
+    enableExplorer: boolean;
+    enableInlineEval: boolean;
+    enableDebug: boolean;
+  };
+}
+
+function extractServerCustomCapabilities(
+  client: LanguageClient,
+): RegalServerCustomCapabilities {
+  // 'experimental' is LSP terminology, we are using these more as 'custom', or
+  // just additional features we are building that are not in the core spec.
+  const experimental = client.initializeResult?.capabilities?.experimental;
+
+  return {
+    explorerProvider: experimental?.explorerProvider ?? false,
+    inlineEvalProvider: experimental?.inlineEvalProvider ?? false,
+    debugProvider: experimental?.debugProvider ?? false,
+  };
+}
+
 let client: LanguageClient;
 let clientLock = false;
 let regalShowDiagnostics = true;
@@ -70,7 +103,12 @@ class debuggableMessageStrategy {
   }
 }
 
-export async function activateRegal(): Promise<LanguageClient | undefined> {
+export async function activateRegal(
+  options: RegalClientActivationOptions,
+): Promise<
+  | { client: LanguageClient; capabilities: RegalServerCustomCapabilities }
+  | undefined
+> {
   if (clientLock) {
     return undefined;
   }
@@ -125,7 +163,11 @@ export async function activateRegal(): Promise<LanguageClient | undefined> {
       messageStrategy: new debuggableMessageStrategy(),
     },
     errorHandler: {
-      error: (error: Error, message: Message, _count: number): ErrorHandlerResult => {
+      error: (
+        error: Error,
+        message: Message,
+        _count: number,
+      ): ErrorHandlerResult => {
         console.error(error);
         console.error(message);
         return {
@@ -150,18 +192,24 @@ export async function activateRegal(): Promise<LanguageClient | undefined> {
       onSave: true,
     },
     initializationOptions: {
-      formatter: vscode.workspace.getConfiguration("opa").get<string>("formatter", "opa-fmt"),
+      formatter: vscode.workspace
+        .getConfiguration("opa")
+        .get<string>("formatter", "opa-fmt"),
       // These options are passed to the Regal language server to signal the
-      // capabilities of the client. Since VSCode and vscode-opa supports both
-      // inline evaluation results and live debugging, both are enabled and are
-      // not configurable.
-      evalCodelensDisplayInline: true,
-      enableDebugCodelens: true,
+      // capabilities of the client. Feature flags control which custom
+      // features are enabled.
+      evalCodelensDisplayInline: options.featureFlags.enableInlineEval,
+      enableDebugCodelens: options.featureFlags.enableDebug,
+      enableExplorer: options.featureFlags.enableExplorer,
     },
     middleware: {
       // Users can toggle linting on/off using the "OPA: Toggle Regal Linting" command.
       // When disabled, diagnostics are suppressed by returning an empty array.
-      handleDiagnostics: (uri: vscode.Uri, diagnostics: vscode.Diagnostic[], next: (uri: vscode.Uri, diagnostics: vscode.Diagnostic[]) => void) => {
+      handleDiagnostics: (
+        uri: vscode.Uri,
+        diagnostics: vscode.Diagnostic[],
+        next: (uri: vscode.Uri, diagnostics: vscode.Diagnostic[]) => void,
+      ) => {
         if (regalShowDiagnostics) {
           next(uri, diagnostics);
         } else {
@@ -178,17 +226,50 @@ export async function activateRegal(): Promise<LanguageClient | undefined> {
     clientOptions,
   );
 
-  client.onRequest<void, ShowEvalResultParams>("regal/showEvalResult", handleRegalShowEvalResult);
-  client.onRequest<void, vscode.DebugConfiguration>("regal/startDebugging", handleDebug);
-  client.onNotification("regal/showExplorerResult", handleRegalShowExplorerResult);
+  await client.start();
 
-  vscode.debug.onDidTerminateDebugSession((session) => {
+  const capabilities = extractServerCustomCapabilities(client);
+
+  opaOutputChannel.appendLine(
+    `Regal capabilities: explorer=${capabilities.explorerProvider}, inlineEval=${capabilities.inlineEvalProvider}, debug=${capabilities.debugProvider}`,
+  );
+
+  if (
+    capabilities.inlineEvalProvider
+    && options.featureFlags.enableInlineEval
+  ) {
+    client.onRequest<void, ShowEvalResultParams>(
+      "regal/showEvalResult",
+      handleRegalShowEvalResult,
+    );
+  }
+
+  if (capabilities.debugProvider && options.featureFlags.enableDebug) {
+    client.onRequest<void, vscode.DebugConfiguration>(
+      "regal/startDebugging",
+      handleDebug,
+    );
+  }
+
+  if (capabilities.explorerProvider && options.featureFlags.enableExplorer) {
+    client.onNotification(
+      "regal/showExplorerResult",
+      handleRegalShowExplorerResult,
+    );
+  }
+
+  vscode.debug.onDidTerminateDebugSession(session => {
     activeDebugSessions.delete(session.name);
   });
 
-  await client.start();
+  // Compute effective capabilities: feature is enabled if BOTH option is true AND server supports it
+  const effectiveCapabilities = {
+    explorerProvider: capabilities.explorerProvider && options.featureFlags.enableExplorer,
+    inlineEvalProvider: capabilities.inlineEvalProvider && options.featureFlags.enableInlineEval,
+    debugProvider: capabilities.debugProvider && options.featureFlags.enableDebug,
+  };
 
-  return client;
+  return { client, capabilities: effectiveCapabilities };
 }
 
 export function setTreeDataProvider(provider: OPATreeDataProvider): void {
@@ -214,19 +295,25 @@ export function isRegalRunning(): boolean {
   return client && client.state === State.Running;
 }
 
-
-export async function restartRegal(): Promise<LanguageClient | undefined> {
+export async function restartRegal(
+  options: RegalClientActivationOptions,
+): Promise<
+  | { client: LanguageClient; capabilities: RegalServerCustomCapabilities }
+  | undefined
+> {
   // Check if Regal binary is available before attempting restart
   const binaryInfo = resolveBinary(REGAL_CONFIG, "regal");
   if (!binaryInfo.path || binaryInfo.version === "missing") {
-    opaOutputChannel.appendLine("Error: Cannot restart Regal language server - Regal binary is not available");
+    opaOutputChannel.appendLine(
+      "Error: Cannot restart Regal language server - Regal binary is not available",
+    );
     return undefined;
   }
 
   // Only restart if Regal is currently running or if we have a client instance
   if (!client) {
     opaOutputChannel.appendLine("Starting Regal language server...");
-    return await activateRegal();
+    return await activateRegal(options);
   }
 
   opaOutputChannel.appendLine("Restarting Regal language server...");
@@ -236,7 +323,7 @@ export async function restartRegal(): Promise<LanguageClient | undefined> {
     await stopPromise;
   }
 
-  return await activateRegal();
+  return await activateRegal(options);
 }
 
 interface ShowEvalResultParams {
@@ -272,11 +359,13 @@ function handleDebug(params: vscode.DebugConfiguration) {
   }
 
   if (activeDebugSessions.has(params.name)) {
-    vscode.window.showErrorMessage("Debug session for '" + params.name + "' already active");
+    vscode.window.showErrorMessage(
+      "Debug session for '" + params.name + "' already active",
+    );
     return;
   }
 
-  vscode.debug.startDebugging(undefined, params).then((success) => {
+  vscode.debug.startDebugging(undefined, params).then(success => {
     if (success) {
       activeDebugSessions.set(params.name, undefined);
     }
@@ -319,7 +408,12 @@ function handleRegalShowEvalResult(params: ShowEvalResultParams) {
     );
   }
 
-  handlePrintOutputDecoration(params, activeEditor, decorationOptions, truncateThreshold);
+  handlePrintOutputDecoration(
+    params,
+    activeEditor,
+    decorationOptions,
+    truncateThreshold,
+  );
 
   const wf = vscode.workspace.getWorkspaceFolder(activeEditor.document.uri);
 
@@ -331,12 +425,16 @@ function handleRegalShowEvalResult(params: ShowEvalResultParams) {
       path = vscode.Uri.parse(uri).fsPath;
     }
 
-    Object.keys(items).map(Number).forEach((line) => {
-      const lineItems = items[line];
-      if (lineItems) {
-        opaOutputChannel.appendLine(`🖨️ ${path}:${line} => ${lineItems.join(" => ")}`);
-      }
-    });
+    Object.keys(items)
+      .map(Number)
+      .forEach(line => {
+        const lineItems = items[line];
+        if (lineItems) {
+          opaOutputChannel.appendLine(
+            `🖨️ ${path}:${line} => ${lineItems.join(" => ")}`,
+          );
+        }
+      });
   }
 
   // Always set the base decoration, containing the result message and after text
@@ -361,7 +459,8 @@ function createMessages(params: ShowEvalResultParams) {
   } else if (typeof params.result.value === "object") {
     // Handle objects (including arrays)
     const formattedValue = JSON.stringify(params.result.value, null, 2);
-    attachmentMessage = formattedValue.replace(/\n\s*/g, " ")
+    attachmentMessage = formattedValue
+      .replace(/\n\s*/g, " ")
       .replace(/(\{|\[)\s/g, "$1")
       .replace(/\s(\}|\])/g, "$1");
     const code = makeCode("json", formattedValue);
@@ -393,10 +492,15 @@ function handlePackageDecoration(
   // To avoid horizontal scroll for large outputs, we ask users to hover for the full result
   if (lineLength + attachmentMessage.length > truncateThreshold) {
     const suffix = "... (hover for result)";
-    attachmentMessage = attachmentMessage.substring(0, truncateThreshold - lineLength - suffix.length) + suffix;
+    attachmentMessage = attachmentMessage.substring(
+      0,
+      truncateThreshold - lineLength - suffix.length,
+    ) + suffix;
   }
 
-  decorationOptions.push(createDecoration(line, lineLength, hoverMessage, attachmentMessage));
+  decorationOptions.push(
+    createDecoration(line, lineLength, hoverMessage, attachmentMessage),
+  );
 
   const packageIndex = documentLine.text.indexOf(params.package);
   const startChar = packageIndex > 0 ? packageIndex : 0;
@@ -404,7 +508,10 @@ function handlePackageDecoration(
 
   // Highlight only the target name with a color, displayed in addition to the whole line decoration
   targetDecorationOptions.push({
-    range: new vscode.Range(new vscode.Position(line, startChar), new vscode.Position(line, endChar)),
+    range: new vscode.Range(
+      new vscode.Position(line, startChar),
+      new vscode.Position(line, endChar),
+    ),
   });
 }
 
@@ -417,7 +524,7 @@ function handleRuleHeadsDecoration(
   hoverMessage: string,
   truncateThreshold: number,
 ) {
-  params.rule_head_locations.forEach((location) => {
+  params.rule_head_locations.forEach(location => {
     const line = location.row - 1;
     const documentLine = activeEditor.document.lineAt(line);
     const lineLength = documentLine.text.length;
@@ -425,10 +532,15 @@ function handleRuleHeadsDecoration(
     // To avoid horizontal scroll for large outputs, we ask users to hover for the full result
     if (lineLength + attachmentMessage.length > truncateThreshold) {
       const suffix = "... (hover for result)";
-      attachmentMessage = attachmentMessage.substring(0, truncateThreshold - lineLength - suffix.length) + suffix;
+      attachmentMessage = attachmentMessage.substring(
+        0,
+        truncateThreshold - lineLength - suffix.length,
+      ) + suffix;
     }
 
-    decorationOptions.push(createDecoration(line, lineLength, hoverMessage, attachmentMessage));
+    decorationOptions.push(
+      createDecoration(line, lineLength, hoverMessage, attachmentMessage),
+    );
 
     const startChar = location.col - 1;
     const endChar = documentLine.text.includes(params.target)
@@ -437,7 +549,10 @@ function handleRuleHeadsDecoration(
 
     // Highlight only the target name with a color, displayed in addition to the whole line decoration
     targetDecorationOptions.push({
-      range: new vscode.Range(new vscode.Position(line, startChar), new vscode.Position(line, endChar)),
+      range: new vscode.Range(
+        new vscode.Position(line, startChar),
+        new vscode.Position(line, endChar),
+      ),
     });
   });
 }
@@ -455,34 +570,44 @@ function handlePrintOutputDecoration(
     return;
   }
 
-  Object.keys(printOutput).map(Number).forEach((line) => {
-    const lineOutput = printOutput[line];
-    if (!lineOutput) return;
+  Object.keys(printOutput)
+    .map(Number)
+    .forEach(line => {
+      const lineOutput = printOutput[line];
+      if (!lineOutput) return;
 
-    const lineLength = activeEditor.document.lineAt(line).text.length;
-    const joinedLines = lineOutput.join("\n");
+      const lineLength = activeEditor.document.lineAt(line).text.length;
+      const joinedLines = lineOutput.join("\n");
 
-    // Pre-block formatting fails if there are over 100k chars
-    const hoverText = joinedLines.length < 100000 ? makeCode("text", joinedLines) : joinedLines;
-    const hoverMessage = "### Print Output\n\n" + hoverText;
+      // Pre-block formatting fails if there are over 100k chars
+      const hoverText = joinedLines.length < 100000
+        ? makeCode("text", joinedLines)
+        : joinedLines;
+      const hoverMessage = "### Print Output\n\n" + hoverText;
 
-    let attachmentMessage = ` 🖨️ => ${lineOutput.join(" => ")}`;
-    if (lineLength + attachmentMessage.length > truncateThreshold) {
-      const suffix = "... (hover for result)";
-      attachmentMessage = attachmentMessage.substring(0, truncateThreshold - lineLength - suffix.length) + suffix;
-    }
+      let attachmentMessage = ` 🖨️ => ${lineOutput.join(" => ")}`;
+      if (lineLength + attachmentMessage.length > truncateThreshold) {
+        const suffix = "... (hover for result)";
+        attachmentMessage = attachmentMessage.substring(
+          0,
+          truncateThreshold - lineLength - suffix.length,
+        ) + suffix;
+      }
 
-    decorationOptions.push({
-      range: new vscode.Range(new vscode.Position(line - 1, 0), new vscode.Position(line - 1, lineLength)),
-      hoverMessage: hoverMessage,
-      renderOptions: {
-        after: {
-          contentText: attachmentMessage,
-          color: new vscode.ThemeColor("editorLineNumber.foreground"),
+      decorationOptions.push({
+        range: new vscode.Range(
+          new vscode.Position(line - 1, 0),
+          new vscode.Position(line - 1, lineLength),
+        ),
+        hoverMessage: hoverMessage,
+        renderOptions: {
+          after: {
+            contentText: attachmentMessage,
+            color: new vscode.ThemeColor("editorLineNumber.foreground"),
+          },
         },
-      },
+      });
     });
-  });
 }
 
 function createDecoration(
@@ -493,7 +618,10 @@ function createDecoration(
 ): vscode.DecorationOptions {
   // Create base decoration options for a line
   return {
-    range: new vscode.Range(new vscode.Position(line, 0), new vscode.Position(line, lineLength)),
+    range: new vscode.Range(
+      new vscode.Position(line, 0),
+      new vscode.Position(line, lineLength),
+    ),
     hoverMessage: hoverMessage,
     renderOptions: {
       after: {
