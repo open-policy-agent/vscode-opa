@@ -6,12 +6,28 @@ import * as vscode from "vscode";
 
 import { BinaryConfig, installBinary, OPA_CONFIG, REGAL_CONFIG, resolveBinary } from "./binaries";
 import { activateDebugger } from "./da/activate";
-import { activateRegal, isRegalRunning, restartRegal, setTreeDataProvider, toggleRegalDiagnostics } from "./ls/clients/regal";
+import {
+  activateRegal,
+  isRegalRunning,
+  RegalClientActivationOptions,
+  restartRegal,
+  setTreeDataProvider,
+  toggleRegalDiagnostics,
+} from "./ls/clients/regal";
 import * as opa from "./opa";
 import { OPATreeDataProvider } from "./tree/opaTreeProvider";
 import { getPrettyTime } from "./util";
 
 export const opaOutputChannel = vscode.window.createOutputChannel("OPA & Regal");
+
+// Feature flags for custom Regal-backed features, all on by default
+const regalOptions: RegalClientActivationOptions = {
+  featureFlags: {
+    enableExplorer: true,
+    enableInlineEval: true,
+    enableDebug: true,
+  },
+};
 
 export class JSONProvider implements vscode.TextDocumentContentProvider {
   private _onDidChange = new vscode.EventEmitter<vscode.Uri>();
@@ -57,17 +73,28 @@ function updateRegoFileContext(editor: vscode.TextEditor | undefined) {
 
 export async function activate(context: vscode.ExtensionContext) {
   updateRegoFileContext(vscode.window.activeTextEditor);
-  vscode.window.onDidChangeActiveTextEditor((editor) => {
-    updateRegoFileContext(editor);
-    showCoverageOnEditorChange(editor);
-  }, null, context.subscriptions);
+  vscode.window.onDidChangeActiveTextEditor(
+    editor => {
+      updateRegoFileContext(editor);
+      showCoverageOnEditorChange(editor);
+    },
+    null,
+    context.subscriptions,
+  );
 
-  vscode.workspace.onDidChangeTextDocument(removeDecorationsOnDocumentChange, null, context.subscriptions);
+  vscode.workspace.onDidChangeTextDocument(
+    removeDecorationsOnDocumentChange,
+    null,
+    context.subscriptions,
+  );
 
   // Register the stage content provider for diff views
   const stageContentProvider = new CompilerStagesContentProvider();
   context.subscriptions.push(
-    vscode.workspace.registerTextDocumentContentProvider("opa-stage", stageContentProvider),
+    vscode.workspace.registerTextDocumentContentProvider(
+      "opa-stage",
+      stageContentProvider,
+    ),
   );
 
   const opaTreeDataProvider = new OPATreeDataProvider();
@@ -79,7 +106,7 @@ export async function activate(context: vscode.ExtensionContext) {
   opaTreeDataProvider.setTreeView(treeView);
 
   // Handle checkbox state changes
-  treeView.onDidChangeCheckboxState(async (e) => {
+  treeView.onDidChangeCheckboxState(async e => {
     for (const [item, state] of e.items) {
       await opaTreeDataProvider.handleCheckboxChange(item, state);
     }
@@ -101,10 +128,8 @@ export async function activate(context: vscode.ExtensionContext) {
   activateTestWorkspace(context);
   activateTraceSelection(context);
 
-
   // Compiler stages side panel
   activateRefreshTreeCommand(context, opaTreeDataProvider);
-  activateExplorerCommand(context, opaTreeDataProvider);
   activateStageDiffCommand(context);
   activateShowPlanCommand(context);
   activateShowStageErrorCommand(context);
@@ -115,12 +140,19 @@ export async function activate(context: vscode.ExtensionContext) {
 
   // check for missing binaries and prompt to install them
   checkMissingBinaries();
-  
+
   // start Regal language server and wire up the client
-  const client = await activateRegal();
-  if (client) {
+  const result = await activateRegal(regalOptions);
+  if (result) {
+    const { client, capabilities } = result;
     opaTreeDataProvider.setLanguageClient(client);
+    opaTreeDataProvider.setServerCustomCapabilities(capabilities);
     opaTreeDataProvider.refresh();
+
+    // Conditionally activate features based on capabilities
+    if (capabilities.explorerProvider) {
+      activateExplorerCommand(context, opaTreeDataProvider);
+    }
   }
 
   // activate the debugger
@@ -128,15 +160,25 @@ export async function activate(context: vscode.ExtensionContext) {
 
   // this will trigger the prompt to install OPA if missing, rather than waiting til on save
   // the manual running of a command
-  opa.runWithStatus("opa", ["version"], "", (_code: number, _stderr: string, _stdout: string) => {});
+  opa.runWithStatus(
+    "opa",
+    ["version"],
+    "",
+    (_code: number, _stderr: string, _stdout: string) => {},
+  );
 
-  vscode.workspace.onDidChangeConfiguration(async (_event) => {
+  vscode.workspace.onDidChangeConfiguration(async _event => {
     // activateRegal is run here to catch newly installed language servers,
     // after their paths are updated.
-    const client = await activateRegal();
-    if (client) {
+    const result = await activateRegal(regalOptions);
+    if (result) {
+      const { client, capabilities } = result;
       opaTreeDataProvider.setLanguageClient(client);
+      opaTreeDataProvider.setServerCustomCapabilities(capabilities);
       opaTreeDataProvider.refresh();
+
+      // Note: commands don't need re-registration on config change
+      // If capabilities changed, they'll be applied on next restart
     }
     activateDebugger(context);
   });
@@ -166,8 +208,8 @@ export const evalResultTargetUndefinedDecorationType = vscode.window.createTextE
 
 // remove all decorations from the active editor using the known types of decorations
 export function removeDecorations() {
-  Object.keys(fileCoverage).forEach((fileName) => {
-    vscode.window.visibleTextEditors.forEach((value) => {
+  Object.keys(fileCoverage).forEach(fileName => {
+    vscode.window.visibleTextEditors.forEach(value => {
       if (value.document.fileName.endsWith(fileName)) {
         value.setDecorations(coveredHighlight, []);
         value.setDecorations(notCoveredHighlight, []);
@@ -177,7 +219,7 @@ export function removeDecorations() {
 
   fileCoverage = {};
 
-  vscode.window.visibleTextEditors.forEach((value) => {
+  vscode.window.visibleTextEditors.forEach(value => {
     value.setDecorations(evalResultDecorationType, []);
     value.setDecorations(evalResultTargetSuccessDecorationType, []);
     value.setDecorations(evalResultTargetUndefinedDecorationType, []);
@@ -225,24 +267,27 @@ function removeDecorationsOnDocumentChange(e: vscode.TextDocumentChangeEvent) {
 }
 
 function showCoverageForEditor(_editor: vscode.TextEditor) {
-  Object.keys(fileCoverage).forEach((fileName) => {
-    vscode.window.visibleTextEditors.forEach((value) => {
+  Object.keys(fileCoverage).forEach(fileName => {
+    vscode.window.visibleTextEditors.forEach(value => {
       if (value.document.fileName.endsWith(fileName)) {
         value.setDecorations(coveredHighlight, fileCoverage[fileName].covered);
-        value.setDecorations(notCoveredHighlight, fileCoverage[fileName].notCovered);
+        value.setDecorations(
+          notCoveredHighlight,
+          fileCoverage[fileName].notCovered,
+        );
       }
     });
   });
 }
 
 function showCoverageForWindow() {
-  vscode.window.visibleTextEditors.forEach((value) => {
+  vscode.window.visibleTextEditors.forEach(value => {
     showCoverageForEditor(value);
   });
 }
 
 function setFileCoverage(result: any) {
-  Object.keys(result.files).forEach((fileName) => {
+  Object.keys(result.files).forEach(fileName => {
     const report = result.files[fileName];
     if (!report) {
       return;
@@ -301,7 +346,9 @@ function setEvalOutput(
     provider.set(
       outputUri,
       `// Query: ${displayQuery}\n// No results found. Took ${
-        getPrettyTime(result.metrics.timer_rego_query_eval_ns)
+        getPrettyTime(
+          result.metrics.timer_rego_query_eval_ns,
+        )
       }. Used ${inputMessage} as input.`,
       undefined,
     );
@@ -315,7 +362,9 @@ function setEvalOutput(
     provider.set(
       uri,
       `// Query: ${displayQuery}\n// Found ${result.result.length} result${result.result.length === 1 ? "" : "s"} in ${
-        getPrettyTime(result.metrics.timer_rego_query_eval_ns)
+        getPrettyTime(
+          result.metrics.timer_rego_query_eval_ns,
+        )
       } using ${inputMessage} as input.`,
       output,
     );
@@ -334,26 +383,34 @@ function activateCheckFile(context: vscode.ExtensionContext) {
     if (doc.languageId === "rego") {
       const args: string[] = ["check"];
 
-      ifInWorkspace(() => {
-        if (opa.canUseBundleFlags()) {
-          args.push("--bundle");
-        }
-        args.push(...opa.getRoots());
-        args.push(...opa.getSchemaParams());
-      }, () => {
-        args.push(doc.uri.fsPath);
-      });
+      ifInWorkspace(
+        () => {
+          if (opa.canUseBundleFlags()) {
+            args.push("--bundle");
+          }
+          args.push(...opa.getRoots());
+          args.push(...opa.getSchemaParams());
+        },
+        () => {
+          args.push(doc.uri.fsPath);
+        },
+      );
 
       if (opa.canUseStrictFlag()) {
         args.push("--strict");
       }
 
-      opa.runWithStatus("opa", args, "", (_code: number, stderr: string, _stdout: string) => {
-        const output = stderr;
-        if (output.trim() !== "") {
-          opaOutputShowError(output);
-        }
-      });
+      opa.runWithStatus(
+        "opa",
+        args,
+        "",
+        (_code: number, stderr: string, _stdout: string) => {
+          const output = stderr;
+          if (output.trim() !== "") {
+            opaOutputShowError(output);
+          }
+        },
+      );
     }
   };
 
@@ -363,71 +420,114 @@ function activateCheckFile(context: vscode.ExtensionContext) {
     }
   };
 
-  const checkFileCommand = vscode.commands.registerCommand("opa.check.file", checkRegoFile);
+  const checkFileCommand = vscode.commands.registerCommand(
+    "opa.check.file",
+    checkRegoFile,
+  );
   // Need to use onWillSave instead of onDidSave because there's a weird race condition
   // that causes the callback to get called twice when we prompt for installing OPA
-  vscode.workspace.onWillSaveTextDocument(checkRegoFileOnSave, null, context.subscriptions);
+  vscode.workspace.onWillSaveTextDocument(
+    checkRegoFileOnSave,
+    null,
+    context.subscriptions,
+  );
 
   context.subscriptions.push(checkFileCommand);
 }
 
 function activateCoverWorkspace(context: vscode.ExtensionContext) {
-  const coverWorkspaceCommand = vscode.commands.registerCommand("opa.test.coverage.workspace", () => {
-    const editor = vscode.window.activeTextEditor;
-    if (!editor) {
-      return;
-    }
-
-    for (const fileName in fileCoverage) {
-      if (editor.document.fileName.endsWith(fileName)) {
-        removeDecorations();
+  const coverWorkspaceCommand = vscode.commands.registerCommand(
+    "opa.test.coverage.workspace",
+    () => {
+      const editor = vscode.window.activeTextEditor;
+      if (!editor) {
         return;
       }
-    }
 
-    fileCoverage = {};
-
-    const args: string[] = ["test", "--coverage", "--format", "json"];
-
-    ifInWorkspace(() => {
-      if (opa.canUseBundleFlags()) {
-        args.push("--bundle");
+      for (const fileName in fileCoverage) {
+        if (editor.document.fileName.endsWith(fileName)) {
+          removeDecorations();
+          return;
+        }
       }
 
-      args.push(...opa.getRoots());
-    }, () => {
-      args.push(editor.document.uri.fsPath);
-    });
+      fileCoverage = {};
 
-    opa.run("opa", args, "", (_, result) => {
-      setFileCoverage(result);
-      showCoverageForWindow();
-    }, opaOutputShowError);
-  });
+      const args: string[] = ["test", "--coverage", "--format", "json"];
+
+      ifInWorkspace(
+        () => {
+          if (opa.canUseBundleFlags()) {
+            args.push("--bundle");
+          }
+
+          args.push(...opa.getRoots());
+        },
+        () => {
+          args.push(editor.document.uri.fsPath);
+        },
+      );
+
+      opa.run(
+        "opa",
+        args,
+        "",
+        (_, result) => {
+          setFileCoverage(result);
+          showCoverageForWindow();
+        },
+        opaOutputShowError,
+      );
+    },
+  );
 
   context.subscriptions.push(coverWorkspaceCommand);
 }
 
 function activateEvalPackage(context: vscode.ExtensionContext) {
   const provider = new JSONProvider();
-  const registration = vscode.workspace.registerTextDocumentContentProvider(outputUri.scheme, provider);
+  const registration = vscode.workspace.registerTextDocumentContentProvider(
+    outputUri.scheme,
+    provider,
+  );
 
   const evalPackageCommand = vscode.commands.registerCommand(
     "opa.eval.package",
-    onActiveWorkspaceEditor(outputUri, (editor: vscode.TextEditor, _inWorkspace: boolean) => {
-      opa.parse("opa", opa.getDataDir(editor.document.uri), (pkg: string, _: string[]) => {
-        const { inputPath, args } = createOpaEvalArgs(editor, pkg);
-        args.push("--metrics");
+    onActiveWorkspaceEditor(
+      outputUri,
+      (editor: vscode.TextEditor, _inWorkspace: boolean) => {
+        opa.parse(
+          "opa",
+          opa.getDataDir(editor.document.uri),
+          (pkg: string, _: string[]) => {
+            const { inputPath, args } = createOpaEvalArgs(editor, pkg);
+            args.push("--metrics");
 
-        provider.set(outputUri, "// Evaluating...", undefined);
+            provider.set(outputUri, "// Evaluating...", undefined);
 
-        opa.run("opa", args, "data." + pkg, (stderr, result) => {
-          setEvalOutput(provider, outputUri, stderr, result, inputPath, "data." + pkg);
-        }, opaOutputShowError);
-      }, (error: string) => {
-        opaOutputShowError(error);
-      });
-    }),
+            opa.run(
+              "opa",
+              args,
+              "data." + pkg,
+              (stderr, result) => {
+                setEvalOutput(
+                  provider,
+                  outputUri,
+                  stderr,
+                  result,
+                  inputPath,
+                  "data." + pkg,
+                );
+              },
+              opaOutputShowError,
+            );
+          },
+          (error: string) => {
+            opaOutputShowError(error);
+          },
+        );
+      },
+    ),
   );
 
   context.subscriptions.push(evalPackageCommand, registration);
@@ -435,25 +535,46 @@ function activateEvalPackage(context: vscode.ExtensionContext) {
 
 function activateEvalSelection(context: vscode.ExtensionContext) {
   const provider = new JSONProvider();
-  const registration = vscode.workspace.registerTextDocumentContentProvider(outputUri.scheme, provider);
+  const registration = vscode.workspace.registerTextDocumentContentProvider(
+    outputUri.scheme,
+    provider,
+  );
 
   const evalSelectionCommand = vscode.commands.registerCommand(
     "opa.eval.selection",
     onActiveWorkspaceEditor(outputUri, (editor: vscode.TextEditor) => {
-      opa.parse("opa", opa.getDataDir(editor.document.uri), (pkg: string, imports: string[]) => {
-        const { inputPath, args } = createOpaEvalArgs(editor, pkg, imports);
-        args.push("--metrics");
+      opa.parse(
+        "opa",
+        opa.getDataDir(editor.document.uri),
+        (pkg: string, imports: string[]) => {
+          const { inputPath, args } = createOpaEvalArgs(editor, pkg, imports);
+          args.push("--metrics");
 
-        const text = editor.document.getText(editor.selection);
+          const text = editor.document.getText(editor.selection);
 
-        provider.set(outputUri, "// Evaluating...", undefined);
+          provider.set(outputUri, "// Evaluating...", undefined);
 
-        opa.run("opa", args, text, (stderr, result) => {
-          setEvalOutput(provider, outputUri, stderr, result, inputPath, text);
-        }, opaOutputShowError);
-      }, (error: string) => {
-        opaOutputShowError(error);
-      });
+          opa.run(
+            "opa",
+            args,
+            text,
+            (stderr, result) => {
+              setEvalOutput(
+                provider,
+                outputUri,
+                stderr,
+                result,
+                inputPath,
+                text,
+              );
+            },
+            opaOutputShowError,
+          );
+        },
+        (error: string) => {
+          opaOutputShowError(error);
+        },
+      );
     }),
   );
 
@@ -462,7 +583,10 @@ function activateEvalSelection(context: vscode.ExtensionContext) {
 
 function activateEvalCoverage(context: vscode.ExtensionContext) {
   const provider = new JSONProvider();
-  const registration = vscode.workspace.registerTextDocumentContentProvider(outputUri.scheme, provider);
+  const registration = vscode.workspace.registerTextDocumentContentProvider(
+    outputUri.scheme,
+    provider,
+  );
 
   const evalCoverageCommand = vscode.commands.registerCommand(
     "opa.eval.coverage",
@@ -476,23 +600,41 @@ function activateEvalCoverage(context: vscode.ExtensionContext) {
 
       fileCoverage = {};
 
-      opa.parse("opa", opa.getDataDir(editor.document.uri), (pkg: string, imports: string[]) => {
-        const { inputPath, args } = createOpaEvalArgs(editor, pkg, imports);
-        args.push("--metrics");
-        args.push("--coverage");
+      opa.parse(
+        "opa",
+        opa.getDataDir(editor.document.uri),
+        (pkg: string, imports: string[]) => {
+          const { inputPath, args } = createOpaEvalArgs(editor, pkg, imports);
+          args.push("--metrics");
+          args.push("--coverage");
 
-        const text = editor.document.getText(editor.selection);
+          const text = editor.document.getText(editor.selection);
 
-        provider.set(outputUri, "// Evaluating...", undefined);
+          provider.set(outputUri, "// Evaluating...", undefined);
 
-        opa.run("opa", args, text, (stderr, result) => {
-          setEvalOutput(provider, outputUri, stderr, result, inputPath, text);
-          setFileCoverage(result.coverage);
-          showCoverageForWindow();
-        }, opaOutputShowError);
-      }, (error: string) => {
-        opaOutputShowError(error);
-      });
+          opa.run(
+            "opa",
+            args,
+            text,
+            (stderr, result) => {
+              setEvalOutput(
+                provider,
+                outputUri,
+                stderr,
+                result,
+                inputPath,
+                text,
+              );
+              setFileCoverage(result.coverage);
+              showCoverageForWindow();
+            },
+            opaOutputShowError,
+          );
+        },
+        (error: string) => {
+          opaOutputShowError(error);
+        },
+      );
     }),
   );
 
@@ -500,203 +642,300 @@ function activateEvalCoverage(context: vscode.ExtensionContext) {
 }
 
 function activateTestWorkspace(context: vscode.ExtensionContext) {
-  const testWorkspaceCommand = vscode.commands.registerCommand("opa.test.workspace", () => {
-    opaOutputChannel.show(true);
-    opaOutputChannel.clear();
+  const testWorkspaceCommand = vscode.commands.registerCommand(
+    "opa.test.workspace",
+    () => {
+      opaOutputChannel.show(true);
+      opaOutputChannel.clear();
 
-    const args: string[] = ["test"];
+      const args: string[] = ["test"];
 
-    args.push("--verbose");
+      args.push("--verbose");
 
-    ifInWorkspace(() => {
-      if (opa.canUseBundleFlags()) {
-        args.push("--bundle");
-      }
-      args.push(...opa.getRoots());
-    }, () => {
-      const editor = vscode.window.activeTextEditor;
-      if (!editor) {
-        return;
-      }
-      args.push(editor.document.uri.fsPath);
-    });
+      ifInWorkspace(
+        () => {
+          if (opa.canUseBundleFlags()) {
+            args.push("--bundle");
+          }
+          args.push(...opa.getRoots());
+        },
+        () => {
+          const editor = vscode.window.activeTextEditor;
+          if (!editor) {
+            return;
+          }
+          args.push(editor.document.uri.fsPath);
+        },
+      );
 
-    opa.runWithStatus("opa", args, "", (code: number, stderr: string, stdout: string) => {
-      if (code === 0 || code === 2) {
-        opaOutputChannel.append(stdout);
-      } else {
-        opaOutputShowError(stderr);
-      }
-    });
-  });
+      opa.runWithStatus(
+        "opa",
+        args,
+        "",
+        (code: number, stderr: string, stdout: string) => {
+          if (code === 0 || code === 2) {
+            opaOutputChannel.append(stdout);
+          } else {
+            opaOutputShowError(stderr);
+          }
+        },
+      );
+    },
+  );
 
   context.subscriptions.push(testWorkspaceCommand);
 }
 
 function activateTraceSelection(context: vscode.ExtensionContext) {
-  const traceSelectionCommand = vscode.commands.registerCommand("opa.trace.selection", () => {
-    const editor = vscode.window.activeTextEditor;
-    if (!editor) {
-      return;
-    }
-    const text = editor.document.getText(editor.selection);
+  const traceSelectionCommand = vscode.commands.registerCommand(
+    "opa.trace.selection",
+    () => {
+      const editor = vscode.window.activeTextEditor;
+      if (!editor) {
+        return;
+      }
+      const text = editor.document.getText(editor.selection);
 
-    opa.parse("opa", opa.getDataDir(editor.document.uri), (pkg: string, imports: string[]) => {
-      const { args } = createOpaEvalArgs(editor, pkg, imports);
-      args.push("--format", "pretty");
-      args.push("--explain", "full");
+      opa.parse(
+        "opa",
+        opa.getDataDir(editor.document.uri),
+        (pkg: string, imports: string[]) => {
+          const { args } = createOpaEvalArgs(editor, pkg, imports);
+          args.push("--format", "pretty");
+          args.push("--explain", "full");
 
-      opa.runWithStatus("opa", args, text, (code: number, stderr: string, stdout: string) => {
-        opaOutputChannel.show(true);
-        opaOutputChannel.clear();
+          opa.runWithStatus(
+            "opa",
+            args,
+            text,
+            (code: number, stderr: string, stdout: string) => {
+              opaOutputChannel.show(true);
+              opaOutputChannel.clear();
 
-        if (code === 0 || code === 2) {
-          opaOutputChannel.append(stdout);
-        } else {
-          opaOutputShowError(stderr);
-        }
-      });
-    }, (error: string) => {
-      opaOutputShowError(error);
-    });
-  });
-
-  context.subscriptions.push(traceSelectionCommand);
-}
-
-function activateProfileSelection(context: vscode.ExtensionContext) {
-  const profileSelectionCommand = vscode.commands.registerCommand("opa.profile.selection", () => {
-    const editor = vscode.window.activeTextEditor;
-    if (!editor) {
-      return;
-    }
-    const text = editor.document.getText(editor.selection);
-
-    opa.parse("opa", opa.getDataDir(editor.document.uri), (pkg: string, imports: string[]) => {
-      opaOutputChannel.show(true);
-      opaOutputChannel.clear();
-
-      const { args } = createOpaEvalArgs(editor, pkg, imports);
-      args.push("--profile");
-      args.push("--format", "pretty");
-
-      opa.runWithStatus("opa", args, text, (code: number, stderr: string, stdout: string) => {
-        if (code === 0 || code === 2) {
-          opaOutputChannel.append(stdout);
-        } else {
-          opaOutputShowError(stderr);
-        }
-      });
-    }, (error: string) => {
-      opaOutputShowError(error);
-    });
-  });
-
-  context.subscriptions.push(profileSelectionCommand);
-}
-
-function activatePartialSelection(context: vscode.ExtensionContext) {
-  const partialSelectionCommand = vscode.commands.registerCommand("opa.partial.selection", () => {
-    const editor = vscode.window.activeTextEditor;
-    if (!editor) {
-      return;
-    }
-    const text = editor.document.getText(editor.selection);
-
-    opa.parse("opa", opa.getDataDir(editor.document.uri), (pkg: string, imports: string[]) => {
-      const depsArgs = ["deps", "--format", "json"];
-
-      ifInWorkspace(() => {
-        depsArgs.push(...opa.getRootParams());
-      }, () => {
-        depsArgs.push("--data", editor.document.uri.fsPath);
-      });
-
-      depsArgs.push("data." + pkg);
-
-      opa.run("opa", depsArgs, "", (_, result: any) => {
-        const refs = result.base.map((ref: any) => opa.refToString(ref));
-        refs.push("input");
-        vscode.window.showQuickPick(refs).then((selection: string | undefined) => {
-          if (selection !== undefined) {
-            opaOutputChannel.show(true);
-            opaOutputChannel.clear();
-
-            const { args } = createOpaEvalArgs(editor, pkg, imports);
-            args.push("--partial");
-            args.push("--format", "pretty");
-            args.push("--unknowns", selection);
-
-            opa.runWithStatus("opa", args, text, (code: number, stderr: string, stdout: string) => {
               if (code === 0 || code === 2) {
                 opaOutputChannel.append(stdout);
               } else {
                 opaOutputShowError(stderr);
               }
-            });
-          }
-        });
-      }, (msg) => {
-        opaOutputShowError(msg);
-      });
-    }, (error: string) => {
-      opaOutputShowError(error);
-    });
-  });
+            },
+          );
+        },
+        (error: string) => {
+          opaOutputShowError(error);
+        },
+      );
+    },
+  );
+
+  context.subscriptions.push(traceSelectionCommand);
+}
+
+function activateProfileSelection(context: vscode.ExtensionContext) {
+  const profileSelectionCommand = vscode.commands.registerCommand(
+    "opa.profile.selection",
+    () => {
+      const editor = vscode.window.activeTextEditor;
+      if (!editor) {
+        return;
+      }
+      const text = editor.document.getText(editor.selection);
+
+      opa.parse(
+        "opa",
+        opa.getDataDir(editor.document.uri),
+        (pkg: string, imports: string[]) => {
+          opaOutputChannel.show(true);
+          opaOutputChannel.clear();
+
+          const { args } = createOpaEvalArgs(editor, pkg, imports);
+          args.push("--profile");
+          args.push("--format", "pretty");
+
+          opa.runWithStatus(
+            "opa",
+            args,
+            text,
+            (code: number, stderr: string, stdout: string) => {
+              if (code === 0 || code === 2) {
+                opaOutputChannel.append(stdout);
+              } else {
+                opaOutputShowError(stderr);
+              }
+            },
+          );
+        },
+        (error: string) => {
+          opaOutputShowError(error);
+        },
+      );
+    },
+  );
+
+  context.subscriptions.push(profileSelectionCommand);
+}
+
+function activatePartialSelection(context: vscode.ExtensionContext) {
+  const partialSelectionCommand = vscode.commands.registerCommand(
+    "opa.partial.selection",
+    () => {
+      const editor = vscode.window.activeTextEditor;
+      if (!editor) {
+        return;
+      }
+      const text = editor.document.getText(editor.selection);
+
+      opa.parse(
+        "opa",
+        opa.getDataDir(editor.document.uri),
+        (pkg: string, imports: string[]) => {
+          const depsArgs = ["deps", "--format", "json"];
+
+          ifInWorkspace(
+            () => {
+              depsArgs.push(...opa.getRootParams());
+            },
+            () => {
+              depsArgs.push("--data", editor.document.uri.fsPath);
+            },
+          );
+
+          depsArgs.push("data." + pkg);
+
+          opa.run(
+            "opa",
+            depsArgs,
+            "",
+            (_, result: any) => {
+              const refs = result.base.map((ref: any) => opa.refToString(ref));
+              refs.push("input");
+              vscode.window
+                .showQuickPick(refs)
+                .then((selection: string | undefined) => {
+                  if (selection !== undefined) {
+                    opaOutputChannel.show(true);
+                    opaOutputChannel.clear();
+
+                    const { args } = createOpaEvalArgs(editor, pkg, imports);
+                    args.push("--partial");
+                    args.push("--format", "pretty");
+                    args.push("--unknowns", selection);
+
+                    opa.runWithStatus(
+                      "opa",
+                      args,
+                      text,
+                      (code: number, stderr: string, stdout: string) => {
+                        if (code === 0 || code === 2) {
+                          opaOutputChannel.append(stdout);
+                        } else {
+                          opaOutputShowError(stderr);
+                        }
+                      },
+                    );
+                  }
+                });
+            },
+            msg => {
+              opaOutputShowError(msg);
+            },
+          );
+        },
+        (error: string) => {
+          opaOutputShowError(error);
+        },
+      );
+    },
+  );
 
   context.subscriptions.push(partialSelectionCommand);
 }
 
-function activateRestartRegalCommand(context: vscode.ExtensionContext, treeDataProvider: OPATreeDataProvider) {
-  const restartRegalCommand = vscode.commands.registerCommand("opa.regal.restart", async () => {
-    const client = await restartRegal();
-    if (client) {
-      treeDataProvider.setLanguageClient(client);
-      treeDataProvider.refresh();
-    }
-  });
+function activateRestartRegalCommand(
+  context: vscode.ExtensionContext,
+  treeDataProvider: OPATreeDataProvider,
+) {
+  const restartRegalCommand = vscode.commands.registerCommand(
+    "opa.regal.restart",
+    async () => {
+      const result = await restartRegal(regalOptions);
+      if (result) {
+        const { client, capabilities } = result;
+        treeDataProvider.setLanguageClient(client);
+        treeDataProvider.setServerCustomCapabilities(capabilities);
+        treeDataProvider.refresh();
+
+        // After restart, we'd need to re-register commands if capabilities changed
+        // For now, inform user to reload window if needed
+        vscode.window
+          .showInformationMessage(
+            "Regal restarted. Reload window if features don't work correctly.",
+            "Reload Window",
+          )
+          .then(selection => {
+            if (selection === "Reload Window") {
+              vscode.commands.executeCommand("workbench.action.reloadWindow");
+            }
+          });
+      }
+    },
+  );
 
   context.subscriptions.push(restartRegalCommand);
 }
 
 function activateToggleDiagnosticsCommand(context: vscode.ExtensionContext) {
-  const toggleDiagnosticsCommand = vscode.commands.registerCommand("opa.regal.toggleDiagnostics", () => {
-    const enabled = toggleRegalDiagnostics();
-    const status = enabled ? "enabled" : "paused";
-    vscode.window.setStatusBarMessage(`Regal linting ${status}`, 3000);
-  });
+  const toggleDiagnosticsCommand = vscode.commands.registerCommand(
+    "opa.regal.toggleDiagnostics",
+    () => {
+      const enabled = toggleRegalDiagnostics();
+      const status = enabled ? "enabled" : "paused";
+      vscode.window.setStatusBarMessage(`Regal linting ${status}`, 3000);
+    },
+  );
 
   context.subscriptions.push(toggleDiagnosticsCommand);
 }
 
-function activateRefreshTreeCommand(context: vscode.ExtensionContext, treeDataProvider: OPATreeDataProvider) {
-  const refreshTreeCommand = vscode.commands.registerCommand("opa.view.refresh", async () => {
-    const editor = vscode.window.activeTextEditor;
-    if (editor && editor.document.languageId === "rego") {
-      await treeDataProvider.triggerExplorer(editor.document.uri.toString());
-    } else {
-      treeDataProvider.refresh();
-    }
-  });
+function activateRefreshTreeCommand(
+  context: vscode.ExtensionContext,
+  treeDataProvider: OPATreeDataProvider,
+) {
+  const refreshTreeCommand = vscode.commands.registerCommand(
+    "opa.view.refresh",
+    async () => {
+      const editor = vscode.window.activeTextEditor;
+      if (editor && editor.document.languageId === "rego") {
+        await treeDataProvider.triggerExplorer(editor.document.uri.toString());
+      } else {
+        treeDataProvider.refresh();
+      }
+    },
+  );
 
   context.subscriptions.push(refreshTreeCommand);
 }
 
-function activateExplorerCommand(context: vscode.ExtensionContext, treeDataProvider: OPATreeDataProvider) {
-  const explorerCommand = vscode.commands.registerCommand("opa.explorer", async () => {
-    const editor = vscode.window.activeTextEditor;
-    if (!editor) {
-      vscode.window.showErrorMessage("No active editor");
-      return;
-    }
+function activateExplorerCommand(
+  context: vscode.ExtensionContext,
+  treeDataProvider: OPATreeDataProvider,
+) {
+  const explorerCommand = vscode.commands.registerCommand(
+    "opa.explorer",
+    async () => {
+      const editor = vscode.window.activeTextEditor;
+      if (!editor) {
+        vscode.window.showErrorMessage("No active editor");
+        return;
+      }
 
-    if (editor.document.languageId !== "rego") {
-      vscode.window.showErrorMessage("Active editor is not a Rego file");
-      return;
-    }
+      if (editor.document.languageId !== "rego") {
+        vscode.window.showErrorMessage("Active editor is not a Rego file");
+        return;
+      }
 
-    await treeDataProvider.triggerExplorer(editor.document.uri.toString());
-  });
+      await treeDataProvider.triggerExplorer(editor.document.uri.toString());
+    },
+  );
 
   context.subscriptions.push(explorerCommand);
 }
@@ -835,12 +1074,18 @@ function onActiveWorkspaceEditor(
     // re-use it.
     try {
       const doc = await vscode.workspace.openTextDocument(forURI);
-      const found = vscode.window.visibleTextEditors.find((ed: vscode.TextEditor) => {
-        return ed.document.uri === doc.uri;
-      });
+      const found = vscode.window.visibleTextEditors.find(
+        (ed: vscode.TextEditor) => {
+          return ed.document.uri === doc.uri;
+        },
+      );
 
       if (found === undefined) {
-        await vscode.window.showTextDocument(doc, vscode.ViewColumn.Beside, true);
+        await vscode.window.showTextDocument(
+          doc,
+          vscode.ViewColumn.Beside,
+          true,
+        );
       }
     } catch (error) {
       console.error("Failed to open output document:", error);
@@ -856,22 +1101,23 @@ function ifInWorkspace(yes: () => void, no: () => void = () => {}) {
     yes();
   } else {
     if (informAboutWorkspace) {
-      vscode.window.showInformationMessage(
-        "You're editing a single file. Open it inside a workspace to include "
-          + "any relative modules and schemas in the OPA commands you run.",
-        informAboutWorkspaceOption,
-      ).then((selection: string | undefined) => {
-        if (selection === informAboutWorkspaceOption) {
-          informAboutWorkspace = false;
-        }
-      });
+      vscode.window
+        .showInformationMessage(
+          "You're editing a single file. Open it inside a workspace to include "
+            + "any relative modules and schemas in the OPA commands you run.",
+          informAboutWorkspaceOption,
+        )
+        .then((selection: string | undefined) => {
+          if (selection === informAboutWorkspaceOption) {
+            informAboutWorkspace = false;
+          }
+        });
     }
     no();
   }
 }
 
-export function deactivate() {
-}
+export function deactivate() {}
 
 function opaOutputShow(msg: string) {
   opaOutputChannel.clear();
@@ -931,7 +1177,9 @@ export function existsSync(path: string): boolean {
 export function getInputPath(): string {
   // look for input.json at the active editor's directory, or the workspace directory
 
-  const activeDir = path.dirname(vscode.window.activeTextEditor!.document.uri.fsPath);
+  const activeDir = path.dirname(
+    vscode.window.activeTextEditor!.document.uri.fsPath,
+  );
   let parsed = vscode.Uri.file(activeDir);
 
   // If we're in a workspace, and there is no sibling input.json to the actively edited file, look for the file in the workspace root
@@ -979,19 +1227,25 @@ function createOpaEvalArgs(
     args.push("--import", x);
   });
 
-  ifInWorkspace(() => {
-    args.push(...opa.getRootParams());
-    args.push(...opa.getSchemaParams());
-  }, () => {
-    args.push("--data", editor.document.uri.fsPath);
-  });
+  ifInWorkspace(
+    () => {
+      args.push(...opa.getRootParams());
+      args.push(...opa.getSchemaParams());
+    },
+    () => {
+      args.push("--data", editor.document.uri.fsPath);
+    },
+  );
 
   return { inputPath, args };
 }
 
 // Check for missing binaries and prompt to install them
 function checkMissingBinaries() {
-  const missingBinaries: Array<{ config: typeof REGAL_CONFIG | typeof OPA_CONFIG; name: string }> = [];
+  const missingBinaries: Array<{
+    config: typeof REGAL_CONFIG | typeof OPA_CONFIG;
+    name: string;
+  }> = [];
 
   if (!resolveBinary(OPA_CONFIG, "opa").path) {
     missingBinaries.push({ config: OPA_CONFIG, name: "OPA" });
@@ -1007,8 +1261,9 @@ function checkMissingBinaries() {
       missingBinaries.length === 1 ? "is" : "are"
     } needed but not installed. Would you like to install ${missingBinaries.length === 1 ? "it" : "them"}?`;
 
-    vscode.window.showInformationMessage(message, "Install")
-      .then(async (selection) => {
+    vscode.window
+      .showInformationMessage(message, "Install")
+      .then(async selection => {
         if (selection === "Install") {
           const installedConfigs: BinaryConfig[] = [];
           for (const binary of missingBinaries) {
@@ -1016,7 +1271,9 @@ function checkMissingBinaries() {
               await installBinary(binary.config, opaOutputChannel);
               installedConfigs.push(binary.config);
             } catch (error) {
-              opaOutputChannel.appendLine(`Failed to install ${binary.name}: ${error}`);
+              opaOutputChannel.appendLine(
+                `Failed to install ${binary.name}: ${error}`,
+              );
               opaOutputChannel.show(true);
             }
           }
@@ -1025,11 +1282,15 @@ function checkMissingBinaries() {
           const hasRegalBinary = installedConfigs.includes(REGAL_CONFIG);
           if (hasRegalBinary) {
             if (isRegalRunning()) {
-              opaOutputChannel.appendLine("Regal is running, restarting with new binary...");
-              await restartRegal();
+              opaOutputChannel.appendLine(
+                "Regal is running, restarting with new binary...",
+              );
+              await restartRegal(regalOptions);
             } else {
-              opaOutputChannel.appendLine("Starting Regal with newly installed binary...");
-              await activateRegal();
+              opaOutputChannel.appendLine(
+                "Starting Regal with newly installed binary...",
+              );
+              await activateRegal(regalOptions);
             }
           }
         }
