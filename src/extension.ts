@@ -157,7 +157,7 @@ export async function activate(context: vscode.ExtensionContext) {
       activateExplorerCommand(context, opaTreeDataProvider);
     }
 
-    if (capabilities.serverTestingProvider) {
+    if (capabilities.opaTestProvider) {
       activateTestController(context);
       setTestController({ handleTestLocations });
     }

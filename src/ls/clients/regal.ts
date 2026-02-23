@@ -28,7 +28,7 @@ export interface RegalServerCustomCapabilities {
   explorerProvider: boolean;
   inlineEvalProvider: boolean;
   debugProvider: boolean;
-  serverTestingProvider: boolean;
+  opaTestProvider: boolean;
 }
 
 // RegalClientActivationOptions is intended to be represent how the client
@@ -56,7 +56,7 @@ function extractServerCustomCapabilities(
     explorerProvider: experimental?.explorerProvider ?? false,
     inlineEvalProvider: experimental?.inlineEvalProvider ?? false,
     debugProvider: experimental?.debugProvider ?? false,
-    serverTestingProvider: experimental?.serverTestingProvider ?? false,
+    opaTestProvider: experimental?.opaTestProvider ?? false,
   };
 }
 
@@ -65,13 +65,14 @@ let clientLock = false;
 let regalShowDiagnostics = true;
 const activeDebugSessions: Map<string, void> = new Map();
 let treeDataProvider: OPATreeDataProvider | undefined;
-let testController: { handleTestLocations: (uri: string, locations: TestLocation[]) => void } | undefined;
+let testController:
+  | { handleTestLocations: (uri: string, locations: TestLocation[]) => void }
+  | undefined;
 
 // Test location from Regal's regal/testLocations notification
 export interface TestLocation {
-  kind: "single_test" | "file_test" | "package_test";
   package: string;
-  test: string;
+  name: string;
   location: {
     col: number;
     row: number;
@@ -79,6 +80,24 @@ export interface TestLocation {
     file: string;
     text: string;
   };
+}
+
+// Request parameters for regal/runTests
+export interface RunTestsParams {
+  uri: string;
+  package: string;
+  name: string;
+}
+
+// Response from regal/runTests
+export interface TestResult {
+  location: { file: string; row: number; col: number };
+  package: string;
+  name: string;
+  fail?: boolean;
+  error?: any;
+  duration: number;
+  output?: string;
 }
 
 export function toggleRegalDiagnostics(): boolean {
@@ -250,7 +269,7 @@ export async function activateRegal(
   const capabilities = extractServerCustomCapabilities(client);
 
   opaOutputChannel.appendLine(
-    `Regal capabilities: explorer=${capabilities.explorerProvider}, inlineEval=${capabilities.inlineEvalProvider}, debug=${capabilities.debugProvider}, serverTesting=${capabilities.serverTestingProvider}`,
+    `Regal capabilities: explorer=${capabilities.explorerProvider}, inlineEval=${capabilities.inlineEvalProvider}, debug=${capabilities.debugProvider}, opaTest=${capabilities.opaTestProvider}`,
   );
 
   if (
@@ -277,11 +296,11 @@ export async function activateRegal(
     );
   }
 
-  if (capabilities.serverTestingProvider && options.featureFlags.enableServerTesting) {
-    client.onNotification(
-      "regal/testLocations",
-      handleRegalTestLocations,
-    );
+  if (
+    capabilities.opaTestProvider
+    && options.featureFlags.enableServerTesting
+  ) {
+    client.onNotification("regal/testLocations", handleRegalTestLocations);
   }
 
   vscode.debug.onDidTerminateDebugSession(session => {
@@ -293,7 +312,8 @@ export async function activateRegal(
     explorerProvider: capabilities.explorerProvider && options.featureFlags.enableExplorer,
     inlineEvalProvider: capabilities.inlineEvalProvider && options.featureFlags.enableInlineEval,
     debugProvider: capabilities.debugProvider && options.featureFlags.enableDebug,
-    serverTestingProvider: capabilities.serverTestingProvider && options.featureFlags.enableServerTesting,
+    opaTestProvider: capabilities.opaTestProvider
+      && options.featureFlags.enableServerTesting,
   };
 
   return { client, capabilities: effectiveCapabilities };
@@ -303,7 +323,9 @@ export function setTreeDataProvider(provider: OPATreeDataProvider): void {
   treeDataProvider = provider;
 }
 
-export function setTestController(controller: { handleTestLocations: (uri: string, locations: TestLocation[]) => void }): void {
+export function setTestController(controller: {
+  handleTestLocations: (uri: string, locations: TestLocation[]) => void;
+}): void {
   testController = controller;
 }
 
@@ -335,6 +357,23 @@ export function deactivateRegal(): Thenable<void> | undefined {
 
 export function isRegalRunning(): boolean {
   return client && client.state === State.Running;
+}
+
+export async function runTests(params: RunTestsParams): Promise<TestResult[]> {
+  if (!client || client.state !== State.Running) {
+    throw new Error("Regal language server is not running");
+  }
+
+  try {
+    const results = await client.sendRequest<TestResult[]>(
+      "regal/runTests",
+      params,
+    );
+    return results;
+  } catch (error) {
+    opaOutputChannel.appendLine(`Error running tests: ${error}`);
+    throw error;
+  }
 }
 
 export async function restartRegal(
