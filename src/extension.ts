@@ -11,10 +11,12 @@ import {
   isRegalRunning,
   RegalClientActivationOptions,
   restartRegal,
+  setTestController,
   setTreeDataProvider,
   toggleRegalDiagnostics,
 } from "./ls/clients/regal";
 import * as opa from "./opa";
+import { activateTestController, handleTestLocations } from "./test/controller";
 import { OPATreeDataProvider } from "./tree/opaTreeProvider";
 import { getPrettyTime } from "./util";
 
@@ -26,6 +28,7 @@ const regalOptions: RegalClientActivationOptions = {
     enableExplorer: true,
     enableInlineEval: true,
     enableDebug: true,
+    enableServerTesting: true,
   },
 };
 
@@ -152,6 +155,11 @@ export async function activate(context: vscode.ExtensionContext) {
     // Conditionally activate features based on capabilities
     if (capabilities.explorerProvider) {
       activateExplorerCommand(context, opaTreeDataProvider);
+    }
+
+    if (capabilities.opaTestProvider) {
+      activateTestController(context);
+      setTestController({ handleTestLocations });
     }
   }
 

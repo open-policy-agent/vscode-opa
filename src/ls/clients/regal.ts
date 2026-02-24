@@ -28,6 +28,7 @@ export interface RegalServerCustomCapabilities {
   explorerProvider: boolean;
   inlineEvalProvider: boolean;
   debugProvider: boolean;
+  opaTestProvider: boolean;
 }
 
 // RegalClientActivationOptions is intended to be represent how the client
@@ -40,6 +41,7 @@ export interface RegalClientActivationOptions {
     enableExplorer: boolean;
     enableInlineEval: boolean;
     enableDebug: boolean;
+    enableServerTesting: boolean;
   };
 }
 
@@ -54,6 +56,7 @@ function extractServerCustomCapabilities(
     explorerProvider: experimental?.explorerProvider ?? false,
     inlineEvalProvider: experimental?.inlineEvalProvider ?? false,
     debugProvider: experimental?.debugProvider ?? false,
+    opaTestProvider: experimental?.opaTestProvider ?? false,
   };
 }
 
@@ -62,6 +65,40 @@ let clientLock = false;
 let regalShowDiagnostics = true;
 const activeDebugSessions: Map<string, void> = new Map();
 let treeDataProvider: OPATreeDataProvider | undefined;
+let testController:
+  | { handleTestLocations: (uri: string, locations: TestLocation[]) => void }
+  | undefined;
+
+// Test location from Regal's regal/testLocations notification
+export interface TestLocation {
+  package: string;
+  name: string;
+  location: {
+    col: number;
+    row: number;
+    end: { col: number; row: number };
+    file: string;
+    text: string;
+  };
+}
+
+// Request parameters for regal/runTests
+export interface RunTestsParams {
+  uri: string;
+  package: string;
+  name: string;
+}
+
+// Response from regal/runTests
+export interface TestResult {
+  location: { file: string; row: number; col: number };
+  package: string;
+  name: string;
+  fail?: boolean;
+  error?: any;
+  duration: number;
+  output?: string;
+}
 
 export function toggleRegalDiagnostics(): boolean {
   regalShowDiagnostics = !regalShowDiagnostics;
@@ -201,6 +238,7 @@ export async function activateRegal(
       evalCodelensDisplayInline: options.featureFlags.enableInlineEval,
       enableDebugCodelens: options.featureFlags.enableDebug,
       enableExplorer: options.featureFlags.enableExplorer,
+      enableServerTesting: options.featureFlags.enableServerTesting,
     },
     middleware: {
       // Users can toggle linting on/off using the "OPA: Toggle Regal Linting" command.
@@ -231,7 +269,7 @@ export async function activateRegal(
   const capabilities = extractServerCustomCapabilities(client);
 
   opaOutputChannel.appendLine(
-    `Regal capabilities: explorer=${capabilities.explorerProvider}, inlineEval=${capabilities.inlineEvalProvider}, debug=${capabilities.debugProvider}`,
+    `Regal capabilities: explorer=${capabilities.explorerProvider}, inlineEval=${capabilities.inlineEvalProvider}, debug=${capabilities.debugProvider}, opaTest=${capabilities.opaTestProvider}`,
   );
 
   if (
@@ -258,6 +296,13 @@ export async function activateRegal(
     );
   }
 
+  if (
+    capabilities.opaTestProvider
+    && options.featureFlags.enableServerTesting
+  ) {
+    client.onNotification("regal/testLocations", handleRegalTestLocations);
+  }
+
   vscode.debug.onDidTerminateDebugSession(session => {
     activeDebugSessions.delete(session.name);
   });
@@ -267,6 +312,8 @@ export async function activateRegal(
     explorerProvider: capabilities.explorerProvider && options.featureFlags.enableExplorer,
     inlineEvalProvider: capabilities.inlineEvalProvider && options.featureFlags.enableInlineEval,
     debugProvider: capabilities.debugProvider && options.featureFlags.enableDebug,
+    opaTestProvider: capabilities.opaTestProvider
+      && options.featureFlags.enableServerTesting,
   };
 
   return { client, capabilities: effectiveCapabilities };
@@ -276,9 +323,26 @@ export function setTreeDataProvider(provider: OPATreeDataProvider): void {
   treeDataProvider = provider;
 }
 
+export function setTestController(controller: {
+  handleTestLocations: (uri: string, locations: TestLocation[]) => void;
+}): void {
+  testController = controller;
+}
+
 function handleRegalShowExplorerResult(result: ExplorerResult) {
   if (treeDataProvider) {
     treeDataProvider.setExplorerResult(result);
+  }
+}
+
+interface TestLocationsNotification {
+  locations: TestLocation[];
+  uri: string;
+}
+
+function handleRegalTestLocations(params: TestLocationsNotification) {
+  if (testController) {
+    testController.handleTestLocations(params.uri, params.locations);
   }
 }
 
@@ -293,6 +357,23 @@ export function deactivateRegal(): Thenable<void> | undefined {
 
 export function isRegalRunning(): boolean {
   return client && client.state === State.Running;
+}
+
+export async function runTests(params: RunTestsParams): Promise<TestResult[]> {
+  if (!client || client.state !== State.Running) {
+    throw new Error("Regal language server is not running");
+  }
+
+  try {
+    const results = await client.sendRequest<TestResult[]>(
+      "regal/runTests",
+      params,
+    );
+    return results;
+  } catch (error) {
+    opaOutputChannel.appendLine(`Error running tests: ${error}`);
+    throw error;
+  }
 }
 
 export async function restartRegal(
