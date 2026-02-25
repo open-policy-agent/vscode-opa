@@ -1,6 +1,21 @@
 # Change Log
 
 
+## 0.22.0
+
+* OPA Explorer interface added to view compilation steps [#403](https://github.com/open-policy-agent/vscode-opa/pull/403)
+* Test controller support added to allow 'click to run' testing [#408](https://github.com/open-policy-agent/vscode-opa/pull/408)
+* Updates to highlighting regions
+  * Root document [#397](https://github.com/open-policy-agent/vscode-opa/pull/397)
+  * Metadata comments [#399](https://github.com/open-policy-agent/vscode-opa/pull/399)
+  * No longer hightlight hex colors in Rego code [#395](https://github.com/open-policy-agent/vscode-opa/pull/395)
+* Linter toggle to allow temporary disable of diagnostics [#396](https://github.com/open-policy-agent/vscode-opa/pull/396)
+* Evaluation output improvemnts [#392](https://github.com/open-policy-agent/vscode-opa/pull/392), [#391](https://github.com/open-policy-agent/vscode-opa/pull/391)
+* Binary installation improvements
+  * Install static binaries by default [#394](https://github.com/open-policy-agent/vscode-opa/pull/394)
+  * Add timeouts for binary downloads to make installation experience more understandable during outages [#398](https://github.com/open-policy-agent/vscode-opa/pull/398)
+
+
 ## 0.21.0
 
 - Update tmLanguage to support Rego string interpolation [#375](https://github.com/open-policy-agent/vscode-opa/pull/375)
