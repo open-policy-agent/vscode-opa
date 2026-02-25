@@ -27,6 +27,7 @@
     "regal"
   ],
   "main": "./out/extension",
+  "activationEvents": [],
   "contributes": {
     "viewsContainers": {
       "activitybar": [
@@ -326,7 +327,7 @@
     ],
     "configurationDefaults": {
       "[rego]": {
-        "editor.defaultColorDecorators": false
+        "editor.defaultColorDecorators": "never"
       }
     }
   },
