@@ -16,7 +16,7 @@ import {
   toggleRegalDiagnostics,
 } from "./ls/clients/regal";
 import * as opa from "./opa";
-import { activateTestController, handleTestLocations } from "./test/controller";
+import { activateTestController, handleTestLocations } from "./testing/controller";
 import { OPATreeDataProvider } from "./tree/opaTreeProvider";
 import { getPrettyTime } from "./util";
 
