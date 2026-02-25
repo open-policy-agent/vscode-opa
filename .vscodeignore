@@ -1,4 +1,5 @@
 .vscode/**
+.github/**
 .vscode-test/**
 out/test/**
 out/**/*.map
@@ -9,3 +10,12 @@ vsc-extension-quickstart.md
 tslint.json
 .envrc
 .direnv
+.markdownlint.yaml
+.node-version
+.prettierignore
+cspell.config.yaml
+dprint.json
+eslint.config.mjs
+eslint-results.sarif
+Makefile
+DEVELOPMENT.md
