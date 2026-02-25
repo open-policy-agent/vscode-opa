@@ -1,6 +1,11 @@
 # Change Log
 
 
+## 0.22.1
+
+Contains a fix for a packing bug in 0.22.0 which caused the test/controller.ts file to be missing [#414](https://github.com/open-policy-agent/vscode-opa/pull/414)
+
+
 ## 0.22.0
 
 * OPA Explorer interface added to view compilation steps [#403](https://github.com/open-policy-agent/vscode-opa/pull/403)
