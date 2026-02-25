@@ -12,7 +12,7 @@ const testMetadata = new Map<string, { package: string; name: string }>();
 export function activateTestController(
   context: vscode.ExtensionContext,
 ): vscode.TestController {
-  controller = vscode.tests.createTestController("opaTests", "OPA Tests");
+  controller = vscode.tests.createTestController("opaTests", "Rego");
   context.subscriptions.push(controller);
 
   controller.createRunProfile(
