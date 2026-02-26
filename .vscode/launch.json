@@ -18,7 +18,9 @@
         "script": "watch"
       },
       "env": {
-        "VSCODE_DEBUG_MODE": "true"
+        "VSCODE_DEBUG_MODE": "true",
+        // PATH is set explicitly to inherit from the parent process environment
+        "PATH": "${env:PATH}"
       }
     },
     {
