@@ -72,7 +72,9 @@ let testController:
 // Test location from Regal's regal/testLocations notification
 export interface TestLocation {
   package: string;
+  package_path: string[];
   name: string;
+  root: string;
   location: {
     col: number;
     row: number;
@@ -312,8 +314,7 @@ export async function activateRegal(
     explorerProvider: capabilities.explorerProvider && options.featureFlags.enableExplorer,
     inlineEvalProvider: capabilities.inlineEvalProvider && options.featureFlags.enableInlineEval,
     debugProvider: capabilities.debugProvider && options.featureFlags.enableDebug,
-    opaTestProvider: capabilities.opaTestProvider
-      && options.featureFlags.enableServerTesting,
+    opaTestProvider: capabilities.opaTestProvider && options.featureFlags.enableServerTesting,
   };
 
   return { client, capabilities: effectiveCapabilities };

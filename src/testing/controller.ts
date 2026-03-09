@@ -3,17 +3,19 @@
 import * as vscode from "vscode";
 import type { RunTestsParams, TestLocation } from "../ls/clients/regal";
 import { runTests } from "../ls/clients/regal";
+import { TestHierarchyManager } from "./hierarchy-manager";
+import { parseTestId } from "./id";
 
 let controller: vscode.TestController;
-
-// Store test metadata for each test item
-const testMetadata = new Map<string, { package: string; name: string }>();
+let hierarchyManager: TestHierarchyManager;
 
 export function activateTestController(
   context: vscode.ExtensionContext,
 ): vscode.TestController {
   controller = vscode.tests.createTestController("opaTests", "Rego");
   context.subscriptions.push(controller);
+
+  hierarchyManager = new TestHierarchyManager(controller);
 
   controller.createRunProfile(
     "Run",
@@ -34,34 +36,19 @@ export function handleTestLocations(
   }
 
   const uri = vscode.Uri.parse(fileUri);
-  const fileName = fileUri.split("/").pop() || fileUri;
+  const workspaceFolder = vscode.workspace.getWorkspaceFolder(uri);
+  if (!workspaceFolder) {
+    console.warn(`No workspace folder found for file: ${fileUri}`);
+    return;
+  }
 
-  controller.items.delete(fileUri);
+  hierarchyManager.clearTestsForFile(fileUri);
 
   if (locations.length === 0) {
     return;
   }
 
-  const fileItem = controller.createTestItem(fileUri, fileName, uri);
-  controller.items.add(fileItem);
-
-  for (const test of locations) {
-    // Include line number in ID to handle incremental rules with same name
-    const testId = `${fileUri}:${test.name}:${test.location.row}`;
-    const testItem = controller.createTestItem(testId, test.name, uri);
-    testItem.range = new vscode.Range(
-      test.location.row - 1,
-      test.location.col - 1,
-      test.location.end.row - 1,
-      test.location.end.col - 1,
-    );
-    fileItem.children.add(testItem);
-
-    testMetadata.set(testId, {
-      package: test.package,
-      name: test.name,
-    });
-  }
+  hierarchyManager.addTestsForFile(workspaceFolder.uri, fileUri, locations);
 }
 
 async function runHandler(
@@ -110,21 +97,16 @@ async function runSingleTest(
 ): Promise<void> {
   run.started(test);
 
-  const metadata = testMetadata.get(test.id);
-  if (!metadata) {
-    run.errored(test, new vscode.TestMessage("Test metadata not found"));
-    return;
-  }
-
-  if (!test.uri) {
-    run.errored(test, new vscode.TestMessage("Test URI not found"));
+  const parsed = parseTestId(test.id);
+  if (!parsed || !test.uri) {
+    run.errored(test, new vscode.TestMessage("Invalid test"));
     return;
   }
 
   const params: RunTestsParams = {
     uri: test.uri.toString(),
-    package: metadata.package,
-    name: metadata.name,
+    package: parsed.package,
+    name: parsed.name,
   };
 
   let results;
@@ -143,7 +125,6 @@ async function runSingleTest(
 
   const durationMs = result.duration / 1_000_000;
 
-  // Note: The 'fail' property is only set when a test fails
   if (result.fail !== undefined) {
     const message = new vscode.TestMessage(
       result.error ? JSON.stringify(result.error, null, 2) : "Test failed",
@@ -165,7 +146,6 @@ async function runSingleTest(
       const decodedOutput = Buffer.from(result.output, "base64").toString(
         "utf-8",
       );
-      // needed windows line endings to get this looking right
       const normalizedOutput = decodedOutput.replace(/\n/g, "\r\n");
       run.appendOutput(normalizedOutput);
     } catch (error) {
