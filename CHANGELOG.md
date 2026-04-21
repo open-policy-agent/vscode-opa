@@ -1,6 +1,13 @@
 # Change Log
 
 
+## 0.23.0
+
+- Support for nested test list in test controller [#420](https://github.com/open-policy-agent/vscode-opa/pull/420) & minor fix for test controller in [#415](https://github.com/open-policy-agent/vscode-opa/pull/415)
+- Inherit PATH from parent editor for extension development launches [#416](https://github.com/open-policy-agent/vscode-opa/pull/416)
+- Updates VS Code Engine to 1.116, and Typescript to 6.0.
+
+
 ## 0.22.1
 
 Contains a fix for a packing bug in 0.22.0 which caused the test/controller.ts file to be missing [#414](https://github.com/open-policy-agent/vscode-opa/pull/414)
