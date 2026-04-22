@@ -28,7 +28,9 @@
   ],
   "main": "./out/extension",
   "activationEvents": [
-    "workspaceContains:**/*.rego"
+    "workspaceContains:**/*.rego",
+    "workspaceContains:**/.regal/config.yaml",
+    "workspaceContains:**/.regal.yaml"
   ],
   "contributes": {
     "viewsContainers": {
