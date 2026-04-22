@@ -27,7 +27,9 @@
     "regal"
   ],
   "main": "./out/extension",
-  "activationEvents": [],
+  "activationEvents": [
+    "workspaceContains:**/*.rego"
+  ],
   "contributes": {
     "viewsContainers": {
       "activitybar": [
