@@ -356,9 +356,9 @@
     "cspell": "^10.0.0",
     "dprint": "^0.54.0",
     "eslint": "10.2.1",
-    "markdownlint-cli2": "^0.22.0",
+    "markdownlint-cli2": "^0.22.1",
     "typescript": "^6.0.3",
-    "typescript-eslint": "^8.58.2",
+    "typescript-eslint": "^8.59.0",
     "@vscode/vsce": "^3.9.1"
   },
   "dependencies": {
