@@ -73,6 +73,7 @@ or search for "Open Policy Agent" in the 'Extensions' panel.
 | `opa.strictMode` | `false` | Enable [strict-mode](https://www.openpolicyagent.org/docs/latest/policy-language/#strict-mode) for the `OPA: Check File Syntax command`. |
 | `opa.roots` | `[${workspaceFolder}]` | List of paths to load as bundles for policy and data. Defaults to a single entry which is the current workspace root. The variable `${workspaceFolder}` will be resolved as the current workspace root. The variable `${fileDirname}` will be resolved as the directory of the file currently opened in the active window. |
 | `opa.bundleMode`  | `true`  | Enable treating the workspace as a bundle to avoid loading erroneous data JSON/YAML files. It is _NOT_ recommended to disable this. |
+| `opa.bundleIgnorePaths` | `[]` | Additional ignore patterns passed to OPA when bundle mode is enabled. The `.git` directory is always ignored by default. |
 | `opa.schema` | `null` | Path to the [schema](https://www.openpolicyagent.org/docs/latest/policy-language/#using-schemas-to-enhance-the-rego-type-checker) file or directory. If set to `null`, schema evaluation is disabled. As for `opa.roots`, `${workspaceFolder}` and `${fileDirname}` variables can be used in the path. |
 | `opa.languageServers` | `null` | An array of enabled language servers (currently `["regal"]` is supported) |
 | `opa.env` | `{}` | Object of environment variables passed to the process running OPA (e.g. `{"key": "value"}`) |
@@ -140,6 +141,18 @@ Bind the `OPA: Evaluate Package` command to a keyboard shortcut (e.g., ⌘ Shift
 If unable to use `data.json` or `data.yaml` files with `opa.bundleMode` enabled
 you can disable the configuration option and _ALL_ `*.json` and `*.yaml` files
 will be loaded from the workspace.
+
+If you need to exclude additional paths from bundle loading, set
+`opa.bundleIgnorePaths` in your workspace settings. For example:
+
+```json
+{
+    "opa.bundleIgnorePaths": [
+        ".github",
+        "node_modules"
+    ]
+}
+```
 
 
 ### Disabling linting
