@@ -181,8 +181,10 @@
           "items": {
             "type": "string"
           },
-          "default": [],
-          "description": "Additional bundle ignore patterns passed to OPA when bundle mode is enabled. The .git directory is always ignored by default."
+          "default": [
+            ".git"
+          ],
+          "description": "Bundle ignore patterns passed to OPA when bundle mode is enabled. Defaults to [\".git\"]; override with your own list, or set to [] to disable ignoring."
         },
         "opa.schema": {
           "type": [

@@ -62,9 +62,7 @@ export function getRoots(): string[] {
 }
 
 export function getBundleIgnorePaths(): string[] {
-  const ignorePaths = vscode.workspace.getConfiguration("opa").get<string[]>("bundleIgnorePaths", []);
-
-  return [...new Set([".git", ...ignorePaths])];
+  return vscode.workspace.getConfiguration("opa").get<string[]>("bundleIgnorePaths", [".git"]);
 }
 
 export function getBundleIgnoreParams(): string[] {
