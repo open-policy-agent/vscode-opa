@@ -395,6 +395,7 @@ function activateCheckFile(context: vscode.ExtensionContext) {
         () => {
           if (opa.canUseBundleFlags()) {
             args.push("--bundle");
+            args.push(...opa.getBundleIgnoreParams());
           }
           args.push(...opa.getRoots());
           args.push(...opa.getSchemaParams());
@@ -467,6 +468,7 @@ function activateCoverWorkspace(context: vscode.ExtensionContext) {
         () => {
           if (opa.canUseBundleFlags()) {
             args.push("--bundle");
+            args.push(...opa.getBundleIgnoreParams());
           }
 
           args.push(...opa.getRoots());
@@ -664,6 +666,7 @@ function activateTestWorkspace(context: vscode.ExtensionContext) {
         () => {
           if (opa.canUseBundleFlags()) {
             args.push("--bundle");
+            args.push(...opa.getBundleIgnoreParams());
           }
           args.push(...opa.getRoots());
         },

@@ -61,12 +61,28 @@ export function getRoots(): string[] {
   return roots.map((root: string) => getDataDir(vscode.Uri.parse(replacePathVariables(root))));
 }
 
+export function getBundleIgnorePaths(): string[] {
+  return vscode.workspace.getConfiguration("opa").get<string[]>("bundleIgnorePaths", [".git"]);
+}
+
+export function getBundleIgnoreParams(): string[] {
+  if (!canUseBundleFlags()) {
+    return [];
+  }
+
+  return getBundleIgnorePaths().flatMap((ignorePath) => ["--ignore", ignorePath]);
+}
+
 // Returns a list of root data parameters in an array
 // like ["--bundle=file:///a/b/x/", "--bundle=file:///a/b/y"] in bundle mode
 // or ["--data=file:///a/b/x", "--data=file://a/b/y"] otherwise.
 export function getRootParams(): string[] {
   const flag = dataFlag();
   const roots = getRoots();
+
+  if (flag === "--bundle") {
+    return [...getBundleIgnoreParams(), ...roots.map((root) => `${flag}=${root}`)];
+  }
 
   return roots.map((root) => `${flag}=${root}`);
 }
