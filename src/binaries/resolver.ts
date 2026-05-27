@@ -9,6 +9,8 @@ import { BinaryConfig, BinaryInfo } from "./types";
 export function resolveBinary(config: BinaryConfig, fallbackPath?: string): BinaryInfo {
   let path = vscode.workspace.getConfiguration("opa.dependency_paths").get<string>(config.configKey);
 
+  let configuredOriginalPath: string | undefined;
+
   if (path?.trim()) {
     const originalPath = path;
     path = replaceWorkspaceFolderPathVariable(path);
@@ -27,6 +29,8 @@ export function resolveBinary(config: BinaryConfig, fallbackPath?: string): Bina
         ...(versionInfo.error && { error: versionInfo.error }),
       };
     }
+
+    configuredOriginalPath = originalPath;
   }
 
   const systemPath = fallbackPath || config.configKey;
@@ -36,6 +40,10 @@ export function resolveBinary(config: BinaryConfig, fallbackPath?: string): Bina
       path: systemPath,
       source: "system",
       version: versionInfo.version,
+      ...(configuredOriginalPath && {
+        originalPath: configuredOriginalPath,
+        configuredPathMissing: true,
+      }),
       ...(versionInfo.error && { error: versionInfo.error }),
     };
   }
@@ -43,5 +51,9 @@ export function resolveBinary(config: BinaryConfig, fallbackPath?: string): Bina
   return {
     source: "missing",
     version: "missing",
+    ...(configuredOriginalPath && {
+      originalPath: configuredOriginalPath,
+      configuredPathMissing: true,
+    }),
   };
 }
