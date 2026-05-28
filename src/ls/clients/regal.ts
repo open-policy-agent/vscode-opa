@@ -13,7 +13,7 @@ import {
   ServerOptions,
   State,
 } from "vscode-languageclient/node";
-import { REGAL_CONFIG, resolveBinary } from "../../binaries";
+import { REGAL_CONFIG, resolveBinary, warnConfiguredPathMissing } from "../../binaries";
 import {
   evalResultDecorationType,
   evalResultTargetSuccessDecorationType,
@@ -156,22 +156,7 @@ export async function activateRegal(
   const binaryInfo = resolveBinary(REGAL_CONFIG, "regal");
 
   if (binaryInfo.configuredPathMissing) {
-    const inspected = vscode.workspace
-      .getConfiguration("opa.dependency_paths")
-      .inspect<string>(REGAL_CONFIG.configKey);
-    const sourceDetail = inspected?.workspaceValue
-      ? "workspace settings (.vscode/settings.json)"
-      : "user settings";
-
-    opaOutputChannel.appendLine(
-      `${REGAL_CONFIG.name}: configured path '${binaryInfo.originalPath}' from ${sourceDetail} not found; falling back to ${
-        binaryInfo.source === "system" ? "system PATH" : "no binary available"
-      }.`,
-    );
-
-    vscode.window.showWarningMessage(
-      `Regal binary not found at configured path '${binaryInfo.originalPath}' (from ${sourceDetail}).`,
-    );
+    warnConfiguredPathMissing(REGAL_CONFIG, binaryInfo, opaOutputChannel);
   }
 
   // Validate binary availability
