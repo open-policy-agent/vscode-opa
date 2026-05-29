@@ -4,7 +4,14 @@ import * as fs from "fs";
 import * as path from "path";
 import * as vscode from "vscode";
 
-import { BinaryConfig, installBinary, OPA_CONFIG, REGAL_CONFIG, resolveBinary } from "./binaries";
+import {
+  BinaryConfig,
+  installBinary,
+  OPA_CONFIG,
+  REGAL_CONFIG,
+  resolveBinary,
+  warnConfiguredPathMissing,
+} from "./binaries";
 import { activateDebugger } from "./da/activate";
 import {
   activateRegal,
@@ -143,6 +150,12 @@ export async function activate(context: vscode.ExtensionContext) {
 
   // check for missing binaries and prompt to install them
   checkMissingBinaries();
+
+  // warn if the configured opa.dependency_paths.opa points to a non-existent file
+  const opaBinaryInfo = resolveBinary(OPA_CONFIG, "opa");
+  if (opaBinaryInfo.configuredPathMissing) {
+    warnConfiguredPathMissing(OPA_CONFIG, opaBinaryInfo, opaOutputChannel);
+  }
 
   // start Regal language server and wire up the client
   const result = await activateRegal(regalOptions);

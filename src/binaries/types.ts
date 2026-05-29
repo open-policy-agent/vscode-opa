@@ -18,6 +18,7 @@ export interface BinaryInfo {
   path?: string;
   source: "configured" | "system" | "missing";
   originalPath?: string;
+  configuredPathMissing?: boolean;
   version: string;
   error?: string;
 }

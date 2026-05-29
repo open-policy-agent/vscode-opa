@@ -13,7 +13,7 @@ import {
   ServerOptions,
   State,
 } from "vscode-languageclient/node";
-import { REGAL_CONFIG, resolveBinary } from "../../binaries";
+import { REGAL_CONFIG, resolveBinary, warnConfiguredPathMissing } from "../../binaries";
 import {
   evalResultDecorationType,
   evalResultTargetSuccessDecorationType,
@@ -154,6 +154,10 @@ export async function activateRegal(
   clientLock = true;
 
   const binaryInfo = resolveBinary(REGAL_CONFIG, "regal");
+
+  if (binaryInfo.configuredPathMissing) {
+    warnConfiguredPathMissing(REGAL_CONFIG, binaryInfo, opaOutputChannel);
+  }
 
   // Validate binary availability
   if (!binaryInfo.path) {
