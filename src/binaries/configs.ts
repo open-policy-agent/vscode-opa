@@ -3,9 +3,9 @@
 import { BinaryConfig } from "./types";
 
 const platformMap: { [key: string]: string } = {
-  "darwin": "Darwin",
-  "linux": "Linux",
-  "win32": "Windows",
+  darwin: "Darwin",
+  linux: "Linux",
+  win32: "Windows",
 };
 
 export const REGAL_CONFIG: BinaryConfig = {
@@ -18,12 +18,16 @@ export const REGAL_CONFIG: BinaryConfig = {
     if (!platformName) {
       return undefined;
     }
-    return assets.filter((asset: { name: string }) => asset.name.indexOf(platformName) !== -1)[0];
+    return assets.filter(
+      (asset: { name: string }) => asset.name.indexOf(platformName) !== -1,
+    )[0];
   },
   versionParser: (executablePath: string) => {
     try {
       const { execSync } = require("child_process");
-      const versionJSON = execSync(executablePath + " version --format=json").toString().trim();
+      const versionJSON = execSync(executablePath + " version --format=json")
+        .toString()
+        .trim();
       const versionObj = JSON.parse(versionJSON);
       return { version: versionObj.version || "unknown" };
     } catch (error) {
@@ -63,7 +67,9 @@ export const OPA_CONFIG: BinaryConfig = {
 
     // Prefer static binary if available (smaller, no CGO dependencies)
     if (staticBinaryName) {
-      const staticAsset = assets.find((asset: { name: string }) => asset.name === staticBinaryName);
+      const staticAsset = assets.find(
+        (asset: { name: string }) => asset.name === staticBinaryName,
+      );
       if (staticAsset) {
         return staticAsset;
       }

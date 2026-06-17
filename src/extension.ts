@@ -27,7 +27,8 @@ import { activateTestController, handleTestLocations } from "./testing/controlle
 import { OPATreeDataProvider } from "./tree/opaTreeProvider";
 import { getPrettyTime } from "./util";
 
-export const opaOutputChannel = vscode.window.createOutputChannel("OPA & Regal");
+// log: true creates a LogOutputChannel, required for traceOutputChannel in LanguageClientOptions
+export const opaOutputChannel = vscode.window.createOutputChannel("OPA & Regal", { log: true });
 
 // Feature flags for custom Regal-backed features, all on by default
 const regalOptions: RegalClientActivationOptions = {
