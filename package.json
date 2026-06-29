@@ -363,22 +363,22 @@
     "@stylistic/eslint-plugin": "^5.10.0",
     "@types/command-exists": "^1.2.3",
     "@types/mocha": "10.0.10",
-    "@types/node": "^25.9.2",
+    "@types/node": "^26.0.1",
     "@types/semver": "^7.7.1",
-    "@types/vscode": "1.120.0",
+    "@types/vscode": "1.125.0",
     "@vscode/vsce": "^3.9.2",
     "cspell": "^10.0.1",
-    "dprint": "^0.54.0",
-    "eslint": "10.4.1",
-    "globals": "^17.0.0",
+    "dprint": "^0.55.1",
+    "eslint": "10.6.0",
+    "globals": "^17.7.0",
     "markdownlint-cli2": "^0.22.1",
     "typescript": "^6.0.3",
-    "typescript-eslint": "^8.60.1"
+    "typescript-eslint": "^8.62.0"
   },
   "dependencies": {
     "command-exists": "^1.2.9",
-    "semver": "^7.8.2",
-    "vscode-languageclient": "^10.0.0"
+    "semver": "^7.8.5",
+    "vscode-languageclient": "^10.0.1"
   },
   "__metadata": {
     "id": "ab758a0c-5cb5-417e-99bf-12a6e16bb148",
