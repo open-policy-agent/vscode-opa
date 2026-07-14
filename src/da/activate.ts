@@ -39,7 +39,7 @@ export function activateDebugger(context: vscode.ExtensionContext) {
   context.subscriptions.push(vscode.debug.registerDebugConfigurationProvider("opa-debug", provider));
 
   context.subscriptions.push(
-    vscode.debug.registerDebugAdapterDescriptorFactory("opa-debug", new OpaDebugAdapterExecutableFactory()),
+    vscode.debug.registerDebugAdapterDescriptorFactory("opa-debug", new OpaDebugAdapterFactory()),
   );
 
   context.subscriptions.push(vscode.debug.registerDebugConfigurationProvider("opa-debug", {
@@ -123,11 +123,16 @@ class OpaDebugConfigurationProvider implements vscode.DebugConfigurationProvider
   }
 }
 
-class OpaDebugAdapterExecutableFactory implements vscode.DebugAdapterDescriptorFactory {
+// DAP adapter factory which either provides a connection to a running TCP server (when a port is specified)
+// or launches a new process `regal debug` for the purpose (when no port is specified).
+class OpaDebugAdapterFactory implements vscode.DebugAdapterDescriptorFactory {
   createDebugAdapterDescriptor(
-    _session: vscode.DebugSession,
+    session: vscode.DebugSession,
     executable: vscode.DebugAdapterExecutable | undefined,
   ): vscode.ProviderResult<vscode.DebugAdapterDescriptor> {
+    if (session.configuration.port >= 0) {
+      return new vscode.DebugAdapterServer(session.configuration.port);
+    }
     if (!executable) {
       opaOutputChannel.appendLine(`Regal: creating debug adapter (minimum version: ${minimumSupportedRegalVersion})`);
 
