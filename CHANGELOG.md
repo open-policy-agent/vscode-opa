@@ -1,6 +1,15 @@
 # Change Log
 
 
+## 0.24.0
+
+- Allow connecting to running Debug Adapter Protocol service [#465](https://github.com/open-policy-agent/vscode-opa/pull/465)
+- Warn users when a local Regal binary for development isn't found [#449](https://github.com/open-policy-agent/vscode-opa/pull/449) thanks @SeanLedford!
+- Expand activation events for Regal config files [#438](https://github.com/open-policy-agent/vscode-opa/pull/438)
+- Ignore `.git` directory when loading workspace as a bundle [#442](https://github.com/open-policy-agent/vscode-opa/pull/442)
+- Activate extension when workspace contains Rego [#437](https://github.com/open-policy-agent/vscode-opa/pull/437)
+
+
 ## 0.23.0
 
 - Support for nested test list in test controller [#420](https://github.com/open-policy-agent/vscode-opa/pull/420) & minor fix for test controller in [#415](https://github.com/open-policy-agent/vscode-opa/pull/415)
