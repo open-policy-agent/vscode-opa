@@ -4,6 +4,7 @@
 
 Creating a new release involves the following steps:
 
+- Check all PRs have been merged in
 - Prepare a new release branch from `main`
   - Update [CHANGELOG.md](./CHANGELOG.md) with all notable changes since the last tag
   - Update `package.json` with the new version number (e.g. `0.50.0`)

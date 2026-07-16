@@ -1,5 +1,8 @@
 # Change Log
 
+## 0.24.1
+
+Updates to dependencies only, missed in 0.24.0.
 
 ## 0.24.0
 
