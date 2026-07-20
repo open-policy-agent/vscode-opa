@@ -371,8 +371,8 @@
     "dprint": "^0.55.2",
     "eslint": "10.7.0",
     "globals": "^17.7.0",
-    "markdownlint-cli2": "^0.23.0",
-    "typescript": "^6.0.3",
+    "markdownlint-cli2": "^0.23.1",
+    "typescript": "^7.0.2",
     "typescript-eslint": "^8.64.0"
   },
   "dependencies": {
