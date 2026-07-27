@@ -369,11 +369,11 @@
     "@vscode/vsce": "^3.9.2",
     "cspell": "^10.0.1",
     "dprint": "^0.55.2",
-    "eslint": "10.7.0",
-    "globals": "^17.7.0",
-    "markdownlint-cli2": "^0.23.0",
-    "typescript": "^6.0.3",
-    "typescript-eslint": "^8.64.0"
+    "eslint": "10.8.0",
+    "globals": "^17.8.0",
+    "markdownlint-cli2": "^0.23.2",
+    "typescript": "^7.0.2",
+    "typescript-eslint": "^8.65.0"
   },
   "dependencies": {
     "command-exists": "^1.2.9",
