@@ -123,7 +123,7 @@
 		<key>keyword</key>
 		<dict>
 			<key>match</key>
-			<string>(^|\s+)(?:(default|not|package|import|as|with|else|some|in|every|if|contains))(?=\s|$)</string>
+			<string>(^|\s+)(?:(default|not|package|import|as|with|else|some|in|every|if|contains|and|or))(?=\s|$)</string>
 			<key>name</key>
 			<string>keyword.other.rego</string>
 		</dict>
