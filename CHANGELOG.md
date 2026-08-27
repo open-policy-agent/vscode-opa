@@ -1,5 +1,10 @@
 # Change Log
 
+## 0.25.0
+
+- Highlight the `and` and `or` keywords [#482](https://github.com/open-policy-agent/vscode-opa/pull/482)
+- For dependency updates, please see [full change log](https://github.com/open-policy-agent/vscode-opa/compare/v0.24.1...v0.25.0)
+
 ## 0.24.1
 
 Updates to dependencies only, missed in 0.24.0.
