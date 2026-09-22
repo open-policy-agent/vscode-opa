@@ -20,6 +20,8 @@ import {
   evalResultTargetUndefinedDecorationType,
   opaOutputChannel,
   removeDecorations,
+  setFileCoverage,
+  showCoverageForWindow,
 } from "../../extension";
 import type { ExplorerResult } from "../../tree/opaTreeProvider";
 import type { OPATreeDataProvider } from "../../tree/opaTreeProvider";
@@ -29,6 +31,7 @@ export interface RegalServerCustomCapabilities {
   inlineEvalProvider: boolean;
   debugProvider: boolean;
   opaTestProvider: boolean;
+  evalInlineCoverageProvider: boolean;
 }
 
 // RegalClientActivationOptions is intended to be represent how the client
@@ -42,6 +45,7 @@ export interface RegalClientActivationOptions {
     enableInlineEval: boolean;
     enableDebug: boolean;
     enableServerTesting: boolean;
+    enableEvalInlineCoverage: boolean;
   };
 }
 
@@ -57,12 +61,14 @@ function extractServerCustomCapabilities(
     inlineEvalProvider: experimental?.inlineEvalProvider ?? false,
     debugProvider: experimental?.debugProvider ?? false,
     opaTestProvider: experimental?.opaTestProvider ?? false,
+    evalInlineCoverageProvider: experimental?.evalInlineCoverageProvider ?? false,
   };
 }
 
 let client: LanguageClient;
 let clientLock = false;
 let regalShowDiagnostics = true;
+let regalShowEvalInlineCoverage = true;
 const activeDebugSessions: Map<string, void> = new Map();
 let treeDataProvider: OPATreeDataProvider | undefined;
 let testController:
@@ -117,6 +123,12 @@ export function toggleRegalDiagnostics(): boolean {
   }
 
   return regalShowDiagnostics;
+}
+
+export function toggleEvalInlineCoverage(): boolean {
+  regalShowEvalInlineCoverage = !regalShowEvalInlineCoverage;
+
+  return regalShowEvalInlineCoverage;
 }
 
 export function resolveRegalPath() {
@@ -245,6 +257,7 @@ export async function activateRegal(
       enableDebugCodelens: options.featureFlags.enableDebug,
       enableExplorer: options.featureFlags.enableExplorer,
       enableServerTesting: options.featureFlags.enableServerTesting,
+      enableEvalInlineCoverage: options.featureFlags.enableEvalInlineCoverage,
     },
     middleware: {
       // Users can toggle linting on/off using the "OPA: Toggle Regal Linting" command.
@@ -275,7 +288,7 @@ export async function activateRegal(
   const capabilities = extractServerCustomCapabilities(client);
 
   opaOutputChannel.appendLine(
-    `Regal capabilities: explorer=${capabilities.explorerProvider}, inlineEval=${capabilities.inlineEvalProvider}, debug=${capabilities.debugProvider}, opaTest=${capabilities.opaTestProvider}`,
+    `Regal capabilities: explorer=${capabilities.explorerProvider}, inlineEval=${capabilities.inlineEvalProvider}, debug=${capabilities.debugProvider}, opaTest=${capabilities.opaTestProvider}, coverage=${capabilities.evalInlineCoverageProvider}`,
   );
 
   if (
@@ -319,6 +332,7 @@ export async function activateRegal(
     inlineEvalProvider: capabilities.inlineEvalProvider && options.featureFlags.enableInlineEval,
     debugProvider: capabilities.debugProvider && options.featureFlags.enableDebug,
     opaTestProvider: capabilities.opaTestProvider && options.featureFlags.enableServerTesting,
+    evalInlineCoverageProvider: capabilities.evalInlineCoverageProvider && options.featureFlags.enableEvalInlineCoverage,
   };
 
   return { client, capabilities: effectiveCapabilities };
@@ -338,6 +352,19 @@ function handleRegalShowExplorerResult(result: ExplorerResult) {
   if (treeDataProvider) {
     treeDataProvider.setExplorerResult(result);
   }
+}
+
+interface CoverageReport {
+  files: {
+    [file: string]: {
+      covered?: { start: { row: number; col: number }; end: { row: number; col: number } }[];
+      not_covered?: {
+        start: { row: number; col: number };
+        end: { row: number; col: number };
+        kinds?: string[];
+      }[];
+    };
+  };
 }
 
 interface TestLocationsNotification {
@@ -421,6 +448,8 @@ interface ShowEvalResultParams {
   package: string;
   // only used when target is a rule name, contains a list of rule head locations
   rule_head_locations: ShowEvalResultParamsLocation[];
+  // only present when the server has coverage enabled for this eval
+  coverage?: CoverageReport;
 }
 
 interface ShowEvalResultParamsLocation {
@@ -531,6 +560,11 @@ function handleRegalShowEvalResult(params: ShowEvalResultParams) {
     ? evalResultTargetUndefinedDecorationType
     : evalResultTargetSuccessDecorationType;
   activeEditor.setDecorations(targetDecorationType, targetDecorationOptions);
+
+  if (params.coverage && regalShowEvalInlineCoverage) {
+    setFileCoverage(params.coverage);
+    showCoverageForWindow();
+  }
 }
 
 function createMessages(params: ShowEvalResultParams) {
