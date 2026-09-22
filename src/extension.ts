@@ -12,6 +12,7 @@ import {
   resolveBinary,
   warnConfiguredPathMissing,
 } from "./binaries";
+import { toDecoration } from "./coverage";
 import { activateDebugger } from "./da/activate";
 import {
   activateRegal,
@@ -20,6 +21,7 @@ import {
   restartRegal,
   setTestController,
   setTreeDataProvider,
+  toggleEvalInlineCoverage,
   toggleRegalDiagnostics,
 } from "./ls/clients/regal";
 import * as opa from "./opa";
@@ -37,6 +39,7 @@ const regalOptions: RegalClientActivationOptions = {
     enableInlineEval: true,
     enableDebug: true,
     enableServerTesting: true,
+    enableEvalInlineCoverage: true,
   },
 };
 
@@ -148,6 +151,7 @@ export async function activate(context: vscode.ExtensionContext) {
   // regal binary related
   activateRestartRegalCommand(context, opaTreeDataProvider);
   activateToggleDiagnosticsCommand(context);
+  activateToggleEvalInlineCoverageCommand(context);
 
   // check for missing binaries and prompt to install them
   checkMissingBinaries();
@@ -219,13 +223,15 @@ export const evalResultDecorationType = vscode.window.createTextEditorDecoration
 // decoration type for the eval result covering only the rule name when the result is defined
 export const evalResultTargetSuccessDecorationType = vscode.window.createTextEditorDecorationType({
   isWholeLine: false,
-  backgroundColor: new vscode.ThemeColor("diffEditor.insertedTextBackground"),
+  border: "1px solid",
+  borderColor: new vscode.ThemeColor("diffEditor.insertedTextBackground"),
 });
 
 // decoration type for the eval result covering only the rule name when the result is undefined
 export const evalResultTargetUndefinedDecorationType = vscode.window.createTextEditorDecorationType({
   isWholeLine: false,
-  backgroundColor: new vscode.ThemeColor("inputValidation.warningBackground"),
+  border: "1px solid",
+  borderColor: new vscode.ThemeColor("inputValidation.warningBackground"),
 });
 
 // remove all decorations from the active editor using the known types of decorations
@@ -235,6 +241,7 @@ export function removeDecorations() {
       if (value.document.fileName.endsWith(fileName)) {
         value.setDecorations(coveredHighlight, []);
         value.setDecorations(notCoveredHighlight, []);
+        value.setDecorations(notCoveredExtraInfoHighlight, []);
       }
     });
   });
@@ -251,13 +258,17 @@ export function removeDecorations() {
 const outputUri = vscode.Uri.parse(`json:output.jsonc`);
 
 const coveredHighlight = vscode.window.createTextEditorDecorationType({
-  backgroundColor: "rgba(64,128,64,0.5)",
-  isWholeLine: true,
+  backgroundColor: "rgba(64,128,64,0.3)",
 });
 
 const notCoveredHighlight = vscode.window.createTextEditorDecorationType({
-  backgroundColor: "rgba(128,64,64,0.5)",
-  isWholeLine: true,
+  backgroundColor: "rgba(128,64,64,0.3)",
+});
+
+// not covered, with extra information on hover (index_excluded or early_exit)
+const notCoveredExtraInfoHighlight = vscode.window.createTextEditorDecorationType({
+  backgroundColor: "rgba(128,64,64,0.3)",
+  border: "1px solid rgba(191,141,26,0.8)",
 });
 
 interface UntypedObject {
@@ -297,38 +308,47 @@ function showCoverageForEditor(_editor: vscode.TextEditor) {
           notCoveredHighlight,
           fileCoverage[fileName].notCovered,
         );
+        value.setDecorations(
+          notCoveredExtraInfoHighlight,
+          fileCoverage[fileName].notCoveredExtraInfo,
+        );
       }
     });
   });
 }
 
-function showCoverageForWindow() {
+export function showCoverageForWindow() {
   vscode.window.visibleTextEditors.forEach(value => {
     showCoverageForEditor(value);
   });
 }
 
-function setFileCoverage(result: any) {
+export function setFileCoverage(result: any) {
   Object.keys(result.files).forEach(fileName => {
     const report = result.files[fileName];
     if (!report) {
       return;
     }
-    let covered = [];
+    let covered: vscode.DecorationOptions[] = [];
     if (report.covered !== undefined) {
-      covered = report.covered.map((range: any) => {
-        return new vscode.Range(range.start.row - 1, 0, range.end.row - 1, 1000);
-      });
+      covered = report.covered.map((range: any) => toDecoration(range, "covered"));
     }
-    let notCovered = [];
+    const notCovered: vscode.DecorationOptions[] = [];
+    const notCoveredExtraInfo: vscode.DecorationOptions[] = [];
     if (report.not_covered !== undefined) {
-      notCovered = report.not_covered.map((range: any) => {
-        return new vscode.Range(range.start.row - 1, 0, range.end.row - 1, 1000);
+      report.not_covered.forEach((range: any) => {
+        const kinds: string[] = range.kinds ?? [];
+        if (kinds.length > 0) {
+          notCoveredExtraInfo.push(toDecoration(range, "not_covered", kinds));
+        } else {
+          notCovered.push(toDecoration(range, "not_covered", kinds));
+        }
       });
     }
     fileCoverage[fileName] = {
       covered: covered,
       notCovered: notCovered,
+      notCoveredExtraInfo: notCoveredExtraInfo,
     };
   });
 }
@@ -919,6 +939,19 @@ function activateToggleDiagnosticsCommand(context: vscode.ExtensionContext) {
   );
 
   context.subscriptions.push(toggleDiagnosticsCommand);
+}
+
+function activateToggleEvalInlineCoverageCommand(context: vscode.ExtensionContext) {
+  const toggleEvalInlineCoverageCommand = vscode.commands.registerCommand(
+    "opa.regal.toggleEvalInlineCoverage",
+    () => {
+      const enabled = toggleEvalInlineCoverage();
+      const status = enabled ? "enabled" : "disabled";
+      vscode.window.setStatusBarMessage(`Eval inline coverage ${status}`, 3000);
+    },
+  );
+
+  context.subscriptions.push(toggleEvalInlineCoverageCommand);
 }
 
 function activateRefreshTreeCommand(

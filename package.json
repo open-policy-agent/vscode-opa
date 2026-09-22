@@ -126,6 +126,10 @@
         "title": "OPA: Toggle Regal Linting"
       },
       {
+        "command": "opa.regal.toggleEvalInlineCoverage",
+        "title": "OPA: Toggle Eval Inline Coverage"
+      },
+      {
         "command": "opa.view.refresh",
         "title": "Recompile",
         "icon": "$(list-tree)"
