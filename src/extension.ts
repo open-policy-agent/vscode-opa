@@ -23,6 +23,7 @@ import {
   toggleRegalDiagnostics,
 } from "./ls/clients/regal";
 import * as opa from "./opa";
+import { getRegoEditor, requireRegoEditor, trackRegoEditor } from "./rego-editor";
 import { activateTestController, handleTestLocations } from "./testing/controller";
 import { OPATreeDataProvider } from "./tree/opaTreeProvider";
 import { getPrettyTime } from "./util";
@@ -84,9 +85,11 @@ function updateRegoFileContext(editor: vscode.TextEditor | undefined) {
 
 export async function activate(context: vscode.ExtensionContext) {
   updateRegoFileContext(vscode.window.activeTextEditor);
+  trackRegoEditor(vscode.window.activeTextEditor);
   vscode.window.onDidChangeActiveTextEditor(
     editor => {
       updateRegoFileContext(editor);
+      trackRegoEditor(editor);
       showCoverageOnEditorChange(editor);
     },
     null,
@@ -462,7 +465,7 @@ function activateCoverWorkspace(context: vscode.ExtensionContext) {
   const coverWorkspaceCommand = vscode.commands.registerCommand(
     "opa.test.coverage.workspace",
     () => {
-      const editor = vscode.window.activeTextEditor;
+      const editor = requireRegoEditor();
       if (!editor) {
         return;
       }
@@ -676,6 +679,7 @@ function activateTestWorkspace(context: vscode.ExtensionContext) {
 
       args.push("--verbose");
 
+      let hasTarget = true;
       ifInWorkspace(
         () => {
           if (opa.canUseBundleFlags()) {
@@ -685,13 +689,18 @@ function activateTestWorkspace(context: vscode.ExtensionContext) {
           args.push(...opa.getRoots());
         },
         () => {
-          const editor = vscode.window.activeTextEditor;
+          const editor = requireRegoEditor();
           if (!editor) {
+            hasTarget = false;
             return;
           }
           args.push(editor.document.uri.fsPath);
         },
       );
+
+      if (!hasTarget) {
+        return;
+      }
 
       opa.runWithStatus(
         "opa",
@@ -715,7 +724,7 @@ function activateTraceSelection(context: vscode.ExtensionContext) {
   const traceSelectionCommand = vscode.commands.registerCommand(
     "opa.trace.selection",
     () => {
-      const editor = vscode.window.activeTextEditor;
+      const editor = requireRegoEditor();
       if (!editor) {
         return;
       }
@@ -759,7 +768,7 @@ function activateProfileSelection(context: vscode.ExtensionContext) {
   const profileSelectionCommand = vscode.commands.registerCommand(
     "opa.profile.selection",
     () => {
-      const editor = vscode.window.activeTextEditor;
+      const editor = requireRegoEditor();
       if (!editor) {
         return;
       }
@@ -803,7 +812,7 @@ function activatePartialSelection(context: vscode.ExtensionContext) {
   const partialSelectionCommand = vscode.commands.registerCommand(
     "opa.partial.selection",
     () => {
-      const editor = vscode.window.activeTextEditor;
+      const editor = requireRegoEditor();
       if (!editor) {
         return;
       }
@@ -947,14 +956,8 @@ function activateExplorerCommand(
   const explorerCommand = vscode.commands.registerCommand(
     "opa.explorer",
     async () => {
-      const editor = vscode.window.activeTextEditor;
+      const editor = requireRegoEditor();
       if (!editor) {
-        vscode.window.showErrorMessage("No active editor");
-        return;
-      }
-
-      if (editor.document.languageId !== "rego") {
-        vscode.window.showErrorMessage("Active editor is not a Rego file");
         return;
       }
 
@@ -1083,9 +1086,8 @@ function onActiveWorkspaceEditor(
     // TODO(tsandall): test non-workspace mode. I don't know if this plugin
     // will work if a single file is loaded. Certain features may not work
     // but many can.
-    const editor = vscode.window.activeTextEditor;
+    const editor = requireRegoEditor();
     if (!editor) {
-      vscode.window.showErrorMessage("No active editor");
       return;
     }
 
@@ -1199,24 +1201,26 @@ export function existsSync(path: string): boolean {
   return fs.existsSync(path);
 }
 
-export function getInputPath(): string {
-  // look for input.json at the active editor's directory, or the workspace directory
+export function getInputPath(editor: vscode.TextEditor | undefined = getRegoEditor()): string {
+  // look for input.json at the Rego editor's directory, or the workspace directory
 
-  const activeDir = path.dirname(
-    vscode.window.activeTextEditor!.document.uri.fsPath,
-  );
-  let parsed = vscode.Uri.file(activeDir);
+  const activeDir = editor ? path.dirname(editor.document.uri.fsPath) : undefined;
+  let parsed = activeDir ? vscode.Uri.file(activeDir) : undefined;
 
   // If we're in a workspace, and there is no sibling input.json to the actively edited file, look for the file in the workspace root
   if (
     !!vscode.workspace.workspaceFolders
     && vscode.workspace.workspaceFolders.length > 0
-    && !fs.existsSync(path.join(activeDir, "input.json"))
+    && (!activeDir || !fs.existsSync(path.join(activeDir, "input.json")))
   ) {
     const firstWorkspaceFolder = vscode.workspace.workspaceFolders[0];
     if (firstWorkspaceFolder) {
       parsed = firstWorkspaceFolder.uri;
     }
+  }
+
+  if (!parsed) {
+    return "";
   }
 
   // If the rootDir is a file:// URL then just append /input.json onto the
@@ -1241,7 +1245,7 @@ function createOpaEvalArgs(
   args.push("--stdin");
   args.push("--package", pkg);
 
-  let inputPath = getInputPath();
+  let inputPath = getInputPath(editor);
   if (existsSync(inputPath)) {
     args.push("--input", inputPath);
   } else {
