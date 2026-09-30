@@ -151,103 +151,102 @@ MD043: false
 # MD044/proper-names - Proper names should have the correct capitalization
 MD044:
   # List of proper names
-  names: [
+  names:
     # Companies/Organizations/Products
-    "ACR",
-    "AKS",
-    "Amazon",
-    "Anthos",
-    "Auth0",
-    "AWS",
-    "Azure",
-    "Bitbucket",
-    "CIS",
-    "CloudFormation",
-    "CNCF",
-    "DAS",
-    "DDB",
-    "Docker",
-    "DSS",
-    "DynamoDB",
-    "EKS",
-    "Elasticsearch",
-    "Envoy",
-    "GCP",
-    "GitHub",
-    "GKE",
-    "Gmail",
-    "Google",
-    "HashiCorp",
-    "Helm",
-    "Istio",
-    "JavaScript",
-    "Kafka",
-    "KMS",
-    "Kong",
-    "Kubernetes",
-    "Kuma",
-    "Linux",
-    "macOS",
-    "Microsoft",
-    "MITRE",
-    "NGNIX",
-    "Okta",
-    "OPA",
-    "OpenAPI",
-    "OpenShift",
-    "PCI",
-    "Postgres",
-    "PostgreSQL",
-    "MySQL",
-    "RDS",
-    "RHEL",
-    "S3",
-    "Terraform",
-    "WebAssembly",
+    - "ACR"
+    - "AKS"
+    - "Amazon"
+    - "Anthos"
+    - "Auth0"
+    - "AWS"
+    - "Azure"
+    - "Bitbucket"
+    - "CIS"
+    - "CloudFormation"
+    - "CNCF"
+    - "DAS"
+    - "DDB"
+    - "Docker"
+    - "DSS"
+    - "DynamoDB"
+    - "EKS"
+    - "Elasticsearch"
+    - "Envoy"
+    - "GCP"
+    - "GitHub"
+    - "GKE"
+    - "Gmail"
+    - "Google"
+    - "HashiCorp"
+    - "Helm"
+    - "Istio"
+    - "JavaScript"
+    - "Kafka"
+    - "KMS"
+    - "Kong"
+    - "Kubernetes"
+    - "Kuma"
+    - "Linux"
+    - "macOS"
+    - "Microsoft"
+    - "MITRE"
+    - "NGNIX"
+    - "Okta"
+    - "OPA"
+    - "OpenAPI"
+    - "OpenShift"
+    - "PCI"
+    - "Postgres"
+    - "PostgreSQL"
+    - "MySQL"
+    - "RDS"
+    - "RHEL"
+    - "S3"
+    - "Terraform"
+    - "WebAssembly"
     # Terms
-    "ABAC",
-    "API",
-    "CI/CD",
-    "CLI",
-    "DevOps",
-    "DevSecOps",
-    "DNS",
-    "FAQ",
-    "GDPR",
-    "gRPC",
-    "GUI",
-    "HMAC",
-    "HTML",
-    "HTTP",
-    "HTTPS",
-    "IAM",
-    "IP",
-    "IRSA",
-    "JSON",
-    "JWT",
-    "LDAP",
-    "MFPA",
-    "mTLS",
-    "PAM",
-    "RBAC",
-    "REPL",
-    "SaaS",
-    "SASL",
-    "SCIM",
-    "SDK",
-    "SLA",
-    "SLP",
-    "SMTP",
-    "SSH",
-    "SSL",
-    "SSO",
-    "TLS",
-    "URL",
-    "vCPU",
-    "VPC",
-    "vscode-opa",
-    "YAML",
-  ]
+    - "ABAC"
+    - "API"
+    - "CI/CD"
+    - "CLI"
+    - "DevOps"
+    - "DevSecOps"
+    - "DNS"
+    - "FAQ"
+    - "GDPR"
+    - "gRPC"
+    - "GUI"
+    - "HMAC"
+    - "HTML"
+    - "HTTP"
+    - "HTTPS"
+    - "IAM"
+    - "IP"
+    - "IRSA"
+    - "JSON"
+    - "JWT"
+    - "LDAP"
+    - "MFPA"
+    - "mTLS"
+    - "PAM"
+    - "RBAC"
+    - "REPL"
+    - "SaaS"
+    - "SASL"
+    - "SCIM"
+    - "SDK"
+    - "SLA"
+    - "SLP"
+    - "SMTP"
+    - "SSH"
+    - "SSL"
+    - "SSO"
+    - "TLS"
+    - "URL"
+    - "vCPU"
+    - "VPC"
+    - "vscode-opa"
+    - "YAML"
   # Ignore code blocks
   code_blocks: false
   html_elements: false
