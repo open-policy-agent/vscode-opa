@@ -14,6 +14,7 @@ import {
 } from "./binaries";
 import { toDecoration } from "./coverage";
 import { activateDebugger } from "./da/activate";
+import { consumeEvalSelectionCoverageFilter, evalSelection } from "./eval";
 import {
   activateRegal,
   isRegalRunning,
@@ -25,13 +26,11 @@ import {
   toggleRegalDiagnostics,
 } from "./ls/clients/regal";
 import * as opa from "./opa";
+import { opaOutputChannel, opaOutputShow, opaOutputShowError } from "./output";
 import { getRegoEditor, trackRegoEditor } from "./rego-editor";
 import { activateTestController, handleTestLocations } from "./testing/controller";
 import { OPATreeDataProvider } from "./tree/opaTreeProvider";
 import { getPrettyTime } from "./util";
-
-// log: true creates a LogOutputChannel, required for traceOutputChannel in LanguageClientOptions
-export const opaOutputChannel = vscode.window.createOutputChannel("OPA & Regal", { log: true });
 
 // Feature flags for custom Regal-backed features, all on by default
 const regalOptions: RegalClientActivationOptions = {
@@ -327,6 +326,8 @@ export function showCoverageForWindow() {
 }
 
 export function setFileCoverage(result: any) {
+  const filterCoverage = consumeEvalSelectionCoverageFilter();
+
   Object.keys(result.files).forEach(fileName => {
     const report = result.files[fileName];
     if (!report) {
@@ -334,19 +335,21 @@ export function setFileCoverage(result: any) {
     }
     let covered: vscode.DecorationOptions[] = [];
     if (report.covered !== undefined) {
-      covered = report.covered.map((range: any) => toDecoration(range, "covered"));
+      covered = filterCoverage(fileName, report.covered)
+        .map((range: any) => toDecoration(range, "covered"));
     }
     const notCovered: vscode.DecorationOptions[] = [];
     const notCoveredExtraInfo: vscode.DecorationOptions[] = [];
     if (report.not_covered !== undefined) {
-      report.not_covered.forEach((range: any) => {
-        const kinds: string[] = range.kinds ?? [];
-        if (kinds.length > 0) {
-          notCoveredExtraInfo.push(toDecoration(range, "not_covered", kinds));
-        } else {
-          notCovered.push(toDecoration(range, "not_covered", kinds));
-        }
-      });
+      filterCoverage(fileName, report.not_covered)
+        .forEach((range: any) => {
+          const kinds: string[] = range.kinds ?? [];
+          if (kinds.length > 0) {
+            notCoveredExtraInfo.push(toDecoration(range, "not_covered", kinds));
+          } else {
+            notCovered.push(toDecoration(range, "not_covered", kinds));
+          }
+        });
     }
     fileCoverage[fileName] = {
       covered: covered,
@@ -581,51 +584,20 @@ function activateEvalPackage(context: vscode.ExtensionContext) {
 }
 
 function activateEvalSelection(context: vscode.ExtensionContext) {
-  const provider = new JSONProvider();
-  const registration = vscode.workspace.registerTextDocumentContentProvider(
-    outputUri.scheme,
-    provider,
-  );
-
   const evalSelectionCommand = vscode.commands.registerCommand(
     "opa.eval.selection",
-    onActiveWorkspaceEditor(outputUri, (editor: vscode.TextEditor) => {
-      opa.parse(
-        "opa",
-        opa.getDataDir(editor.document.uri),
-        (pkg: string, imports: string[]) => {
-          const { inputPath, args } = createOpaEvalArgs(editor, pkg, imports);
-          args.push("--metrics");
+    async () => {
+      const editor = vscode.window.activeTextEditor;
+      if (!editor) {
+        vscode.window.showErrorMessage("No active editor");
+        return;
+      }
 
-          const text = editor.document.getText(editor.selection);
-
-          provider.set(outputUri, "// Evaluating...", undefined);
-
-          opa.run(
-            "opa",
-            args,
-            text,
-            (stderr, result) => {
-              setEvalOutput(
-                provider,
-                outputUri,
-                stderr,
-                result,
-                inputPath,
-                text,
-              );
-            },
-            opaOutputShowError,
-          );
-        },
-        (error: string) => {
-          opaOutputShowError(error);
-        },
-      );
-    }),
+      await evalSelection(editor);
+    },
   );
 
-  context.subscriptions.push(evalSelectionCommand, registration);
+  context.subscriptions.push(evalSelectionCommand);
 }
 
 function activateEvalCoverage(context: vscode.ExtensionContext) {
@@ -1178,47 +1150,6 @@ function ifInWorkspace(yes: () => void, no: () => void = () => {}) {
 }
 
 export function deactivate() {}
-
-function opaOutputShow(msg: string) {
-  opaOutputChannel.clear();
-  opaOutputChannel.append(msg);
-  opaOutputChannel.show(true);
-}
-
-function opaOutputShowError(error: string) {
-  opaOutputChannel.clear();
-  opaOutputChannel.append(formatErrors(error));
-  opaOutputChannel.show(true);
-}
-
-function formatErrors(error: string): string {
-  try {
-    const output = JSON.parse(error);
-    let errors;
-    if (output.error !== undefined) {
-      if (!Array.isArray(output.error)) {
-        errors = [output.error];
-      } else {
-        errors = output.error;
-      }
-    } else if (output.errors !== undefined) {
-      errors = output.errors;
-    }
-    const msg = [];
-    for (let i = 0; i < errors.length; i++) {
-      let location_prefix;
-      if (errors[i].location.file !== "") {
-        location_prefix = `${errors[i].location.file}:${errors[i].location.row}`;
-      } else {
-        location_prefix = `<query>`;
-      }
-      msg.push(`${location_prefix}: ${errors[i].code}: ${errors[i].message}`);
-    }
-    return msg.join("\n");
-  } catch (_) {
-    return error;
-  }
-}
 
 function checkOnSaveEnabled() {
   return vscode.workspace.getConfiguration("opa").get<boolean>("checkOnSave");
