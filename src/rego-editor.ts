@@ -17,7 +17,16 @@ export function trackRegoEditor(editor: vscode.TextEditor | undefined) {
 }
 
 // Returns the active Rego editor, or else the last focused Rego editor whose document is still open.
-export function getRegoEditor(): vscode.TextEditor | undefined {
+// With showError set, tells the user to open a Rego file when there is none.
+export function getRegoEditor({ showError = false } = {}): vscode.TextEditor | undefined {
+  const editor = findRegoEditor();
+  if (!editor && showError) {
+    vscode.window.showErrorMessage("Open a .rego file to run this command.");
+  }
+  return editor;
+}
+
+function findRegoEditor(): vscode.TextEditor | undefined {
   const active = vscode.window.activeTextEditor;
   if (isRegoEditor(active)) {
     return active;
@@ -31,13 +40,4 @@ export function getRegoEditor(): vscode.TextEditor | undefined {
   // may have been disposed if its tab was hidden.
   const doc = lastRegoEditor.document;
   return vscode.window.visibleTextEditors.find(ed => ed.document === doc) ?? lastRegoEditor;
-}
-
-// Like getRegoEditor, but tells the user to open a Rego file when there is none.
-export function requireRegoEditor(): vscode.TextEditor | undefined {
-  const editor = getRegoEditor();
-  if (!editor) {
-    vscode.window.showErrorMessage("Open a .rego file to run this command.");
-  }
-  return editor;
 }

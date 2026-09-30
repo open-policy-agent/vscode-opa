@@ -23,7 +23,7 @@ import {
   toggleRegalDiagnostics,
 } from "./ls/clients/regal";
 import * as opa from "./opa";
-import { getRegoEditor, requireRegoEditor, trackRegoEditor } from "./rego-editor";
+import { getRegoEditor, trackRegoEditor } from "./rego-editor";
 import { activateTestController, handleTestLocations } from "./testing/controller";
 import { OPATreeDataProvider } from "./tree/opaTreeProvider";
 import { getPrettyTime } from "./util";
@@ -465,7 +465,7 @@ function activateCoverWorkspace(context: vscode.ExtensionContext) {
   const coverWorkspaceCommand = vscode.commands.registerCommand(
     "opa.test.coverage.workspace",
     () => {
-      const editor = requireRegoEditor();
+      const editor = getRegoEditor({ showError: true });
       if (!editor) {
         return;
       }
@@ -689,7 +689,7 @@ function activateTestWorkspace(context: vscode.ExtensionContext) {
           args.push(...opa.getRoots());
         },
         () => {
-          const editor = requireRegoEditor();
+          const editor = getRegoEditor({ showError: true });
           if (!editor) {
             hasTarget = false;
             return;
@@ -724,7 +724,7 @@ function activateTraceSelection(context: vscode.ExtensionContext) {
   const traceSelectionCommand = vscode.commands.registerCommand(
     "opa.trace.selection",
     () => {
-      const editor = requireRegoEditor();
+      const editor = getRegoEditor({ showError: true });
       if (!editor) {
         return;
       }
@@ -768,7 +768,7 @@ function activateProfileSelection(context: vscode.ExtensionContext) {
   const profileSelectionCommand = vscode.commands.registerCommand(
     "opa.profile.selection",
     () => {
-      const editor = requireRegoEditor();
+      const editor = getRegoEditor({ showError: true });
       if (!editor) {
         return;
       }
@@ -812,7 +812,7 @@ function activatePartialSelection(context: vscode.ExtensionContext) {
   const partialSelectionCommand = vscode.commands.registerCommand(
     "opa.partial.selection",
     () => {
-      const editor = requireRegoEditor();
+      const editor = getRegoEditor({ showError: true });
       if (!editor) {
         return;
       }
@@ -956,7 +956,7 @@ function activateExplorerCommand(
   const explorerCommand = vscode.commands.registerCommand(
     "opa.explorer",
     async () => {
-      const editor = requireRegoEditor();
+      const editor = getRegoEditor({ showError: true });
       if (!editor) {
         return;
       }
@@ -1086,7 +1086,7 @@ function onActiveWorkspaceEditor(
     // TODO(tsandall): test non-workspace mode. I don't know if this plugin
     // will work if a single file is loaded. Certain features may not work
     // but many can.
-    const editor = requireRegoEditor();
+    const editor = getRegoEditor({ showError: true });
     if (!editor) {
       return;
     }
