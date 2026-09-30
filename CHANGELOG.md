@@ -1,5 +1,11 @@
 # Change Log
 
+## Unreleased
+
+## 0.26.0
+
+- Show coverage decorations when running the eval code lens [#498](https://github.com/open-policy-agent/vscode-opa/pull/498)
+
 ## 0.25.0
 
 - Highlight the `and` and `or` keywords [#482](https://github.com/open-policy-agent/vscode-opa/pull/482)
