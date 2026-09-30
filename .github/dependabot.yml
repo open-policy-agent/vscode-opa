@@ -8,6 +8,12 @@ updates:
     directory: "/"
     schedule:
       interval: "weekly"
+    ignore:
+      # typescript-eslint v8 peers on typescript ">=4.8.4 <6.1.0", so a
+      # typescript major bump breaks `npm install` for the whole group.
+      # Remove this once typescript-eslint supports typescript 7.
+      - dependency-name: "typescript"
+        update-types: ["version-update:semver-major"]
     groups:
       dependencies:
         patterns:
