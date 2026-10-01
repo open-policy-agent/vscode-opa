@@ -24,6 +24,23 @@
       }
     },
     {
+      "name": "Extension (no debugger attached)",
+      "type": "extensionHost",
+      "request": "launch",
+      "runtimeExecutable": "${execPath}",
+      "args": ["--extensionDevelopmentPath=${workspaceFolder}"],
+      "outFiles": ["${workspaceFolder}/out/**/*.js"],
+      "noDebug": true,
+      "preLaunchTask": {
+        "type": "npm",
+        "script": "watch"
+      },
+      "env": {
+        "VSCODE_DEBUG_MODE": "true",
+        "PATH": "${env:PATH}"
+      }
+    },
+    {
       "name": "Extension Tests",
       "type": "extensionHost",
       "request": "launch",

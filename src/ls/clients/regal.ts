@@ -18,11 +18,11 @@ import {
   evalResultDecorationType,
   evalResultTargetSuccessDecorationType,
   evalResultTargetUndefinedDecorationType,
-  opaOutputChannel,
   removeDecorations,
   setFileCoverage,
   showCoverageForWindow,
 } from "../../extension";
+import { opaOutputChannel } from "../../output";
 import type { ExplorerResult } from "../../tree/opaTreeProvider";
 import type { OPATreeDataProvider } from "../../tree/opaTreeProvider";
 
@@ -332,7 +332,8 @@ export async function activateRegal(
     inlineEvalProvider: capabilities.inlineEvalProvider && options.featureFlags.enableInlineEval,
     debugProvider: capabilities.debugProvider && options.featureFlags.enableDebug,
     opaTestProvider: capabilities.opaTestProvider && options.featureFlags.enableServerTesting,
-    evalInlineCoverageProvider: capabilities.evalInlineCoverageProvider && options.featureFlags.enableEvalInlineCoverage,
+    evalInlineCoverageProvider: capabilities.evalInlineCoverageProvider
+      && options.featureFlags.enableEvalInlineCoverage,
   };
 
   return { client, capabilities: effectiveCapabilities };

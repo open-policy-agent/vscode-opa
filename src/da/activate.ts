@@ -1,7 +1,8 @@
 import * as vscode from "vscode";
 
 import { REGAL_CONFIG, resolveBinary } from "../binaries";
-import { existsSync, getInputPath, opaOutputChannel } from "../extension";
+import { existsSync, getInputPath } from "../extension";
+import { opaOutputChannel } from "../output";
 import * as opa from "./../opa";
 
 const minimumSupportedRegalVersion = "0.26.0";
