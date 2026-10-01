@@ -3,6 +3,7 @@
 import * as cp from "child_process";
 import * as vscode from "vscode";
 import { OPA_CONFIG, resolveBinary } from "./binaries";
+import { getRegoEditor } from "./rego-editor";
 import { getImports, getPackage, replaceWorkspaceFolderPathVariable } from "./util";
 
 export function getDataDir(uri: vscode.Uri): string {
@@ -42,10 +43,11 @@ function installedOPASameOrNewerThan(x: string): boolean {
 
 function replacePathVariables(path: string): string {
   let result = replaceWorkspaceFolderPathVariable(path);
-  if (vscode.window.activeTextEditor !== undefined) {
+  const editor = getRegoEditor();
+  if (editor !== undefined) {
     result = result.replace(
       "${fileDirname}",
-      require("path").dirname(vscode.window.activeTextEditor!.document.fileName),
+      require("path").dirname(editor.document.fileName),
     );
   } else if (path.indexOf("${fileDirname}") >= 0) {
     // Report on the original path
