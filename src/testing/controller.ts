@@ -1,10 +1,11 @@
 "use strict";
 
 import * as vscode from "vscode";
-import type { RunTestsParams, TestLocation } from "../ls/clients/regal";
+import type { RunTestsParams, TestLocation, TestResult, TestTarget } from "../ls/clients/regal";
 import { runTests } from "../ls/clients/regal";
 import { TestHierarchyManager } from "./hierarchy-manager";
-import { parseTestId } from "./id";
+import { itemKind, itemPackage, parseTestId } from "./id";
+import { decodeOutput } from "./output";
 
 let controller: vscode.TestController;
 let hierarchyManager: TestHierarchyManager;
@@ -56,73 +57,139 @@ async function runHandler(
   cancellation: vscode.CancellationToken,
 ): Promise<void> {
   const run = controller.createTestRun(request);
-  const queue: vscode.TestItem[] = [];
 
-  if (request.include) {
-    request.include.forEach(test => queue.push(test));
-  } else {
-    controller.items.forEach(test => queue.push(test));
+  try {
+    await executeRun(request, run, cancellation);
+  } finally {
+    run.end();
   }
-
-  for (const test of queue) {
-    if (cancellation.isCancellationRequested) {
-      break;
-    }
-
-    if (test.children.size > 0) {
-      test.children.forEach(child => {
-        if (!request.exclude?.includes(child)) {
-          queue.push(child);
-        }
-      });
-      continue;
-    }
-
-    try {
-      await runSingleTest(test, run);
-    } catch (error) {
-      run.errored(
-        test,
-        new vscode.TestMessage(`Test execution error: ${error}`),
-      );
-    }
-  }
-
-  run.end();
 }
 
-async function runSingleTest(
-  test: vscode.TestItem,
+async function executeRun(
+  request: vscode.TestRunRequest,
   run: vscode.TestRun,
+  cancellation: vscode.CancellationToken,
 ): Promise<void> {
-  run.started(test);
-
-  const parsed = parseTestId(test.id);
-  if (!parsed || !test.uri) {
-    run.errored(test, new vscode.TestMessage("Invalid test"));
+  const expected = collectExpected(request, run);
+  if (expected.size === 0) {
     return;
   }
 
-  const params: RunTestsParams = {
-    uri: test.uri.toString(),
-    package: parsed.package,
-    name: parsed.name,
-  };
+  const params: RunTestsParams = {};
+  params.targets = request.include ? targetsFor(request.include) : [{}];
+  if (request.exclude) {
+    params.exclude = request.exclude.flatMap(item => targetFor(item) ?? []);
+  }
 
-  let results;
+  let results: TestResult[];
   try {
-    results = await runTests(params);
+    results = await runTests(params, cancellation);
   } catch (error) {
-    run.errored(test, new vscode.TestMessage(`LSP request failed: ${error}`));
+    for (const item of expected.values()) {
+      if (cancellation.isCancellationRequested) {
+        run.skipped(item);
+      } else {
+        run.errored(item, new vscode.TestMessage(`LSP request failed: ${error}`));
+      }
+    }
     return;
   }
 
-  const result = results[0];
-  if (!result) {
-    run.errored(test, new vscode.TestMessage("No test results returned"));
-    return;
+  for (const result of results) {
+    const item = expected.get(`${result.package}:${result.name}`);
+    if (item) {
+      expected.delete(`${result.package}:${result.name}`);
+      reportResult(item, result, run);
+    }
+  }
+  for (const item of expected.values()) {
+    run.errored(item, new vscode.TestMessage("No test results returned"));
+  }
+}
+
+function collectExpected(
+  request: vscode.TestRunRequest,
+  run: vscode.TestRun,
+): Map<string, vscode.TestItem> {
+  const excluded = new Set(request.exclude ?? []);
+
+  const roots: vscode.TestItem[] = [];
+  (request.include ?? []).forEach(item => roots.push(item));
+  if (!request.include) {
+    controller.items.forEach(item => roots.push(item));
   }
 
+  const expected = new Map<string, vscode.TestItem>();
+  const collect = (item: vscode.TestItem) => {
+    if (excluded.has(item)) {
+      return;
+    }
+    if (item.children.size > 0) {
+      item.children.forEach(collect);
+      return;
+    }
+    const parsed = parseTestId(item.id);
+    if (!parsed) {
+      run.errored(item, new vscode.TestMessage("Invalid test"));
+      return;
+    }
+    expected.set(`${parsed.package}:${parsed.name}`, item);
+    run.started(item);
+  };
+  roots.forEach(collect);
+
+  return expected;
+}
+
+function targetFor(item: vscode.TestItem): TestTarget | undefined {
+  switch (itemKind(item.id)) {
+    case "root":
+      return {};
+    case "package":
+      return { package: itemPackage(item.id) };
+    case "test": {
+      const parsed = parseTestId(item.id);
+      return parsed ? { package: parsed.package, name: parsed.name } : undefined;
+    }
+    default:
+      return undefined;
+  }
+}
+
+function targetsFor(items: readonly vscode.TestItem[]): TestTarget[] {
+  const targets: TestTarget[] = [];
+  const byFile = new Map<string, vscode.TestItem[]>();
+
+  for (const item of items) {
+    if (itemKind(item.id) === "test" && item.uri) {
+      const tests = byFile.get(item.uri.toString()) ?? [];
+      tests.push(item);
+      byFile.set(item.uri.toString(), tests);
+    } else {
+      const target = targetFor(item);
+      if (target) {
+        targets.push(target);
+      }
+    }
+  }
+
+  for (const [fileUri, tests] of byFile) {
+    const all = hierarchyManager.testIdsForFile(fileUri);
+    if (all && tests.length === all.size && tests.every(t => all.has(t.id))) {
+      targets.push({ uri: fileUri });
+    } else {
+      targets.push(...tests.flatMap(t => targetFor(t) ?? []));
+    }
+  }
+
+  return targets;
+}
+
+function reportResult(
+  test: vscode.TestItem,
+  result: TestResult,
+  run: vscode.TestRun,
+): void {
   const durationMs = result.duration / 1_000_000;
 
   if (result.fail !== undefined) {
@@ -142,14 +209,6 @@ async function runSingleTest(
   }
 
   if (result.output) {
-    try {
-      const decodedOutput = Buffer.from(result.output, "base64").toString(
-        "utf-8",
-      );
-      const normalizedOutput = decodedOutput.replace(/\n/g, "\r\n");
-      run.appendOutput(normalizedOutput);
-    } catch (error) {
-      run.appendOutput(result.output);
-    }
+    run.appendOutput(decodeOutput(result.output));
   }
 }

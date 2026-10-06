@@ -359,7 +359,8 @@
     "lint:fix": "eslint . --fix",
     "format": "npx dprint fmt",
     "format:check": "npx dprint check",
-    "typecheck": "tsc --noEmit"
+    "typecheck": "tsc --noEmit",
+    "test": "tsc -p ./ && node --test 'out/testing/*.test.js'"
   },
   "devDependencies": {
     "@eslint/js": "^10.0.1",
