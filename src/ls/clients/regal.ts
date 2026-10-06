@@ -90,11 +90,16 @@ export interface TestLocation {
   };
 }
 
+export interface TestTarget {
+  uri?: string;
+  package?: string;
+  name?: string;
+}
+
 // Request parameters for regal/runTests
 export interface RunTestsParams {
-  uri: string;
-  package: string;
-  name: string;
+  targets?: TestTarget[];
+  exclude?: TestTarget[];
 }
 
 // Response from regal/runTests
@@ -392,7 +397,10 @@ export function isRegalRunning(): boolean {
   return client && client.state === State.Running;
 }
 
-export async function runTests(params: RunTestsParams): Promise<TestResult[]> {
+export async function runTests(
+  params: RunTestsParams,
+  token?: vscode.CancellationToken,
+): Promise<TestResult[]> {
   if (!client || client.state !== State.Running) {
     throw new Error("Regal language server is not running");
   }
@@ -401,6 +409,7 @@ export async function runTests(params: RunTestsParams): Promise<TestResult[]> {
     const results = await client.sendRequest<TestResult[]>(
       "regal/runTests",
       params,
+      token,
     );
     return results;
   } catch (error) {

@@ -27,3 +27,11 @@ export function parseTestId(testIdStr: string): { package: string; name: string 
 
   return { package: pkg, name };
 }
+
+export function itemKind(itemId: string): string {
+  return vscode.Uri.parse(itemId).query;
+}
+
+export function itemPackage(itemId: string): string {
+  return vscode.Uri.parse(itemId).fragment;
+}

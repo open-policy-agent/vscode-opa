@@ -3,6 +3,7 @@
 import * as vscode from "vscode";
 import type { TestLocation } from "../ls/clients/regal";
 import { packageId, rootId, testId } from "./id";
+import { packageRef } from "./package-ref";
 
 // TestHierarchyManager tracks the state of tests that are defined and updates
 // the controller state as test locations change.
@@ -22,13 +23,17 @@ export class TestHierarchyManager {
       const currentPath: string[] = [];
       for (const part of test.package_path) {
         currentPath.push(part);
-        const fullPackage = `data.${currentPath.join(".")}`;
+        const fullPackage = packageRef(currentPath);
         const pkgId = packageId(workspaceUri, fullPackage);
         parent = this.ensurePackage(parent, pkgId, part);
       }
 
       this.addTest(parent, test, fileUri);
     }
+  }
+
+  testIdsForFile(fileUri: string): ReadonlySet<string> | undefined {
+    return this.fileToTestIds.get(fileUri);
   }
 
   clearTestsForFile(fileUri: string): void {
