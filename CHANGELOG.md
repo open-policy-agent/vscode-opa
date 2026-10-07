@@ -2,6 +2,8 @@
 
 ## Unreleased
 
+- Remove the `OPA: Evaluate Package`, `OPA: Toggle Evaluation Coverage` and `OPA: Test Workspace` commands. Regal provides these features. Use the code lenses, the test explorer and `OPA: Toggle Eval Inline Coverage` instead. These need Regal to be installed.
+
 ## 0.26.0
 
 - Show coverage decorations when running the eval code lens [#498](https://github.com/open-policy-agent/vscode-opa/pull/498)

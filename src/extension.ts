@@ -26,11 +26,10 @@ import {
   toggleRegalDiagnostics,
 } from "./ls/clients/regal";
 import * as opa from "./opa";
-import { opaOutputChannel, opaOutputShow, opaOutputShowError } from "./output";
+import { opaOutputChannel, opaOutputShowError } from "./output";
 import { getRegoEditor, trackRegoEditor } from "./rego-editor";
 import { activateTestController, handleTestLocations } from "./testing/controller";
 import { OPATreeDataProvider } from "./tree/opaTreeProvider";
-import { getPrettyTime } from "./util";
 
 // Feature flags for custom Regal-backed features, all on by default
 const regalOptions: RegalClientActivationOptions = {
@@ -42,27 +41,6 @@ const regalOptions: RegalClientActivationOptions = {
     enableEvalInlineCoverage: true,
   },
 };
-
-export class JSONProvider implements vscode.TextDocumentContentProvider {
-  private _onDidChange = new vscode.EventEmitter<vscode.Uri>();
-  private content = "";
-
-  public provideTextDocumentContent(_uri: vscode.Uri): string {
-    return this.content;
-  }
-
-  get onDidChange(): vscode.Event<vscode.Uri> {
-    return this._onDidChange.event;
-  }
-
-  public set(uri: vscode.Uri, note: string, output: any) {
-    this.content = note;
-    if (output !== undefined) {
-      this.content += "\n" + JSON.stringify(output, undefined, 2);
-    }
-    this._onDidChange.fire(uri);
-  }
-}
 
 export class CompilerStagesContentProvider implements vscode.TextDocumentContentProvider {
   provideTextDocumentContent(uri: vscode.Uri): string {
@@ -136,12 +114,9 @@ export async function activate(context: vscode.ExtensionContext) {
   // lint + eval + test
   activateCheckFile(context);
   activateCoverWorkspace(context);
-  activateEvalCoverage(context);
-  activateEvalPackage(context);
   activateEvalSelection(context);
   activatePartialSelection(context);
   activateProfileSelection(context);
-  activateTestWorkspace(context);
   activateTraceSelection(context);
 
   // Compiler stages side panel
@@ -257,8 +232,6 @@ export function removeDecorations() {
   });
 }
 
-const outputUri = vscode.Uri.parse(`json:output.jsonc`);
-
 const coveredHighlight = vscode.window.createTextEditorDecorationType({
   backgroundColor: "rgba(64,128,64,0.3)",
 });
@@ -290,11 +263,6 @@ function removeDecorationsOnDocumentChange(e: vscode.TextDocumentChangeEvent) {
   // output:extension-output is the output channel for the extensions
   // and should not be used for clearing decorations
   if (e.document.uri.toString().startsWith("output:extension-output")) {
-    return;
-  }
-
-  // output URI is the URI of the JSON file used for the eval result output
-  if (`${e.document.uri}` === `${outputUri}`) {
     return;
   }
 
@@ -357,66 +325,6 @@ export function setFileCoverage(result: any) {
       notCoveredExtraInfo: notCoveredExtraInfo,
     };
   });
-}
-
-function formatQuery(query: string): string {
-  const lines = query.split("\n");
-  if (lines.length === 1) {
-    return query;
-  }
-  const moreLines = lines.length - 1;
-  return `${lines[0]} ... (+${moreLines} more line${moreLines === 1 ? "" : "s"})`;
-}
-
-function setEvalOutput(
-  provider: JSONProvider,
-  uri: vscode.Uri,
-  stderr: string,
-  result: any,
-  inputPath: string,
-  query: string,
-) {
-  if (stderr !== "") {
-    opaOutputShow(stderr);
-  }
-
-  let inputMessage: string;
-  if (inputPath === "") {
-    inputMessage = "no input file";
-  } else {
-    inputMessage = inputPath.replace("file://", "");
-    inputMessage = vscode.workspace.asRelativePath(inputMessage);
-  }
-
-  const displayQuery = formatQuery(query);
-
-  if (result.result === undefined) {
-    provider.set(
-      outputUri,
-      `// Query: ${displayQuery}\n// No results found. Took ${
-        getPrettyTime(
-          result.metrics.timer_rego_query_eval_ns,
-        )
-      }. Used ${inputMessage} as input.`,
-      undefined,
-    );
-  } else {
-    let output: any;
-    if (result.result[0].bindings === undefined) {
-      output = result.result.map((x: any) => x.expressions.map((x: any) => x.value));
-    } else {
-      output = result.result.map((x: any) => x.bindings);
-    }
-    provider.set(
-      uri,
-      `// Query: ${displayQuery}\n// Found ${result.result.length} result${result.result.length === 1 ? "" : "s"} in ${
-        getPrettyTime(
-          result.metrics.timer_rego_query_eval_ns,
-        )
-      } using ${inputMessage} as input.`,
-      output,
-    );
-  }
 }
 
 function activateCheckFile(context: vscode.ExtensionContext) {
@@ -534,55 +442,6 @@ function activateCoverWorkspace(context: vscode.ExtensionContext) {
   context.subscriptions.push(coverWorkspaceCommand);
 }
 
-function activateEvalPackage(context: vscode.ExtensionContext) {
-  const provider = new JSONProvider();
-  const registration = vscode.workspace.registerTextDocumentContentProvider(
-    outputUri.scheme,
-    provider,
-  );
-
-  const evalPackageCommand = vscode.commands.registerCommand(
-    "opa.eval.package",
-    onActiveWorkspaceEditor(
-      outputUri,
-      (editor: vscode.TextEditor, _inWorkspace: boolean) => {
-        opa.parse(
-          "opa",
-          opa.getDataDir(editor.document.uri),
-          (pkg: string, _: string[]) => {
-            const { inputPath, args } = createOpaEvalArgs(editor, pkg);
-            args.push("--metrics");
-
-            provider.set(outputUri, "// Evaluating...", undefined);
-
-            opa.run(
-              "opa",
-              args,
-              "data." + pkg,
-              (stderr, result) => {
-                setEvalOutput(
-                  provider,
-                  outputUri,
-                  stderr,
-                  result,
-                  inputPath,
-                  "data." + pkg,
-                );
-              },
-              opaOutputShowError,
-            );
-          },
-          (error: string) => {
-            opaOutputShowError(error);
-          },
-        );
-      },
-    ),
-  );
-
-  context.subscriptions.push(evalPackageCommand, registration);
-}
-
 function activateEvalSelection(context: vscode.ExtensionContext) {
   const evalSelectionCommand = vscode.commands.registerCommand(
     "opa.eval.selection",
@@ -598,118 +457,6 @@ function activateEvalSelection(context: vscode.ExtensionContext) {
   );
 
   context.subscriptions.push(evalSelectionCommand);
-}
-
-function activateEvalCoverage(context: vscode.ExtensionContext) {
-  const provider = new JSONProvider();
-  const registration = vscode.workspace.registerTextDocumentContentProvider(
-    outputUri.scheme,
-    provider,
-  );
-
-  const evalCoverageCommand = vscode.commands.registerCommand(
-    "opa.eval.coverage",
-    onActiveWorkspaceEditor(outputUri, (editor: vscode.TextEditor) => {
-      for (const fileName in fileCoverage) {
-        if (editor.document.fileName.endsWith(fileName)) {
-          removeDecorations();
-          return;
-        }
-      }
-
-      fileCoverage = {};
-
-      opa.parse(
-        "opa",
-        opa.getDataDir(editor.document.uri),
-        (pkg: string, imports: string[]) => {
-          const { inputPath, args } = createOpaEvalArgs(editor, pkg, imports);
-          args.push("--metrics");
-          args.push("--coverage");
-
-          const text = editor.document.getText(editor.selection);
-
-          provider.set(outputUri, "// Evaluating...", undefined);
-
-          opa.run(
-            "opa",
-            args,
-            text,
-            (stderr, result) => {
-              setEvalOutput(
-                provider,
-                outputUri,
-                stderr,
-                result,
-                inputPath,
-                text,
-              );
-              setFileCoverage(result.coverage);
-              showCoverageForWindow();
-            },
-            opaOutputShowError,
-          );
-        },
-        (error: string) => {
-          opaOutputShowError(error);
-        },
-      );
-    }),
-  );
-
-  context.subscriptions.push(evalCoverageCommand, registration);
-}
-
-function activateTestWorkspace(context: vscode.ExtensionContext) {
-  const testWorkspaceCommand = vscode.commands.registerCommand(
-    "opa.test.workspace",
-    () => {
-      opaOutputChannel.show(true);
-      opaOutputChannel.clear();
-
-      const args: string[] = ["test"];
-
-      args.push("--verbose");
-
-      let hasTarget = true;
-      ifInWorkspace(
-        () => {
-          if (opa.canUseBundleFlags()) {
-            args.push("--bundle");
-            args.push(...opa.getBundleIgnoreParams());
-          }
-          args.push(...opa.getRoots());
-        },
-        () => {
-          const editor = getRegoEditor({ showError: true });
-          if (!editor) {
-            hasTarget = false;
-            return;
-          }
-          args.push(editor.document.uri.fsPath);
-        },
-      );
-
-      if (!hasTarget) {
-        return;
-      }
-
-      opa.runWithStatus(
-        "opa",
-        args,
-        "",
-        (code: number, stderr: string, stdout: string) => {
-          if (code === 0 || code === 2) {
-            opaOutputChannel.append(stdout);
-          } else {
-            opaOutputShowError(stderr);
-          }
-        },
-      );
-    },
-  );
-
-  context.subscriptions.push(testWorkspaceCommand);
 }
 
 function activateTraceSelection(context: vscode.ExtensionContext) {
@@ -1081,48 +828,6 @@ function activateShowStageErrorCommand(context: vscode.ExtensionContext) {
   );
 
   context.subscriptions.push(showStageErrorCommand);
-}
-
-function onActiveWorkspaceEditor(
-  forURI: vscode.Uri,
-  cb: (editor: vscode.TextEditor, inWorkspace: boolean) => void,
-): () => void {
-  return async () => {
-    // TODO(tsandall): test non-workspace mode. I don't know if this plugin
-    // will work if a single file is loaded. Certain features may not work
-    // but many can.
-    const editor = getRegoEditor({ showError: true });
-    if (!editor) {
-      return;
-    }
-
-    const inWorkspace = !!vscode.workspace.workspaceFolders;
-
-    // Execute the callback first to populate content
-    cb(editor, !!inWorkspace);
-
-    // Then open the read-only document beside the current editor.
-    // If no read-only document exists yet, create a new one. If one exists,
-    // re-use it.
-    try {
-      const doc = await vscode.workspace.openTextDocument(forURI);
-      const found = vscode.window.visibleTextEditors.find(
-        (ed: vscode.TextEditor) => {
-          return ed.document.uri === doc.uri;
-        },
-      );
-
-      if (found === undefined) {
-        await vscode.window.showTextDocument(
-          doc,
-          vscode.ViewColumn.Beside,
-          true,
-        );
-      }
-    } catch (error) {
-      console.error("Failed to open output document:", error);
-    }
-  };
 }
 
 let informAboutWorkspace = true;

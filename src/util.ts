@@ -37,18 +37,6 @@ export function getPathString(path: any): string {
   }).join("");
 }
 
-export function getPrettyTime(ns: number): string {
-  const seconds = ns / 1e9;
-  if (seconds >= 1) {
-    return seconds.toString() + "s";
-  }
-  const milliseconds = ns / 1e6;
-  if (milliseconds >= 1) {
-    return milliseconds.toString() + "ms";
-  }
-  return (ns / 1e3).toString() + "µs";
-}
-
 export function replaceWorkspaceFolderPathVariable(path: string): string {
   if (vscode.workspace.workspaceFolders !== undefined && vscode.workspace.workspaceFolders.length > 0) {
     // here, uri.fsPath is used as this returns a usable path on both Windows and Unix
