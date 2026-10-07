@@ -13,8 +13,6 @@ This plugin provides a number of features to help you work with
 - Trace Selections
 - Profile Selections
 - Run Tests in Workspace
-- Toggle Coverage in Workspace
-- Toggle Coverage of Selections
 
 Additionally, users may choose to install
 [Regal](https://www.openpolicyagent.org/projects/regal),
@@ -121,16 +119,6 @@ Bind the `OPA: Evaluate Selection` command to a keyboard shortcut (e.g., ⌘ e) 
 {
     "key": "cmd+e",
     "command": "opa.eval.selection",
-    "when": "editorLangId == rego"
-}
-```
-
-Bind the `OPA: Evaluate Package` command to a keyboard shortcut (e.g., ⌘ Shift a) to quickly evaluate the entire package and see all of the decisions.
-
-```json
-{
-    "key": "shift+cmd+a",
-    "command": "opa.eval.package",
     "when": "editorLangId == rego"
 }
 ```

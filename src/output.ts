@@ -3,12 +3,6 @@ import * as vscode from "vscode";
 // log: true creates a LogOutputChannel, required for traceOutputChannel in LanguageClientOptions
 export const opaOutputChannel = vscode.window.createOutputChannel("OPA & Regal", { log: true });
 
-export function opaOutputShow(msg: string) {
-  opaOutputChannel.clear();
-  opaOutputChannel.append(msg);
-  opaOutputChannel.show(true);
-}
-
 export function opaOutputShowError(error: string) {
   opaOutputChannel.clear();
   opaOutputChannel.append(formatErrors(error));
