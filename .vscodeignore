@@ -3,6 +3,8 @@
 .vscode-test/**
 out/**/*.map
 out/test/**
+out/src/**
+out/**/*.test.js
 src/**
 .gitignore
 tsconfig.json
@@ -21,3 +23,14 @@ eslint-results.sarif
 Makefile
 DEVELOPMENT.md
 CHANGELOG.md
+.claude
+node_modules/**/*.map
+node_modules/**/*.d.ts
+node_modules/**/test/**
+node_modules/**/eslint.config.js
+node_modules/**/tsconfig.tsbuildinfo
+node_modules/**/.travis.yml
+node_modules/**/appveyor.yml
+node_modules/**/.jshintrc
+node_modules/**/README.md
+node_modules/**/thirdpartynotices.txt
