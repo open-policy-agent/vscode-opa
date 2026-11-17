@@ -353,24 +353,24 @@
   "devDependencies": {
     "@eslint/js": "^10.0.1",
     "@microsoft/eslint-formatter-sarif": "^3.1.0",
-    "@stylistic/eslint-plugin": "^5.10.0",
+    "@stylistic/eslint-plugin": "^6.0.0",
     "@types/command-exists": "^1.2.3",
     "@types/mocha": "10.0.10",
-    "@types/node": "^26.6.5",
+    "@types/node": "^26.6.6",
     "@types/semver": "^7.8.0",
-    "@types/vscode": "1.140.0",
-    "@vscode/vsce": "^4.0.0",
-    "cspell": "^10.4.0",
+    "@types/vscode": "1.146.0",
+    "@vscode/vsce": "^4.1.1",
+    "cspell": "^10.5.0",
     "dprint": "^0.64.3",
-    "eslint": "10.13.0",
-    "globals": "^17.13.0",
-    "markdownlint-cli2": "^0.24.0",
+    "eslint": "10.15.0",
+    "globals": "^17.14.0",
+    "markdownlint-cli2": "^0.24.1",
     "typescript": "^6.0.3",
-    "typescript-eslint": "^8.72.0"
+    "typescript-eslint": "^8.72.2"
   },
   "dependencies": {
     "command-exists": "^1.2.9",
-    "semver": "^7.8.5",
+    "semver": "^7.8.6",
     "vscode-languageclient": "^11.0.0"
   },
   "__metadata": {
